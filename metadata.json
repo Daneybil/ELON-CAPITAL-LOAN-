@@ -1,0 +1,6 @@
+{
+  "name": "Elon Capital Loan",
+  "description": "A premium, modern, and secure futuristic lending platform designed for businesses, startups, entrepreneurs, and investment projects seeking high-value funding.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

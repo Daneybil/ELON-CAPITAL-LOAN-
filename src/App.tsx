@@ -186,13 +186,8 @@ export default function App() {
   };
 
   const handleApplyClick = () => {
-    if (user) {
-      setUserDashboardTab('apply');
-      setDashboardView('user');
-      window.history.pushState({}, '', '/dashboard');
-    } else {
-      handleOpenAuth('register');
-    }
+    window.history.pushState({}, '', '/calculator');
+    setDashboardView('calculator');
   };
 
   const handleCalculatorApply = (amount: number, term: number) => {

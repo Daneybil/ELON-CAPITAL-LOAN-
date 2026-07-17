@@ -12,7 +12,8 @@ import {
   Percent,
   Calendar,
   Info,
-  Instagram
+  Instagram,
+  Rocket
 } from 'lucide-react';
 import { HomePageContent } from '../types';
 import Testimonials from './Testimonials';
@@ -61,19 +62,49 @@ export default function Hero({
       <div className="absolute top-1/2 right-1/4 w-[500px] h-[500px] bg-white/[0.01] rounded-full blur-[130px] pointer-events-none" />
 
       {/* ----------------- 1. HERO SECTION ----------------- */}
-      <div className="max-w-5xl mx-auto text-center px-6 pt-24 pb-16 lg:pt-32 lg:pb-20 select-none animate-fade-in">
+      <div className="max-w-7xl mx-auto px-6 pt-24 pb-16 lg:pt-32 lg:pb-20 select-none animate-fade-in">
         
-        {/* Very large, bold, matched headline */}
-        <h1 className="font-display text-6xl sm:text-8xl lg:text-[110px] font-black tracking-tight text-white uppercase mb-10 leading-[0.95] space-y-4" id="hero-title">
-          <span className="block drop-shadow-[0_4px_20px_rgba(255,255,255,0.05)]">Build Bigger.</span>
-          <span className="block drop-shadow-[0_4px_20px_rgba(255,255,255,0.05)]">Grow Faster.</span>
-          <span className="text-cyan-400 block drop-shadow-[0_4px_25px_rgba(34,211,238,0.15)] text-4xl sm:text-6xl lg:text-[85px] tracking-tight leading-[0.95] font-black">
-            Borrow from $1,000 to $500,000,000
+        {/* NEW ERA HAS BEGUN. BRING YOUR DREAM TO LIFE - BOLD, VERY BIG, CAPITAL SUBHEADING RIGHT UP */}
+        <div className="text-center mb-16" id="hero-subheading-top">
+          <span className="text-cyan-400 font-black text-2xl sm:text-4xl lg:text-5xl tracking-[0.18em] uppercase block leading-tight drop-shadow-[0_4px_20px_rgba(34,211,238,0.25)] font-display">
+            NEW ERA HAS BEGUN.
           </span>
-          <span className="text-white font-extrabold text-xs sm:text-sm tracking-[0.25em] uppercase block mt-10 max-w-2xl mx-auto leading-relaxed border-t border-white/10 pt-6">
-            NEW ERA HAS BEGUN BRING YOUR DREAM TO LIFE
+          <span className="text-white font-black text-xl sm:text-3xl lg:text-4xl tracking-[0.18em] uppercase block mt-3 font-display">
+            BRING YOUR DREAM TO LIFE.
           </span>
-        </h1>
+          <div className="h-[2px] w-32 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent mx-auto mt-6" />
+        </div>
+
+        {/* 2-Column Grid Layout: Text on Left, Astronaut Image on Right */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center mb-16 lg:mb-20">
+          
+          {/* Left Column: Headlines */}
+          <div className="lg:col-span-6 flex flex-col justify-center text-left space-y-6">
+            <h1 className="font-display text-5xl sm:text-7xl lg:text-[85px] font-black tracking-tight text-white uppercase leading-[0.95]" id="hero-title">
+              <span className="block drop-shadow-[0_4px_20px_rgba(255,255,255,0.05)]">Build Bigger.</span>
+              <span className="block drop-shadow-[0_4px_20px_rgba(255,255,255,0.05)]">Grow Faster.</span>
+              <span className="text-cyan-400 block drop-shadow-[0_4px_25px_rgba(34,211,238,0.15)] text-3xl sm:text-5xl lg:text-[64px] tracking-tight leading-[0.95] font-black mt-4">
+                Borrow from $1,000 to $500,000,000
+              </span>
+            </h1>
+          </div>
+
+          {/* Right Column: Astronaut Image facing right */}
+          <div className="lg:col-span-6 relative w-full flex justify-center lg:justify-end">
+            <div className="relative w-full rounded-2xl border border-white/20 overflow-hidden bg-zinc-950 p-2 shadow-[0_30px_80px_rgba(0,0,0,0.95)] group hover:border-cyan-400/40 transition-all duration-500 w-full">
+              {/* Ambient cyan backdrop shadow */}
+              <div className="absolute -inset-3 bg-gradient-to-r from-cyan-500/15 to-transparent rounded-2xl blur-2xl opacity-75 pointer-events-none" />
+              
+              <img 
+                src="/Advancing_Human_Spaceflight_Mobile_af242fde31.jpg" 
+                alt="Astronaut Exploration facing right"
+                referrerPolicy="no-referrer"
+                className="w-full h-[550px] sm:h-[750px] lg:h-[900px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.015]"
+              />
+            </div>
+          </div>
+
+        </div>
 
         {/* Professional, comprehensive, targeted tagline */}
         <p className="text-base sm:text-lg text-white font-semibold leading-relaxed max-w-4xl mx-auto mb-16 tracking-wide text-center bg-white/[0.02] border border-white/5 rounded-2xl p-6 sm:p-8 shadow-[0_4px_30px_rgba(0,0,0,0.4)]" id="hero-desc">
@@ -109,7 +140,7 @@ export default function Hero({
 
           {/* Button 3: How It Works */}
           <button
-            onClick={() => setHowItWorksOpen(true)}
+            onClick={() => scrollToSection('how-it-works-section')}
             className="relative group rounded-2xl bg-blue-900 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
             id="btn-hero-how"
           >
@@ -147,9 +178,6 @@ export default function Hero({
 
         {/* Massive 3D Social Media Portals directly under the 5 main buttons */}
         <div className="mt-8 text-center" id="social-portals-hero">
-          <span className="block text-[10px] font-mono font-bold uppercase tracking-[0.25em] text-cyan-400 mb-6">
-            Official Elon Musk Social Portals
-          </span>
           <div className="flex flex-wrap justify-center items-center gap-6 max-w-2xl mx-auto mb-20">
             {/* Twitter / X */}
             <a 
@@ -157,14 +185,14 @@ export default function Hero({
               target="_blank" 
               rel="noopener noreferrer"
               className="relative group block rounded-2xl bg-zinc-800/80 p-[1px] transition-transform duration-200 active:scale-95 cursor-pointer shrink-0"
-              title="Elon Musk Twitter/X"
+              title="X"
             >
               <span className="absolute inset-0 rounded-2xl bg-cyan-900 translate-y-1.5 block"></span>
               <span className="relative flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-zinc-950 border border-white/10 text-sm font-mono uppercase tracking-wider text-gray-300 group-hover:text-cyan-400 -translate-y-1.5 group-hover:-translate-y-0.5 group-active:translate-y-0 transition-all duration-150 shadow-[0_4px_15px_rgba(34,211,238,0.15)]">
                 <svg className="h-5 w-5 fill-current text-cyan-400 shrink-0" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                 </svg>
-                <span className="font-bold">X / @elonmusk</span>
+                <span className="font-bold">X</span>
               </span>
             </a>
 
@@ -183,118 +211,263 @@ export default function Hero({
               </span>
             </a>
 
-            {/* Musk Foundation Website */}
+            {/* SpaceX Website */}
             <a 
-              href="https://www.muskfoundation.org" 
+              href="https://www.spacex.com" 
               target="_blank" 
               rel="noopener noreferrer"
               className="relative group block rounded-2xl bg-zinc-800/80 p-[1px] transition-transform duration-200 active:scale-95 cursor-pointer shrink-0"
-              title="Elon Musk Foundation Website"
+              title="SpaceX"
             >
-              <span className="absolute inset-0 rounded-2xl bg-yellow-900 translate-y-1.5 block"></span>
-              <span className="relative flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-zinc-950 border border-white/10 text-sm font-mono uppercase tracking-wider text-gray-300 group-hover:text-yellow-400 -translate-y-1.5 group-hover:-translate-y-0.5 group-active:translate-y-0 transition-all duration-150 shadow-[0_4px_15px_rgba(234,179,8,0.15)]">
-                <svg className="h-5 w-5 fill-none stroke-current stroke-2 text-yellow-400 shrink-0" viewBox="0 0 24 24">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="2" y1="12" x2="22" y2="12" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-                <span className="font-bold">Musk Foundation</span>
+              <span className="absolute inset-0 rounded-2xl bg-cyan-900 translate-y-1.5 block"></span>
+              <span className="relative flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-zinc-950 border border-white/10 text-sm font-mono uppercase tracking-wider text-gray-300 group-hover:text-cyan-400 -translate-y-1.5 group-hover:-translate-y-0.5 group-active:translate-y-0 transition-all duration-150 shadow-[0_4px_15px_rgba(34,211,238,0.15)]">
+                <Rocket className="h-5 w-5 text-cyan-400 shrink-0 animate-pulse" />
+                <span className="font-bold">SpaceX</span>
               </span>
             </a>
+          </div>
+        </div>
+
+        {/* ----------------- 1.8 HUGE SPACEX HERO IMAGE SECTION ----------------- */}
+        <div className="w-full max-w-5xl mx-auto px-4 mb-24" id="huge-spacex-hero-image">
+          <div className="relative rounded-2xl border border-white/10 overflow-hidden bg-zinc-950 p-2 sm:p-3 shadow-[0_30px_80px_rgba(0,0,0,0.95)] group hover:border-cyan-400/30 transition-all duration-500">
+            {/* Ambient background glow */}
+            <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500/10 to-transparent rounded-2xl blur-2xl opacity-60 pointer-events-none" />
+            
+            <img 
+              src="/image.jpg" 
+              alt="SpaceX Exploration"
+              referrerPolicy="no-referrer"
+              className="w-full h-[500px] sm:h-[750px] lg:h-[950px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.01]"
+            />
+            {/* Absolute overlay badge inside image */}
+            <div className="absolute bottom-6 left-6 sm:bottom-10 sm:left-10 bg-black/85 backdrop-blur-md border border-white/10 rounded-xl px-6 py-4 flex items-center justify-center shadow-2xl">
+              <span className="text-xs sm:text-sm font-extrabold text-white uppercase tracking-widest font-mono">
+                SpaceX / Tesla / Neuralink
+              </span>
+            </div>
           </div>
         </div>
 
         {/* ----------------- 2. RESTORED HELLO SECTION (WITH IMAGE) ----------------- */}
         <HelloSection onApplyClick={onApplyClick} />
 
-        {/* ----------------- 3. QUALIFY ON VOLUME SECTION (PUSHED DOWN) ----------------- */}
-        <div className="w-full max-w-5xl mx-auto px-4 mb-28" id="image-section">
-          <div className="relative min-h-[450px] w-full rounded-2xl border border-white/5 bg-zinc-950/40 p-8 sm:p-12 shadow-[0_25px_60px_rgba(0,0,0,0.85)] group hover:border-cyan-500/10 transition-all duration-500 overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-12">
+        {/* ----------------- 3. HOW IT WORKS SECTION (REPLACED PREMIUM SECTION) ----------------- */}
+        <div className="w-full bg-black py-24 sm:py-32 border-t border-b border-white/5" id="how-it-works-section">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
-            {/* Absolute decorative grids and glow */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-black via-transparent to-cyan-500/[0.01] pointer-events-none" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-cyan-500/[0.03] rounded-full blur-[100px] pointer-events-none" />
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.002)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.002)_1px,transparent_1px)] bg-[size:3rem_3rem] pointer-events-none" />
-
-            {/* Left Column: Title & Text */}
-            <div className="flex-1 text-left z-10 max-w-xl">
-              <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white uppercase leading-tight mb-4">
-                Qualify on Volume,<br />
-                Not Personal Income.
+            {/* Section Header */}
+            <div className="text-center max-w-3xl mx-auto mb-20">
+              <span className="font-mono text-xs uppercase tracking-widest text-blue-400 font-black block mb-3">
+                Application & Funding Workflow
+              </span>
+              <h2 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black text-white uppercase tracking-tight leading-tight">
+                How ELON CAPITAL LOAN Works
               </h2>
-              <p className="text-sm sm:text-base text-gray-200 font-semibold leading-relaxed mb-8">
-                Elon Capital Loan is structured for modern traders, digital asset developers, and international builders. We do not require traditional US credit history or standard tax filings. Instead, we qualify allocations directly based on your verified portfolio strength, active trading volumes, smart contract logic, and venture cash flow.
+              <p className="text-zinc-200 mt-4 text-base sm:text-xl font-extrabold uppercase tracking-wide">
+                A simple, transparent process from application to funding.
               </p>
             </div>
 
-            {/* Right Column: Dynamic Floating Badges (checklist from screenshot but styled with black/cyan premium theme) */}
-            <div className="flex-1 w-full max-w-md z-10 relative flex flex-col gap-4">
-              <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500/5 to-white/5 rounded-2xl blur-xl opacity-50 pointer-events-none" />
+            {/* Vertical Numbered Process Flow / Timeline */}
+            <div className="relative border-l border-zinc-800 ml-4 sm:ml-12 pl-8 sm:pl-16 space-y-16 sm:space-y-24 max-w-4xl mx-auto text-left">
               
-              <div className="bg-zinc-950/90 border border-white/10 rounded-xl p-4 flex items-center gap-4 shadow-xl hover:translate-x-2 transition-transform duration-300">
-                <div className="h-7 w-7 rounded-full bg-cyan-950/30 border border-cyan-500/20 flex items-center justify-center shrink-0">
-                  <Check className="h-4 w-4 text-cyan-400 animate-pulse" />
+              {/* Step 1 */}
+              <div className="relative group/step">
+                {/* Timeline Dot with Glow */}
+                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1 w-1 rounded-full bg-blue-500" />
                 </div>
-                <div className="text-left">
-                  <span className="block text-xs font-bold text-white uppercase tracking-wider">No Personal Income Verification</span>
-                  <span className="block text-[11px] text-cyan-400 font-mono font-bold mt-0.5">Asset-backed underwriting framework</span>
-                </div>
-              </div>
-
-              <div className="bg-zinc-950/90 border border-white/10 rounded-xl p-4 flex items-center gap-4 shadow-xl hover:translate-x-2 transition-transform duration-300">
-                <div className="h-7 w-7 rounded-full bg-cyan-950/30 border border-cyan-500/20 flex items-center justify-center shrink-0">
-                  <Check className="h-4 w-4 text-cyan-400 animate-pulse" />
-                </div>
-                <div className="text-left">
-                  <span className="block text-xs font-bold text-white uppercase tracking-wider">No US Credit History Required</span>
-                  <span className="block text-[11px] text-cyan-400 font-mono font-bold mt-0.5">Perfect for international clients and traders</span>
-                </div>
-              </div>
-
-              <div className="bg-zinc-950/90 border border-white/10 rounded-xl p-4 flex items-center gap-4 shadow-xl hover:translate-x-2 transition-transform duration-300">
-                <div className="h-7 w-7 rounded-full bg-cyan-950/30 border border-cyan-500/20 flex items-center justify-center shrink-0">
-                  <Check className="h-4 w-4 text-cyan-400 animate-pulse" />
-                </div>
-                <div className="text-left">
-                  <span className="block text-xs font-bold text-white uppercase tracking-wider">LLC-Friendly Vesting</span>
-                  <span className="block text-[11px] text-cyan-400 font-mono font-bold mt-0.5">Corporate wrapper structures accepted</span>
-                </div>
-              </div>
-
-              <div className="bg-zinc-950/90 border border-white/10 rounded-xl p-4 flex items-center gap-4 shadow-xl hover:translate-x-2 transition-transform duration-300">
-                <div className="h-7 w-7 rounded-full bg-cyan-950/30 border border-cyan-500/20 flex items-center justify-center shrink-0">
-                  <Check className="h-4 w-4 text-cyan-400 animate-pulse" />
-                </div>
-                <div className="text-left">
-                  <span className="block text-xs font-bold text-white uppercase tracking-wider">Trading & Portfolio qualified</span>
-                  <span className="block text-[11px] text-cyan-400 font-mono font-bold mt-0.5">Qualify on volume, yield, & ledger data</span>
-                </div>
-              </div>
-
-              <div className="bg-zinc-950/90 border border-white/10 rounded-xl p-4 flex items-center gap-4 shadow-xl hover:translate-x-2 transition-transform duration-300">
-                <div className="h-7 w-7 rounded-full bg-cyan-950/30 border border-cyan-500/20 flex items-center justify-center shrink-0">
-                  <Check className="h-4 w-4 text-cyan-400 animate-pulse" />
-                </div>
-                <div className="text-left">
-                  <span className="block text-xs font-bold text-white uppercase tracking-wider">No US Visa Required</span>
-                  <span className="block text-[11px] text-cyan-400 font-mono font-bold mt-0.5">Global access from any geographic coordinate</span>
-                </div>
-              </div>
-
-              {/* Check Your Eligibility - 3D Styled Button redirecting to Calculator page */}
-              <div className="mt-4 pt-2 w-full">
-                <button 
-                  onClick={onCalculatorClick}
-                  className="relative group w-full rounded-2xl bg-cyan-700 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer block"
-                >
-                  <span className="absolute inset-0 rounded-2xl bg-cyan-800/95 translate-y-2 block"></span>
-                  <span className="relative flex items-center justify-center gap-2 px-6 py-4 rounded-xl bg-cyan-400 text-black text-xs sm:text-sm font-extrabold uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_4px_15px_rgba(34,211,238,0.3)] border border-cyan-500/30 font-display">
-                    Check Your Eligibility
-                    <ArrowRight className="h-4.5 w-4.5 text-black stroke-[2.5]" />
+                
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                    01
                   </span>
-                </button>
+                  <div className="space-y-1.5">
+                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                      Create Your Account
+                    </h3>
+                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                      Register using your email address and complete your personal or business profile.
+                    </p>
+                  </div>
+                </div>
               </div>
 
+              {/* Step 2 */}
+              <div className="relative group/step">
+                {/* Timeline Dot with Glow */}
+                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1 w-1 rounded-full bg-blue-500" />
+                </div>
+                
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                    02
+                  </span>
+                  <div className="space-y-1.5">
+                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                      Complete Identity Verification
+                    </h3>
+                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                      Upload the required identification documents for review.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="relative group/step">
+                {/* Timeline Dot with Glow */}
+                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1 w-1 rounded-full bg-blue-500" />
+                </div>
+                
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                    03
+                  </span>
+                  <div className="space-y-1.5">
+                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                      Submit Your Funding Request
+                    </h3>
+                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                      Choose the amount you need and provide details about your business, project, or funding purpose.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div className="relative group/step">
+                {/* Timeline Dot with Glow */}
+                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1 w-1 rounded-full bg-blue-500" />
+                </div>
+                
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                    04
+                  </span>
+                  <div className="space-y-1.5">
+                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                      Application Review
+                    </h3>
+                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                      Our team reviews the application and may request additional supporting documents when necessary.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 5 */}
+              <div className="relative group/step">
+                {/* Timeline Dot with Glow */}
+                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1 w-1 rounded-full bg-blue-500" />
+                </div>
+                
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                    05
+                  </span>
+                  <div className="space-y-1.5">
+                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                      Funding Decision
+                    </h3>
+                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                      Once approved, you will receive a notification in your dashboard with the next steps.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 6 */}
+              <div className="relative group/step">
+                {/* Timeline Dot with Glow */}
+                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1 w-1 rounded-full bg-blue-500" />
+                </div>
+                
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                    06
+                  </span>
+                  <div className="space-y-1.5">
+                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                      Receive Your Funds
+                    </h3>
+                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                      After all required verification and agreement steps are completed, approved funds become available through your account.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Separate Premium Information Card */}
+            <div className="max-w-4xl mx-auto mt-24 px-4">
+              <div className="relative rounded-2xl border border-blue-500/30 bg-zinc-950/60 p-8 sm:p-10 shadow-[0_25px_60px_rgba(0,0,0,0.85)] overflow-hidden group hover:border-blue-500/50 transition-all duration-500">
+                {/* Soft background blue glow */}
+                <div className="absolute -inset-10 bg-gradient-to-r from-blue-500/5 to-transparent rounded-2xl blur-3xl opacity-50 pointer-events-none" />
+                
+                <div className="relative flex flex-col md:flex-row items-start gap-6 z-10">
+                  <div className="h-12 w-12 rounded-xl bg-blue-950/40 border border-blue-500/40 flex items-center justify-center shrink-0 mt-1">
+                    <Info className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div className="text-left space-y-3">
+                    <h4 className="font-display text-xl sm:text-2xl font-black text-white uppercase tracking-wide">
+                      Need Larger Funding?
+                    </h4>
+                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                      Funding requests above the standard limit may require enhanced verification. Depending on the application, this may include additional business documents, corporate records, financial statements, legal documentation, and other supporting information.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Why Businesses Choose ELON CAPITAL LOAN */}
+            <div className="max-w-5xl mx-auto mt-28 px-4">
+              <h3 className="font-display text-2xl sm:text-3xl font-black text-white text-center uppercase tracking-wider mb-12">
+                Why Businesses Choose ELON CAPITAL LOAN
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                {[
+                  "Built for entrepreneurs",
+                  "Designed for startups",
+                  "Supports business expansion",
+                  "Funding for innovation",
+                  "Transparent application process",
+                  "Dedicated support throughout your application"
+                ].map((benefit, idx) => (
+                  <div key={idx} className="flex items-start gap-4 bg-zinc-950/40 border border-white/5 rounded-xl p-5 hover:border-blue-500/20 hover:bg-zinc-950/80 transition-all duration-300 text-left">
+                    <div className="h-6 w-6 rounded-full bg-blue-950/30 border border-blue-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="h-3.5 w-3.5 text-blue-500 stroke-[3]" />
+                    </div>
+                    <span className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
+                      {benefit}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Centered Large Premium Call-To-Action Button */}
+            <div className="flex justify-center mt-20">
+              <button
+                onClick={onCalculatorClick}
+                className="relative group rounded-2xl bg-blue-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer block"
+                id="btn-howitworks-eligibility"
+              >
+                <span className="absolute inset-0 rounded-2xl bg-blue-900 translate-y-2 block"></span>
+                <span className="relative flex items-center justify-center gap-3 px-16 py-5 rounded-2xl bg-blue-600 text-white text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_30px_rgba(59,130,246,0.35)] border border-blue-400 font-display">
+                  Check Your Eligibility
+                  <ArrowRight className="h-5 w-5 text-white stroke-[2.5]" />
+                </span>
+              </button>
             </div>
 
           </div>

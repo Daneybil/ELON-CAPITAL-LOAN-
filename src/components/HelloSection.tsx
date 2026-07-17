@@ -17,10 +17,6 @@ export default function HelloSection({ onApplyClick }: HelloSectionProps) {
 
         {/* Left Column: Hello Greeting and Venture Content */}
         <div className="flex-1 text-left z-10 max-w-xl">
-          <span className="px-3 py-1 text-[8px] font-mono font-bold uppercase tracking-widest text-cyan-400 bg-cyan-950/40 border border-cyan-500/20 rounded-full inline-flex items-center gap-1.5 mb-6">
-            <Rocket className="h-3 w-3 text-cyan-400 animate-pulse" />
-            ELON MUSK'S VENTURE CREDIT COALITION
-          </span>
           
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white uppercase leading-tight mb-4">
             Hello, Welcome to <br />
@@ -50,24 +46,20 @@ export default function HelloSection({ onApplyClick }: HelloSectionProps) {
         </div>
 
         {/* Right Column: High-Res Rocket Launch Image */}
-        <div className="flex-1 w-full max-w-md z-10 relative">
+        <div className="flex-1 w-full max-w-xl z-10 relative">
           {/* Ambient cyan backdrop shadow */}
-          <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500/10 to-transparent rounded-2xl blur-xl opacity-60 pointer-events-none" />
+          <div className="absolute -inset-3 bg-gradient-to-r from-cyan-500/15 to-transparent rounded-2xl blur-2xl opacity-75 pointer-events-none" />
           
-          <div className="relative rounded-2xl border border-white/10 overflow-hidden bg-zinc-950 p-2 shadow-2xl group hover:border-cyan-400/30 transition-colors duration-300">
+          <div className="relative rounded-2xl border border-white/15 overflow-hidden bg-zinc-950 p-2.5 shadow-2xl group hover:border-cyan-400/40 transition-colors duration-300">
             <img 
               src="https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=1200&q=80" 
               alt="Falcon Rocket Thrust Propulsion"
               referrerPolicy="no-referrer"
-              className="w-full h-80 object-cover rounded-xl grayscale group-hover:grayscale-0 transition-all duration-500 scale-100 group-hover:scale-105"
+              className="w-full h-[450px] sm:h-[520px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-102"
             />
             {/* Absolute overlay badge inside image */}
-            <div className="absolute bottom-4 left-4 right-4 bg-black/85 backdrop-blur-md border border-white/5 rounded-xl p-3 flex items-center justify-between">
-              <div className="text-left">
-                <span className="block text-[8px] font-mono text-cyan-400 uppercase tracking-widest">Active Ventures</span>
-                <span className="block text-xs font-bold text-white uppercase font-sans">SpaceX / Tesla / Neuralink</span>
-              </div>
-              <span className="h-2 w-2 rounded-full bg-cyan-400 animate-ping" />
+            <div className="absolute bottom-5 left-5 right-5 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl p-4 flex items-center justify-center">
+              <span className="text-xs sm:text-sm font-extrabold text-white uppercase tracking-widest font-mono">SpaceX / Tesla / Neuralink</span>
             </div>
           </div>
         </div>

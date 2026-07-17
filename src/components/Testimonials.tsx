@@ -222,7 +222,7 @@ export default function Testimonials() {
                   <Quote className="h-5 w-5 text-cyan-400/10" />
                 </div>
 
-                <p className="text-xs text-gray-300 font-light leading-relaxed italic mb-8">
+                <p className="text-sm sm:text-base text-white font-bold sm:font-black leading-relaxed italic mb-8">
                   "{review.quote}"
                 </p>
               </div>
@@ -232,13 +232,13 @@ export default function Testimonials() {
                 <img 
                   src={review.avatar} 
                   alt={review.author} 
-                  className="h-10 w-10 rounded-full object-cover border border-white/10 shadow-md bg-zinc-900"
+                  className="h-10 w-10 rounded-full object-cover border border-white/20 shadow-md bg-zinc-900"
                   referrerPolicy="no-referrer"
                 />
                 <div className="flex flex-col text-left">
-                  <span className="text-xs font-semibold text-white">{review.author}</span>
-                  <span className="text-[10px] text-gray-500 font-mono tracking-wide mt-0.5">
-                    {review.role}, <span className="text-cyan-400">{review.company}</span>
+                  <span className="text-sm font-bold text-white">{review.author}</span>
+                  <span className="text-[10px] text-zinc-300 font-mono font-bold tracking-wide mt-0.5">
+                    {review.role}, <span className="text-cyan-400 font-black">{review.company}</span>
                   </span>
                 </div>
               </div>

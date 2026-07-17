@@ -1349,6 +1349,32 @@ app.post('/api/admin/homepage/update', authenticateToken, requireAdmin, (req, re
 });
 
 
+// Serve root image assets specifically to ensure they are accessible in both dev and prod
+app.get('/image.jpg', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public/image.jpg'));
+});
+
+app.get('/Always_Sunny_v4_d8b76550ae.jpg', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public/Always_Sunny_v4_d8b76550ae.jpg'));
+});
+
+app.get('/Always_Sunny_v4_d8b76550ae-1.jpg', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public/Always_Sunny_v4_d8b76550ae-1.jpg'));
+});
+
+app.get('/Revolutionizing_Space_Tech_Mobile_45093b17b7.jpg', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public/Revolutionizing_Space_Tech_Mobile_45093b17b7.jpg'));
+});
+
+app.get('/Revolutionizing_Space_Tech_Mobile_45093b17b7-1.jpg', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public/Revolutionizing_Space_Tech_Mobile_45093b17b7-1.jpg'));
+});
+
+app.get('/Advancing_Human_Spaceflight_Mobile_af242fde31.jpg', (req, res) => {
+  res.sendFile(path.join(process.cwd(), 'public/Advancing_Human_Spaceflight_Mobile_af242fde31.jpg'));
+});
+
+
 // ----------------- VITE DEVELOPMENT & PRODUCTION INTEGRATION -----------------
 
 const startServer = async () => {

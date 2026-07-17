@@ -180,15 +180,15 @@ export default function Testimonials() {
   const visibleReviews = getVisibleTestimonials();
 
   return (
-    <div className="bg-black py-20 border-t border-white/5" id="testimonials">
+    <div className="bg-transparent py-8" id="testimonials">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         
         {/* Header - Verified Operations is removed as requested */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h3 className="font-display text-3xl sm:text-4xl font-bold text-white tracking-tight uppercase">
+          <h3 className="font-display text-3xl sm:text-4xl font-black text-white tracking-tight uppercase">
             Trusted by Builders Globally
           </h3>
-          <p className="text-[11px] text-gray-500 font-mono uppercase tracking-widest mt-3">
+          <p className="text-xs sm:text-sm text-zinc-100 font-black uppercase tracking-wider mt-4 bg-white/[0.04] border border-white/15 rounded-2xl py-4 px-6 inline-block leading-relaxed">
             Real entrepreneurs, Web3 developers, Forex traders, and SME owners backed by Elon Capital Loan
           </p>
         </div>
@@ -198,15 +198,15 @@ export default function Testimonials() {
           {visibleReviews.map((review, idx) => (
             <div 
               key={`${review.author}-${idx}`}
-              className="relative bg-zinc-950/40 border border-white/5 rounded-2xl p-8 backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex flex-col justify-between transition-all duration-700 transform hover:scale-[1.01] hover:border-cyan-400/20 select-none animate-fade-in"
+              className="relative bg-black border border-white/15 rounded-2xl p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] flex flex-col justify-between transition-all duration-700 transform hover:scale-[1.01] hover:border-cyan-400/40 select-none animate-fade-in"
               id={`testimonial-card-${idx}`}
             >
               {/* Dynamic Tag */}
               <div className="absolute top-4 right-4 flex items-center gap-2">
-                <span className="flex items-center gap-1 text-[8px] font-mono text-gray-400 uppercase tracking-widest">
-                  <MapPin className="h-2 w-2 text-cyan-400" /> {review.location}
+                <span className="flex items-center gap-1 text-[10px] font-mono text-zinc-300 uppercase tracking-widest font-black">
+                  <MapPin className="h-2.5 w-2.5 text-cyan-400" /> {review.location}
                 </span>
-                <div className="bg-cyan-950/30 border border-cyan-500/20 rounded-full px-2.5 py-0.5 text-[8px] font-mono font-semibold tracking-wider text-cyan-400">
+                <div className="bg-cyan-950 border border-cyan-500/40 rounded-full px-2.5 py-0.5 text-[10px] font-mono font-black tracking-wider text-cyan-300">
                   FUNDED {review.amount}
                 </div>
               </div>
@@ -216,28 +216,28 @@ export default function Testimonials() {
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex gap-1">
                     {[...Array(review.rating)].map((_, i) => (
-                      <Star key={i} className="h-3 w-3 fill-cyan-400 text-cyan-400" />
+                      <Star key={i} className="h-4.5 w-4.5 fill-cyan-400 text-cyan-400" />
                     ))}
                   </div>
-                  <Quote className="h-5 w-5 text-cyan-400/10" />
+                  <Quote className="h-6 w-6 text-cyan-400/20" />
                 </div>
 
-                <p className="text-sm sm:text-base text-white font-bold sm:font-black leading-relaxed italic mb-8">
+                <p className="text-base sm:text-lg text-white font-extrabold sm:font-black leading-relaxed italic mb-8 tracking-wide">
                   "{review.quote}"
                 </p>
               </div>
 
               {/* Author details */}
-              <div className="flex items-center gap-4 border-t border-white/5 pt-5">
+              <div className="flex items-center gap-4 border-t border-white/10 pt-5">
                 <img 
                   src={review.avatar} 
                   alt={review.author} 
-                  className="h-10 w-10 rounded-full object-cover border border-white/20 shadow-md bg-zinc-900"
+                  className="h-12 w-12 rounded-full object-cover border-2 border-white/30 shadow-md bg-zinc-900"
                   referrerPolicy="no-referrer"
                 />
                 <div className="flex flex-col text-left">
-                  <span className="text-sm font-bold text-white">{review.author}</span>
-                  <span className="text-[10px] text-zinc-300 font-mono font-bold tracking-wide mt-0.5">
+                  <span className="text-base font-black text-white">{review.author}</span>
+                  <span className="text-xs text-zinc-100 font-mono font-black tracking-wide mt-1">
                     {review.role}, <span className="text-cyan-400 font-black">{review.company}</span>
                   </span>
                 </div>

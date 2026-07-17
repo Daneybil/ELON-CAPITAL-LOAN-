@@ -19,6 +19,7 @@ import { HomePageContent } from '../types';
 import Testimonials from './Testimonials';
 import FAQ from './FAQ';
 import HelloSection from './HelloSection';
+import GovernmentWarning from './GovernmentWarning';
 
 interface HeroProps {
   content: HomePageContent;
@@ -27,6 +28,8 @@ interface HeroProps {
   onNavigateToDashboard?: () => void;
   onSupportClick?: () => void;
   onCalculatorClick?: () => void;
+  onHowItWorksClick?: () => void;
+  onGovernmentWarningClick?: () => void;
 }
 
 export default function Hero({ 
@@ -35,7 +38,9 @@ export default function Hero({
   onOpenAuth, 
   onNavigateToDashboard,
   onSupportClick,
-  onCalculatorClick
+  onCalculatorClick,
+  onHowItWorksClick,
+  onGovernmentWarningClick
 }: HeroProps) {
   // Modal / Drawer states
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -140,7 +145,7 @@ export default function Hero({
 
           {/* Button 3: How It Works */}
           <button
-            onClick={() => scrollToSection('how-it-works-section')}
+            onClick={onHowItWorksClick || (() => scrollToSection('how-it-works-section'))}
             className="relative group rounded-2xl bg-blue-900 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
             id="btn-hero-how"
           >
@@ -159,6 +164,18 @@ export default function Hero({
             <span className="absolute inset-0 rounded-2xl bg-blue-900 translate-y-2 block"></span>
             <span className="relative flex items-center justify-center gap-2 px-12 py-6 rounded-2xl bg-white text-black hover:text-cyan-400 text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_20px_rgba(255,255,255,0.05)] border-2 border-blue-500 font-display">
               FAQ
+            </span>
+          </button>
+
+          {/* Button 4.5: Global Government Warning */}
+          <button
+            onClick={onGovernmentWarningClick}
+            className="relative group rounded-2xl bg-red-900 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
+            id="btn-hero-gov-warning"
+          >
+            <span className="absolute inset-0 rounded-2xl bg-red-950 translate-y-2 block"></span>
+            <span className="relative flex items-center justify-center gap-2 px-12 py-6 rounded-2xl bg-red-600 text-white hover:text-red-300 text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_30px_rgba(239,68,68,0.35)] border border-red-500 font-display">
+              ⚠️ Global Warning
             </span>
           </button>
 
@@ -253,8 +270,21 @@ export default function Hero({
         <HelloSection onApplyClick={onApplyClick} />
 
         {/* ----------------- 3. HOW IT WORKS SECTION (REPLACED PREMIUM SECTION) ----------------- */}
-        <div className="w-full bg-black py-24 sm:py-32 border-t border-b border-white/5" id="how-it-works-section">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative w-full bg-black py-24 sm:py-32 border-t border-b border-white/5 overflow-hidden mb-16 sm:mb-24" id="how-it-works-section">
+          {/* Animated Background Layer 1: Always Sunny */}
+          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none bg-black">
+            {/* Soft, extremely minimal vignetting to protect text legibility while keeping the image incredibly bright and clear */}
+            <div className="absolute inset-0 bg-black/10 z-10" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 z-10" />
+            <img 
+              src="/Always_Sunny_v4_d8b76550ae-1.jpg" 
+              alt="Always Sunny Background" 
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-100 z-0"
+            />
+          </div>
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
             
             {/* Section Header */}
             <div className="text-center max-w-3xl mx-auto mb-20">
@@ -270,16 +300,16 @@ export default function Hero({
             </div>
 
             {/* Vertical Numbered Process Flow / Timeline */}
-            <div className="relative border-l border-zinc-800 ml-4 sm:ml-12 pl-8 sm:pl-16 space-y-16 sm:space-y-24 max-w-4xl mx-auto text-left">
+            <div className="relative border-l border-zinc-800 ml-4 sm:ml-12 pl-8 sm:pl-16 space-y-8 max-w-4xl mx-auto text-left">
               
               {/* Step 1 */}
-              <div className="relative group/step">
+              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
                 {/* Timeline Dot with Glow */}
-                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
-                  <div className="h-1 w-1 rounded-full bg-blue-500" />
+                <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
                   <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
                     01
                   </span>
@@ -287,7 +317,7 @@ export default function Hero({
                     <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
                       Create Your Account
                     </h3>
-                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
                       Register using your email address and complete your personal or business profile.
                     </p>
                   </div>
@@ -295,13 +325,13 @@ export default function Hero({
               </div>
 
               {/* Step 2 */}
-              <div className="relative group/step">
+              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
                 {/* Timeline Dot with Glow */}
-                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
-                  <div className="h-1 w-1 rounded-full bg-blue-500" />
+                <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
                   <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
                     02
                   </span>
@@ -309,7 +339,7 @@ export default function Hero({
                     <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
                       Complete Identity Verification
                     </h3>
-                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
                       Upload the required identification documents for review.
                     </p>
                   </div>
@@ -317,13 +347,13 @@ export default function Hero({
               </div>
 
               {/* Step 3 */}
-              <div className="relative group/step">
+              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
                 {/* Timeline Dot with Glow */}
-                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
-                  <div className="h-1 w-1 rounded-full bg-blue-500" />
+                <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
                   <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
                     03
                   </span>
@@ -331,7 +361,7 @@ export default function Hero({
                     <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
                       Submit Your Funding Request
                     </h3>
-                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
                       Choose the amount you need and provide details about your business, project, or funding purpose.
                     </p>
                   </div>
@@ -339,13 +369,13 @@ export default function Hero({
               </div>
 
               {/* Step 4 */}
-              <div className="relative group/step">
+              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
                 {/* Timeline Dot with Glow */}
-                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
-                  <div className="h-1 w-1 rounded-full bg-blue-500" />
+                <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
                   <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
                     04
                   </span>
@@ -353,7 +383,7 @@ export default function Hero({
                     <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
                       Application Review
                     </h3>
-                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
                       Our team reviews the application and may request additional supporting documents when necessary.
                     </p>
                   </div>
@@ -361,13 +391,13 @@ export default function Hero({
               </div>
 
               {/* Step 5 */}
-              <div className="relative group/step">
+              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
                 {/* Timeline Dot with Glow */}
-                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
-                  <div className="h-1 w-1 rounded-full bg-blue-500" />
+                <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
                   <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
                     05
                   </span>
@@ -375,7 +405,7 @@ export default function Hero({
                     <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
                       Funding Decision
                     </h3>
-                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
                       Once approved, you will receive a notification in your dashboard with the next steps.
                     </p>
                   </div>
@@ -383,13 +413,13 @@ export default function Hero({
               </div>
 
               {/* Step 6 */}
-              <div className="relative group/step">
+              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
                 {/* Timeline Dot with Glow */}
-                <div className="absolute -left-[41px] sm:-left-[73px] top-2 h-4 w-4 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
-                  <div className="h-1 w-1 rounded-full bg-blue-500" />
+                <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
+                  <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-8">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
                   <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
                     06
                   </span>
@@ -397,7 +427,7 @@ export default function Hero({
                     <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
                       Receive Your Funds
                     </h3>
-                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
                       After all required verification and agreement steps are completed, approved funds become available through your account.
                     </p>
                   </div>
@@ -474,8 +504,23 @@ export default function Hero({
         </div>
 
         {/* ----------------- 4. TESTIMONIALS SECTION ----------------- */}
-        <div className="w-full mb-10" id="testimonials-section-anchor">
-          <Testimonials />
+        <div className="relative w-full mb-10 overflow-hidden rounded-3xl border border-white/10 py-16 px-4 sm:px-6 lg:px-8 bg-black" id="testimonials-section-anchor">
+          {/* Animated Background Layer 2: Revolutionizing Space Tech */}
+          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
+            {/* Soft, extremely minimal vignetting to protect text legibility while keeping the image incredibly bright and clear */}
+            <div className="absolute inset-0 bg-black/10 z-10" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 z-10" />
+            <img 
+              src="/Revolutionizing_Space_Tech_Mobile_45093b17b7-1.jpg" 
+              alt="Space Tech Background" 
+              referrerPolicy="no-referrer"
+              className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-100 z-0"
+            />
+          </div>
+
+          <div className="relative z-10">
+            <Testimonials />
+          </div>
         </div>
 
       </div>
@@ -515,6 +560,18 @@ export default function Hero({
                     Home
                   </button>
                   <button 
+                    onClick={() => { setMenuOpen(false); onHowItWorksClick?.(); }}
+                    className="text-left text-cyan-400 hover:text-cyan-300 transition-colors py-1.5 border-b border-white/[0.02] font-semibold"
+                  >
+                    How It Works
+                  </button>
+                  <button 
+                    onClick={() => { setMenuOpen(false); onCalculatorClick?.(); }}
+                    className="text-left text-yellow-400 hover:text-yellow-300 transition-colors py-1.5 border-b border-white/[0.02] font-semibold"
+                  >
+                    Check Eligibility
+                  </button>
+                  <button 
                     onClick={() => { setMenuOpen(false); onNavigateToDashboard?.(); }}
                     className="text-left text-gray-400 hover:text-white transition-colors py-1.5 border-b border-white/[0.02]"
                   >
@@ -537,6 +594,12 @@ export default function Hero({
                     className="text-left text-cyan-400 hover:text-cyan-300 transition-colors py-1.5 border-b border-white/[0.02] font-semibold"
                   >
                     FAQ
+                  </button>
+                  <button 
+                    onClick={() => { setMenuOpen(false); onGovernmentWarningClick?.(); }}
+                    className="text-left text-red-400 hover:text-red-300 transition-colors py-1.5 border-b border-white/[0.02] font-semibold"
+                  >
+                    ⚠️ Global Warning
                   </button>
                   <button 
                     onClick={() => scrollToSection('footer-section')}

@@ -11,6 +11,9 @@ interface NavbarProps {
   onApplyClick: () => void;
   onSupportClick: () => void;
   onCalculatorClick: () => void;
+  onHowItWorksClick: () => void;
+  onEligibilityClick: () => void;
+  onGovernmentWarningClick: () => void;
 }
 
 export default function Navbar({
@@ -22,6 +25,9 @@ export default function Navbar({
   onApplyClick,
   onSupportClick,
   onCalculatorClick,
+  onHowItWorksClick,
+  onEligibilityClick,
+  onGovernmentWarningClick,
 }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(true);
@@ -100,6 +106,18 @@ export default function Navbar({
               Home
             </button>
             <button 
+              onClick={onHowItWorksClick}
+              className="font-semibold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+            >
+              How It Works
+            </button>
+            <button 
+              onClick={onEligibilityClick}
+              className="font-semibold text-yellow-400 hover:text-yellow-300 transition-colors cursor-pointer"
+            >
+              Check Eligibility
+            </button>
+            <button 
               onClick={onApplyClick}
               className="font-medium text-gray-400 hover:text-white transition-colors cursor-pointer"
             >
@@ -122,6 +140,12 @@ export default function Navbar({
               className="font-medium text-gray-400 hover:text-white transition-colors cursor-pointer"
             >
               Support
+            </button>
+            <button 
+              onClick={onGovernmentWarningClick}
+              className="font-bold text-red-500 hover:text-red-400 transition-colors cursor-pointer"
+            >
+              ⚠️ Global Warning
             </button>
           </div>
 
@@ -201,6 +225,18 @@ export default function Navbar({
               Home
             </button>
             <button 
+              onClick={() => { setMobileMenuOpen(false); onHowItWorksClick(); }}
+              className="text-left text-base font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+              How It Works
+            </button>
+            <button 
+              onClick={() => { setMobileMenuOpen(false); onEligibilityClick(); }}
+              className="text-left text-base font-bold text-yellow-400 hover:text-yellow-300 transition-colors"
+            >
+              Check Eligibility
+            </button>
+            <button 
               onClick={() => { setMobileMenuOpen(false); onApplyClick(); }}
               className="text-left text-base font-medium text-gray-400 hover:text-white transition-colors"
             >
@@ -223,6 +259,12 @@ export default function Navbar({
               className="text-left text-base font-medium text-gray-400 hover:text-white transition-colors"
             >
               Support
+            </button>
+            <button 
+              onClick={() => { setMobileMenuOpen(false); onGovernmentWarningClick(); }}
+              className="text-left text-base font-bold text-red-500 hover:text-red-400 transition-colors"
+            >
+              ⚠️ Global Warning
             </button>
           </div>
 

@@ -12,6 +12,9 @@ import AuthModal from './components/AuthModal';
 import UserDashboard from './components/UserDashboard';
 import AdminDashboard from './components/AdminDashboard';
 import LoanCalculatorPage from './components/LoanCalculatorPage';
+import HowItWorksPage from './components/HowItWorksPage';
+import GovernmentWarningPage from './components/GovernmentWarningPage';
+import Chatbot from './components/Chatbot';
 import { Megaphone, X, ShieldAlert, Cpu, Lock, Mail, ArrowUpRight, RefreshCw } from 'lucide-react';
 
 export default function App() {
@@ -28,11 +31,13 @@ export default function App() {
   const [userDashboardTab, setUserDashboardTab] = React.useState<'overview' | 'apply' | 'loans' | 'kyc' | 'messages' | 'support' | 'settings'>('overview');
 
   // Router View toggles (Sync on startup with window.location.pathname)
-  const [dashboardView, setDashboardView] = React.useState<'landing' | 'user' | 'admin' | 'calculator'>(() => {
+  const [dashboardView, setDashboardView] = React.useState<'landing' | 'user' | 'admin' | 'calculator' | 'how-it-works' | 'government-warning'>(() => {
     if (typeof window !== 'undefined') {
       if (window.location.pathname === '/admin') return 'admin';
       if (window.location.pathname === '/dashboard') return 'user';
       if (window.location.pathname === '/calculator') return 'calculator';
+      if (window.location.pathname === '/how-it-works') return 'how-it-works';
+      if (window.location.pathname === '/government-warning') return 'government-warning';
     }
     return 'landing';
   });
@@ -63,6 +68,8 @@ export default function App() {
         setDashboardView('user');
       } else if (path === '/calculator') {
         setDashboardView('calculator');
+      } else if (path === '/how-it-works') {
+        setDashboardView('how-it-works');
       } else if (path === '/') {
         setDashboardView('landing');
       }
@@ -105,6 +112,8 @@ export default function App() {
               }
             } else if (path === '/calculator') {
               setDashboardView('calculator');
+            } else if (path === '/how-it-works') {
+              setDashboardView('how-it-works');
             } else {
               setDashboardView('landing');
             }
@@ -262,6 +271,18 @@ export default function App() {
           window.history.pushState({}, '', '/calculator');
           setDashboardView('calculator');
         }}
+        onHowItWorksClick={() => {
+          window.history.pushState({}, '', '/how-it-works');
+          setDashboardView('how-it-works');
+        }}
+        onEligibilityClick={() => {
+          window.history.pushState({}, '', '/calculator');
+          setDashboardView('calculator');
+        }}
+        onGovernmentWarningClick={() => {
+          window.history.pushState({}, '', '/government-warning');
+          setDashboardView('government-warning');
+        }}
       />
 
       {/* Routing Controller */}
@@ -280,6 +301,36 @@ export default function App() {
                 window.history.pushState({}, '', '/calculator');
                 setDashboardView('calculator');
               }}
+              onHowItWorksClick={() => {
+                window.history.pushState({}, '', '/how-it-works');
+                setDashboardView('how-it-works');
+              }}
+              onGovernmentWarningClick={() => {
+                window.history.pushState({}, '', '/government-warning');
+                setDashboardView('government-warning');
+              }}
+            />
+          </div>
+        )}
+
+        {/* 1.25 DEDICATED HOW IT WORKS PAGE */}
+        {dashboardView === 'how-it-works' && (
+          <div id="view-how-it-works-page" className="animate-fade-in">
+            <HowItWorksPage 
+              onBackToHome={navigateToHome}
+              onCalculatorClick={() => {
+                window.history.pushState({}, '', '/calculator');
+                setDashboardView('calculator');
+              }}
+            />
+          </div>
+        )}
+
+        {/* 1.35 DEDICATED GOVERNMENT WARNING PAGE */}
+        {dashboardView === 'government-warning' && (
+          <div id="view-government-warning-page" className="animate-fade-in">
+            <GovernmentWarningPage 
+              onBackToHome={navigateToHome}
             />
           </div>
         )}
@@ -373,6 +424,9 @@ export default function App() {
           onAuthSuccess={handleAuthSuccess}
         />
       )}
+
+      {/* Globally Floating Interactive Chatbot */}
+      <Chatbot user={user} token={token} />
 
     </div>
   );

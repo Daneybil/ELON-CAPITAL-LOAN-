@@ -3,6 +3,8 @@ import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, doc, setDoc, getDoc, getDocs } from 'firebase/firestore';
 import { 
   User, 
   LoanApplication, 
@@ -266,25 +268,148 @@ const INITIAL_DB: DB = {
   homePageContent: DEFAULT_HOMEPAGE_CONTENT
 };
 
-// Database state accessor functions
-const getDB = (): DB => {
-  if (!fs.existsSync(DB_FILE)) {
-    saveDB(INITIAL_DB);
-    return INITIAL_DB;
-  }
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyBsmHhRmjT9FRytyD6GY8tm57p8X9PQ8TU",
+  authDomain: "elon-capital.firebaseapp.com",
+  projectId: "elon-capital",
+  storageBucket: "elon-capital.firebasestorage.app",
+  messagingSenderId: "363773895492",
+  appId: "1:363773895492:web:e7f82be91aaa07a2276d11",
+  measurementId: "G-ELN9828WNR"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const firestore = getFirestore(firebaseApp);
+
+let isFirestoreSynced = false;
+let dbCache: DB = INITIAL_DB;
+
+// Synchronously load database.json on startup to guarantee instant local-cache fallback
+if (fs.existsSync(DB_FILE)) {
   try {
-    const data = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Failed to read database, resetting to initial', error);
-    saveDB(INITIAL_DB);
-    return INITIAL_DB;
+    dbCache = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    console.log('[Core] Synchronously loaded initial database from local cache file.');
+  } catch (e) {
+    console.error('[Core] Failed to parse local database.json file, using INITIAL_DB:', e);
+    dbCache = INITIAL_DB;
+  }
+} else {
+  dbCache = INITIAL_DB;
+}
+
+const syncFromFirestore = async () => {
+  try {
+    console.log('[Firestore] Synchronizing database from Cloud Firestore...');
+    const usersCol = await getDocs(collection(firestore, 'users'));
+    const loansCol = await getDocs(collection(firestore, 'loans'));
+    const kycCol = await getDocs(collection(firestore, 'kyc'));
+    const notificationsCol = await getDocs(collection(firestore, 'notifications'));
+    const ticketsCol = await getDocs(collection(firestore, 'tickets'));
+    const messagesCol = await getDocs(collection(firestore, 'messages'));
+    const logsCol = await getDocs(collection(firestore, 'logs'));
+    const announcementsCol = await getDocs(collection(firestore, 'announcements'));
+    const settingsDoc = await getDoc(doc(firestore, 'settings', 'homePageContent'));
+
+    const users = usersCol.docs.map(d => d.data() as User);
+    const loans = loansCol.docs.map(d => d.data() as LoanApplication);
+    const kyc = kycCol.docs.map(d => d.data() as KYC);
+    const notifications = notificationsCol.docs.map(d => d.data() as Notification);
+    const tickets = ticketsCol.docs.map(d => d.data() as SupportTicket);
+    const messages = messagesCol.docs.map(d => d.data() as Message);
+    const logs = logsCol.docs.map(d => d.data() as SystemLog);
+    const announcements = announcementsCol.docs.map(d => d.data() as Announcement);
+    const homePageContent = settingsDoc.exists() ? settingsDoc.data() as HomePageContent : DEFAULT_HOMEPAGE_CONTENT;
+
+    if (users.length > 0) {
+      dbCache = {
+        users,
+        loans,
+        kyc,
+        notifications,
+        tickets,
+        messages,
+        logs,
+        announcements,
+        homePageContent
+      };
+      console.log(`[Firestore] Sync complete. Loaded ${users.length} users, ${loans.length} loans, ${kyc.length} KYC.`);
+    } else {
+      console.log('[Firestore] Firestore is empty. Seeding initial database...');
+      dbCache = INITIAL_DB;
+      await syncToFirestore(INITIAL_DB);
+    }
+    isFirestoreSynced = true;
+    fs.writeFileSync(DB_FILE, JSON.stringify(dbCache, null, 2), 'utf8');
+  } catch (err) {
+    console.error('[Firestore] Failed to sync from Firestore, falling back to local file:', err);
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        dbCache = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        isFirestoreSynced = true;
+      } catch (e) {
+        dbCache = INITIAL_DB;
+      }
+    } else {
+      dbCache = INITIAL_DB;
+    }
   }
 };
 
+const syncToFirestore = async (db: DB) => {
+  try {
+    for (const user of db.users) {
+      await setDoc(doc(firestore, 'users', user.id), user);
+    }
+    for (const loan of db.loans) {
+      await setDoc(doc(firestore, 'loans', loan.id), loan);
+    }
+    for (const kycItem of db.kyc) {
+      await setDoc(doc(firestore, 'kyc', kycItem.id), kycItem);
+    }
+    for (const notification of db.notifications) {
+      await setDoc(doc(firestore, 'notifications', notification.id), notification);
+    }
+    for (const ticket of db.tickets) {
+      await setDoc(doc(firestore, 'tickets', ticket.id), ticket);
+    }
+    for (const message of db.messages) {
+      await setDoc(doc(firestore, 'messages', message.id), message);
+    }
+    for (const log of db.logs) {
+      await setDoc(doc(firestore, 'logs', log.id), log);
+    }
+    for (const ann of db.announcements) {
+      await setDoc(doc(firestore, 'announcements', ann.id), ann);
+    }
+    await setDoc(doc(firestore, 'settings', 'homePageContent'), db.homePageContent);
+    console.log('[Firestore] Successfully synchronized database changes to Cloud Firestore.');
+  } catch (err) {
+    console.error('[Firestore] Sync to Firestore failed:', err);
+  }
+};
+
+// Database state accessor functions
+const getDB = (): DB => {
+  if (!isFirestoreSynced) {
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        dbCache = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      } catch (e) {
+        dbCache = INITIAL_DB;
+      }
+    } else {
+      dbCache = INITIAL_DB;
+    }
+  }
+  return dbCache;
+};
+
 const saveDB = (db: DB) => {
+  dbCache = db;
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
+    syncToFirestore(db);
   } catch (error) {
     console.error('Failed to write database file', error);
   }
@@ -1447,15 +1572,42 @@ app.post('/api/admin/homepage/update', authenticateToken, requireAdmin, (req, re
 // ----------------- VITE DEVELOPMENT & PRODUCTION INTEGRATION -----------------
 
 const startServer = async () => {
+  // Sync core databases with Cloud Firestore in the background on startup (non-blocking to ensure instant boot)
+  syncFromFirestore().catch((err) => {
+    console.error('[Core] Initial background Firestore sync failed:', err);
+  });
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
+    // Serve static assets from public folder to guarantee image loading on local development
+    app.use(express.static(path.join(process.cwd(), 'public')));
+    
+    // Custom index.html handler to apply Vite HTML transforms (injects React Refresh, HMR, etc.)
+    app.get('*', async (req, res, next) => {
+      if (req.path.startsWith('/api') || req.path.includes('.')) {
+        return next();
+      }
+      try {
+        const url = req.originalUrl;
+        const htmlPath = path.join(process.cwd(), 'index.html');
+        let template = fs.readFileSync(htmlPath, 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
   } else {
+    // Serve static assets from all possible folders to guarantee image loading on all deployment environments (e.g. Vercel, Vessel, etc.)
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
+    app.use(express.static(path.join(process.cwd(), 'public')));
+    app.use(express.static(process.cwd()));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });

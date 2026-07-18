@@ -21,6 +21,12 @@ import FAQ from './FAQ';
 import HelloSection from './HelloSection';
 import GovernmentWarning from './GovernmentWarning';
 
+// Import local images from assets to allow Vite to bundle them as assets and guarantee production/dev delivery
+import astronautImage from '../assets/Advancing_Human_Spaceflight_Mobile_af242fde31-1.jpg';
+import alwaysSunnyBackground from '../assets/Always_Sunny_v4_d8b76550ae-2.jpg';
+import spaceTechBackground from '../assets/Revolutionizing_Space_Tech_Mobile_45093b17b7-2.jpg';
+import spaceXExploration from '../assets/image-2.jpg';
+
 interface HeroProps {
   content: HomePageContent;
   onApplyClick: () => void;
@@ -101,7 +107,7 @@ export default function Hero({
               <div className="absolute -inset-3 bg-gradient-to-r from-cyan-500/15 to-transparent rounded-2xl blur-2xl opacity-75 pointer-events-none" />
               
               <img 
-                src="/Advancing_Human_Spaceflight_Mobile_af242fde31.jpg" 
+                src={astronautImage} 
                 alt="Astronaut Exploration facing right"
                 referrerPolicy="no-referrer"
                 className="w-full h-[550px] sm:h-[750px] lg:h-[900px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.015]"
@@ -252,7 +258,7 @@ export default function Hero({
             <div className="absolute -inset-2 bg-gradient-to-r from-cyan-500/10 to-transparent rounded-2xl blur-2xl opacity-60 pointer-events-none" />
             
             <img 
-              src="/image.jpg" 
+              src={spaceXExploration} 
               alt="SpaceX Exploration"
               referrerPolicy="no-referrer"
               className="w-full h-[500px] sm:h-[750px] lg:h-[950px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.01]"
@@ -274,10 +280,10 @@ export default function Hero({
           {/* Animated Background Layer 1: Always Sunny */}
           <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none bg-black">
             {/* Soft, extremely minimal vignetting to protect text legibility while keeping the image incredibly bright and clear */}
-            <div className="absolute inset-0 bg-black/10 z-10" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 z-10" />
+            <div className="absolute inset-0 bg-black/5 z-10" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/20 z-10" />
             <img 
-              src="/Always_Sunny_v4_d8b76550ae-1.jpg" 
+              src={alwaysSunnyBackground} 
               alt="Always Sunny Background" 
               referrerPolicy="no-referrer"
               className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-100 z-0"
@@ -508,10 +514,10 @@ export default function Hero({
           {/* Animated Background Layer 2: Revolutionizing Space Tech */}
           <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
             {/* Soft, extremely minimal vignetting to protect text legibility while keeping the image incredibly bright and clear */}
-            <div className="absolute inset-0 bg-black/10 z-10" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/40 z-10" />
+            <div className="absolute inset-0 bg-black/5 z-10" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/20 z-10" />
             <img 
-              src="/Revolutionizing_Space_Tech_Mobile_45093b17b7-1.jpg" 
+              src={spaceTechBackground} 
               alt="Space Tech Background" 
               referrerPolicy="no-referrer"
               className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-100 z-0"

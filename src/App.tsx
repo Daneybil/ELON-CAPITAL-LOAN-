@@ -16,6 +16,8 @@ import HowItWorksPage from './components/HowItWorksPage';
 import GovernmentWarningPage from './components/GovernmentWarningPage';
 import Chatbot from './components/Chatbot';
 import { Megaphone, X, ShieldAlert, Cpu, Lock, Mail, ArrowUpRight, RefreshCw } from 'lucide-react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase';
 
 export default function App() {
   // Authentication & Session State
@@ -81,25 +83,60 @@ export default function App() {
     };
   }, []);
 
-  // Check and restore existing browser session
+  // Check and restore existing browser session using native Firebase Auth state listener
   React.useEffect(() => {
-    const restoreSession = async () => {
-      const storedToken = localStorage.getItem('spaceloan_token');
-      const storedUser = localStorage.getItem('spaceloan_user');
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const storedToken = localStorage.getItem('spaceloan_token');
+        const storedUser = localStorage.getItem('spaceloan_user');
 
-      if (storedToken && storedUser) {
+        if (storedToken && storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser.id === firebaseUser.uid) {
+              setUser(parsedUser);
+              setToken(storedToken);
+              
+              // Sync dashboard view state with current URL pathname
+              const path = window.location.pathname;
+              if (path === '/admin') {
+                setDashboardView('admin');
+              } else if (path === '/dashboard') {
+                if (parsedUser.role === 'admin') {
+                  window.history.replaceState({}, '', '/admin');
+                  setDashboardView('admin');
+                } else {
+                  setDashboardView('user');
+                }
+              }
+              setIsInitializing(false);
+              return;
+            }
+          } catch (e) {
+            console.error('Failed to parse local user', e);
+          }
+        }
+
+        // If mismatch or missing local session, synchronize with local database
         try {
-          // Verify with server using compliant /api/auth/session
-          const res = await fetch('/api/auth/session', {
-            headers: { 'Authorization': `Bearer ${storedToken}` }
+          const syncRes = await fetch('/api/auth/firebase-sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              name: firebaseUser.displayName,
+              isVerified: firebaseUser.emailVerified
+            })
           });
 
-          if (res.ok) {
-            const data = await res.json();
+          if (syncRes.ok) {
+            const data = await syncRes.json();
             setUser(data.user);
-            setToken(storedToken);
-            
-            // Sync dashboard view state with current URL pathname
+            setToken(data.token);
+            localStorage.setItem('spaceloan_token', data.token);
+            localStorage.setItem('spaceloan_user', JSON.stringify(data.user));
+
             const path = window.location.pathname;
             if (path === '/admin') {
               setDashboardView('admin');
@@ -110,27 +147,38 @@ export default function App() {
               } else {
                 setDashboardView('user');
               }
-            } else if (path === '/calculator') {
-              setDashboardView('calculator');
-            } else if (path === '/how-it-works') {
-              setDashboardView('how-it-works');
-            } else {
-              setDashboardView('landing');
             }
           } else {
-            // Clean expired credentials
+            await auth.signOut();
+            setUser(null);
+            setToken(null);
             localStorage.removeItem('spaceloan_token');
             localStorage.removeItem('spaceloan_user');
           }
-        } catch (e) {
-          console.error('Session restoration failed', e);
+        } catch (err) {
+          console.error('Firebase auto-sync failed:', err);
         }
+      } else {
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('spaceloan_token');
+        localStorage.removeItem('spaceloan_user');
       }
       setIsInitializing(false);
-    };
+    });
 
-    restoreSession();
+    return () => unsubscribe();
   }, []);
+
+  // Automatic route guard / redirection for unauthenticated users accessing /dashboard
+  React.useEffect(() => {
+    if (!isInitializing && !user && dashboardView === 'user') {
+      setDashboardView('landing');
+      window.history.replaceState({}, '', '/');
+      setAuthModalMode('login');
+      setAuthModalOpen(true);
+    }
+  }, [user, dashboardView, isInitializing]);
 
   // Fetch announcements & active homepage elements
   const fetchGlobalData = React.useCallback(async () => {
@@ -180,7 +228,12 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+    } catch (e) {
+      console.error('Firebase signOut error', e);
+    }
     setUser(null);
     setToken(null);
     localStorage.removeItem('spaceloan_token');

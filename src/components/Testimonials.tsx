@@ -366,13 +366,13 @@ export default function Testimonials() {
 
         {/* Glassmorphic Submit Testimonial Form */}
         <div className="mt-20 max-w-2xl mx-auto animate-fade-in" id="submit-testimonial-section">
-          <div className="relative bg-gradient-to-b from-cyan-950/20 to-black/85 border border-white/10 rounded-3xl p-8 md:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.9)] backdrop-blur-xl">
+          <div className="relative bg-black border border-white/20 rounded-3xl p-8 md:p-10 shadow-[0_25px_60px_rgba(0,0,0,0.95)]">
             <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
             
             {!submitted ? (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="text-center mb-8">
-                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-400 font-mono text-xs tracking-wider uppercase mb-3">
+                  <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-950/60 border border-cyan-500/35 text-cyan-400 font-mono text-xs tracking-wider uppercase mb-3">
                     <MessageSquarePlus className="h-4 w-4" /> Share Your Capital Journey
                   </div>
                   <h4 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase">
@@ -394,7 +394,7 @@ export default function Testimonials() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="e.g. Marcus Vance" 
-                      className="w-full bg-black/45 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all duration-300"
+                      className="w-full bg-zinc-900/95 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/40 transition-all duration-300"
                     />
                   </div>
                   <div>
@@ -407,7 +407,7 @@ export default function Testimonials() {
                       value={formData.role}
                       onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                       placeholder="e.g. Chief Aerospace Engineer" 
-                      className="w-full bg-black/45 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all duration-300"
+                      className="w-full bg-zinc-900/95 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/40 transition-all duration-300"
                     />
                   </div>
                 </div>
@@ -423,7 +423,7 @@ export default function Testimonials() {
                       value={formData.company}
                       onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                       placeholder="e.g. Nova Propulsion Ltd" 
-                      className="w-full bg-black/45 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all duration-300"
+                      className="w-full bg-zinc-900/95 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/40 transition-all duration-300"
                     />
                   </div>
                   <div>
@@ -436,7 +436,7 @@ export default function Testimonials() {
                       value={formData.amount}
                       onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                       placeholder="e.g. $150,000" 
-                      className="w-full bg-black/45 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all duration-300"
+                      className="w-full bg-zinc-900/95 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/40 transition-all duration-300"
                     />
                   </div>
                 </div>
@@ -452,7 +452,7 @@ export default function Testimonials() {
                       value={formData.location}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                       placeholder="e.g. Austin, TX" 
-                      className="w-full bg-black/45 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all duration-300"
+                      className="w-full bg-zinc-900/95 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/40 transition-all duration-300"
                     />
                   </div>
                   <div>
@@ -492,7 +492,7 @@ export default function Testimonials() {
                     value={formData.comment}
                     onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
                     placeholder="Describe how Elon Capital Loan accelerated your operations, standard of service, or engineering capabilities..." 
-                    className="w-full bg-black/45 border border-white/15 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-cyan-400/60 focus:ring-1 focus:ring-cyan-400/30 transition-all duration-300 resize-none"
+                    className="w-full bg-zinc-900/95 border border-white/20 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/40 transition-all duration-300 resize-none"
                   />
                 </div>
 

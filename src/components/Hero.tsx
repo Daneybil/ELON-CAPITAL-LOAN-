@@ -22,10 +22,10 @@ import HelloSection from './HelloSection';
 import GovernmentWarning from './GovernmentWarning';
 
 // Import local images from assets to allow Vite to bundle them as assets and guarantee production/dev delivery
-import astronautImage from '../assets/Advancing_Human_Spaceflight_Mobile_af242fde31-1.jpg';
-import alwaysSunnyBackground from '../assets/Always_Sunny_v4_d8b76550ae-2.jpg';
-import spaceTechBackground from '../assets/Revolutionizing_Space_Tech_Mobile_45093b17b7-2.jpg';
-import spaceXExploration from '../assets/image-2.jpg';
+import astronautImage from '../assets/Advancing_Human_Spaceflight_Mobile_af242fde31.jpg';
+import alwaysSunnyBackground from '../assets/Always_Sunny_v4_d8b76550ae.jpg';
+import spaceTechBackground from '../assets/Revolutionizing_Space_Tech_Mobile_45093b17b7.jpg';
+import spaceXExploration from '../assets/image.jpg';
 
 interface HeroProps {
   content: HomePageContent;

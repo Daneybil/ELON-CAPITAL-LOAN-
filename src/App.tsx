@@ -309,7 +309,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200" id="spaceloan-root-layout">
+    <div className="min-h-screen w-full overflow-x-hidden bg-black text-white flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200" id="spaceloan-root-layout">
       
       {/* Main Navigation Header */}
       <Navbar 

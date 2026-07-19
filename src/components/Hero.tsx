@@ -66,7 +66,7 @@ export default function Hero({
   };
 
   return (
-    <div className="relative min-h-screen bg-black text-white selection:bg-cyan-500/30 selection:text-cyan-200" id="homepage-container">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-black text-white selection:bg-cyan-500/30 selection:text-cyan-200" id="homepage-container">
       
       {/* Background glow effects */}
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-500/[0.02] rounded-full blur-[150px] pointer-events-none" />

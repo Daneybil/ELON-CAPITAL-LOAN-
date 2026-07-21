@@ -809,7 +809,7 @@ app.post('/api/auth/reset-password', (req, res) => {
 
 // 7. PROFILE & PHOTO EDIT
 app.post('/api/user/profile/update', authenticateToken, (req, res) => {
-  const { phone, country, notificationPreferences, profilePhoto } = req.body;
+  const { name, phone, country, notificationPreferences, profilePhoto } = req.body;
   const db = getDB();
   const user = db.users.find(u => u.id === req.user!.id);
 
@@ -818,6 +818,7 @@ app.post('/api/user/profile/update', authenticateToken, (req, res) => {
     return;
   }
 
+  if (name) user.name = name;
   if (phone) user.phone = phone;
   if (country) user.country = country;
   if (notificationPreferences) user.notificationPreferences = notificationPreferences;
@@ -951,15 +952,14 @@ app.post('/api/loans/pay-collateral', authenticateToken, (req, res) => {
 
   loan.collateralPaid = true;
   loan.collateralTxId = txId;
-  loan.disbursed = true;
-  loan.disbursedAt = new Date().toISOString();
+  loan.disbursed = false; // Will be set to true by Admin disbursement!
 
   // Add system notifications
   db.notifications.push({
     id: generateId(),
     userId: req.user!.id,
-    title: "Collateral Verified & Funding Disbursed",
-    content: `Payment reference ${txId} verified. Liquidity of $${loan.fundingDetails.requestedAmount.toLocaleString()} has been dispatched to your designated terminal/wallet.`,
+    title: "Collateral Payment Received",
+    content: `Payment reference ${txId} received. Your loan is now status 'Preparing Disbursement' and is queued for final transmission within 24 hours.`,
     isRead: false,
     createdAt: new Date().toISOString()
   });
@@ -973,12 +973,72 @@ app.post('/api/loans/pay-collateral', authenticateToken, (req, res) => {
   });
 
   saveDB(db);
-  res.json({ message: 'Collateral payment processed. Funding disbursed successfully.', loan });
+  res.json({ message: 'Collateral payment processed. Status updated to Preparing Disbursement.', loan });
+});
+
+// Admin disburse endpoint
+app.post('/api/admin/loans/disburse', authenticateToken, requireAdmin, (req, res) => {
+  const { loanId } = req.body;
+  if (!loanId) {
+    res.status(400).json({ error: 'Loan ID is required.' });
+    return;
+  }
+
+  const db = getDB();
+  const loan = db.loans.find(l => l.id === loanId);
+  if (!loan) {
+    res.status(404).json({ error: 'Loan application not found.' });
+    return;
+  }
+
+  loan.disbursed = true;
+  loan.disbursedAt = new Date().toISOString();
+
+  db.notifications.push({
+    id: generateId(),
+    userId: loan.userId,
+    title: "Loan Disbursed Successfully",
+    content: `Great news! The capital of $${loan.fundingDetails.requestedAmount.toLocaleString()} has been sent to your wallet/escrow address. Status updated to Loan Disbursed.`,
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+
+  const user = db.users.find(u => u.id === loan.userId);
+  user?.activityHistory?.unshift({
+    id: generateId(),
+    action: `Loan ${loan.id} marked as disbursed by Admin`,
+    timestamp: new Date().toISOString(),
+    ipAddress: req.ip || "127.0.0.1"
+  });
+
+  saveDB(db);
+  res.json({ message: 'Loan marked as disbursed successfully.', loan });
 });
 
 // 9. KYC VERIFICATION ENDPOINTS
 app.post('/api/kyc/upload', authenticateToken, (req, res) => {
-  const { idCardUrl, selfieUrl, addressProofUrl, businessDocUrl } = req.body;
+  const { 
+    idCardUrl, 
+    selfieUrl, 
+    addressProofUrl, 
+    businessDocUrl,
+    fullName,
+    dob,
+    phone,
+    email,
+    country,
+    residentialAddress,
+    proofOfAddressUrl,
+    employmentStatus,
+    maritalStatus,
+    loanPurpose,
+    loanDescription,
+    socialHandles,
+    idType,
+    videoUrl,
+    requestedAmount,
+    loanDuration
+  } = req.body;
 
   if (!idCardUrl || !selfieUrl) {
     res.status(400).json({ error: 'Government ID and Selfie files are required for KYC submission.' });
@@ -994,19 +1054,94 @@ app.post('/api/kyc/upload', authenticateToken, (req, res) => {
     id: existingKycIdx !== -1 ? db.kyc[existingKycIdx].id : `KYC-${generateId()}`,
     userId: req.user!.id,
     userEmail: req.user!.email,
-    userName: req.user!.name,
+    userName: fullName || req.user!.name,
     idCardUrl,
     selfieUrl,
-    addressProofUrl,
-    businessDocUrl,
+    addressProofUrl: addressProofUrl || proofOfAddressUrl || '',
+    businessDocUrl: businessDocUrl || '',
     status: 'Pending',
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
+    
+    // REDESIGNED KYC FIELDS
+    fullName: fullName || req.user!.name,
+    dob: dob || '',
+    phone: phone || req.user!.phone || '',
+    email: email || req.user!.email || '',
+    country: country || req.user!.country || 'United States',
+    residentialAddress: residentialAddress || '',
+    proofOfAddressUrl: proofOfAddressUrl || addressProofUrl || '',
+    employmentStatus: employmentStatus || 'Employed',
+    maritalStatus: maritalStatus || 'Single',
+    loanPurpose: loanPurpose || 'Business Expansion',
+    loanDescription: loanDescription || '',
+    socialHandles: socialHandles || '',
+    idType: idType || 'Passport',
+    videoUrl: videoUrl || '',
+    requestedAmount: Number(requestedAmount) || undefined,
+    loanDuration: Number(loanDuration) || undefined
   };
 
   if (existingKycIdx !== -1) {
     db.kyc[existingKycIdx] = newKyc;
   } else {
     db.kyc.unshift(newKyc);
+  }
+
+  // If requestedAmount is provided, automatically submit a corresponding LoanApplication
+  const reqAmount = Number(requestedAmount);
+  if (reqAmount && reqAmount >= 1000) {
+    // Check if there is already a pending loan for this user
+    const existingPendingLoan = db.loans.find(l => l.userId === req.user!.id && l.status === 'Pending');
+    if (!existingPendingLoan) {
+      const newLoan: LoanApplication = {
+        id: `SL-${Math.floor(100000 + Math.random() * 900000)}`,
+        userId: req.user!.id,
+        userEmail: req.user!.email,
+        userName: fullName || req.user!.name,
+        personalInfo: {
+          dateOfBirth: dob || '',
+          maritalStatus: maritalStatus || 'Single',
+          address: residentialAddress || ''
+        },
+        employmentInfo: {
+          status: employmentStatus || 'Employed',
+          monthlyIncome: 5000,
+          yearsEmployed: 2
+        },
+        fundingDetails: {
+          purpose: loanPurpose || 'Personal / Business Expansion',
+          requestedAmount: reqAmount,
+          repaymentPreference: `Monthly structured / ${loanDuration || 24} months`,
+          description: loanDescription || ''
+        },
+        financialInfo: {
+          existingDebts: 0,
+          creditScore: 750,
+          assetsValue: 0
+        },
+        status: 'Pending',
+        requiresEnhancedVerification: reqAmount > 5000000,
+        documents: [
+          { name: 'id_card', type: idType || 'ID Card', url: idCardUrl, uploadedAt: new Date().toISOString() }
+        ],
+        createdAt: new Date().toISOString()
+      };
+      db.loans.unshift(newLoan);
+    } else {
+      // Update existing pending loan
+      existingPendingLoan.userName = fullName || req.user!.name;
+      existingPendingLoan.personalInfo = {
+        dateOfBirth: dob || '',
+        maritalStatus: maritalStatus || 'Single',
+        address: residentialAddress || ''
+      };
+      existingPendingLoan.fundingDetails = {
+        purpose: loanPurpose || 'Personal / Business Expansion',
+        requestedAmount: reqAmount,
+        repaymentPreference: `Monthly structured / ${loanDuration || 24} months`,
+        description: loanDescription || ''
+      };
+    }
   }
 
   // Update user's notifications
@@ -1020,12 +1155,15 @@ app.post('/api/kyc/upload', authenticateToken, (req, res) => {
   });
 
   const user = db.users.find(u => u.id === req.user!.id);
-  user?.activityHistory?.unshift({
-    id: generateId(),
-    action: "Uploaded KYC documents for verification",
-    timestamp: new Date().toISOString(),
-    ipAddress: req.ip || "127.0.0.1"
-  });
+  if (user) {
+    if (!user.activityHistory) user.activityHistory = [];
+    user.activityHistory.unshift({
+      id: generateId(),
+      action: "Uploaded KYC documents for verification",
+      timestamp: new Date().toISOString(),
+      ipAddress: req.ip || "127.0.0.1"
+    });
+  }
 
   saveDB(db);
 
@@ -1283,13 +1421,13 @@ app.post('/api/support/tickets/reply', authenticateToken, (req, res) => {
 // ----------------- ADMINISTRATOR CONTROL ENDPOINTS -----------------
 
 // Authentication Middleware for Admins
-const requireAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
   if (!req.user || req.user.role !== 'admin') {
     res.status(403).json({ error: 'Restricted access. Administrative clearance required.' });
     return;
   }
   next();
-};
+}
 
 // Admin authentication with 2FA simulation
 app.post('/api/admin/verify-2fa', authenticateToken, requireAdmin, (req, res) => {

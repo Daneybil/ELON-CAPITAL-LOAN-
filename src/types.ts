@@ -51,7 +51,7 @@ export interface LoanApplication {
     creditScore?: number;
     assetsValue?: number;
   };
-  status: 'Pending' | 'Approved' | 'Declined' | 'Under Review';
+  status: 'Pending' | 'Approved' | 'Declined' | 'Under Review' | 'Processing';
   requiresEnhancedVerification: boolean;
   documents: Array<{ name: string; type: string; url: string; uploadedAt: string }>;
   collateralPaid?: boolean;
@@ -70,9 +70,27 @@ export interface KYC {
   selfieUrl: string;
   addressProofUrl?: string;
   businessDocUrl?: string;
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Under Review';
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Under Review' | 'Pending_Upload';
   remarks?: string;
   updatedAt: string;
+
+  // New fields for the redesigned KYC Flow
+  fullName?: string;
+  dob?: string;
+  phone?: string;
+  email?: string;
+  country?: string;
+  residentialAddress?: string;
+  proofOfAddressUrl?: string;
+  employmentStatus?: string;
+  maritalStatus?: string;
+  loanPurpose?: string;
+  loanDescription?: string;
+  socialHandles?: string;
+  idType?: string;
+  videoUrl?: string;
+  requestedAmount?: number;
+  loanDuration?: number;
 }
 
 export interface Message {

@@ -218,13 +218,8 @@ export default function App() {
       window.history.pushState({}, '', '/admin');
       setDashboardView('admin');
     } else {
-      if (prefilledLoanAmount !== undefined) {
-        setUserDashboardTab('apply');
-      } else {
-        setUserDashboardTab('overview');
-      }
-      window.history.pushState({}, '', '/dashboard');
-      setDashboardView('user');
+      window.history.pushState({}, '', '/calculator');
+      setDashboardView('calculator');
     }
   };
 

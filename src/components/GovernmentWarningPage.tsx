@@ -19,9 +19,10 @@ export default function GovernmentWarningPage({ onBackToHome }: GovernmentWarnin
         <div className="mb-12 text-left">
           <button
             onClick={onBackToHome}
-            className="flex items-center gap-2 text-xs sm:text-sm font-mono font-black uppercase tracking-widest text-red-400 hover:text-red-300 transition-colors cursor-pointer group"
+            className="inline-flex items-center gap-3 px-6 py-3 border border-red-500/20 bg-red-950/20 rounded-xl text-xs sm:text-sm font-mono font-black uppercase tracking-widest text-red-400 hover:text-red-300 hover:border-red-500/50 hover:bg-red-950/40 transition-all duration-200 cursor-pointer group shadow-[0_4px_20px_rgba(239,68,68,0.05)] active:scale-95"
+            id="btn-government-warning-back"
           >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
             Back to Home Page
           </button>
         </div>

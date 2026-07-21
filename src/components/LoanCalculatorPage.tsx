@@ -97,10 +97,10 @@ export default function LoanCalculatorPage({
         {/* Back Link */}
         <button 
           onClick={onBackToHome}
-          className="flex items-center gap-2 text-zinc-300 hover:text-cyan-400 text-xs sm:text-sm font-mono uppercase tracking-widest mb-10 transition-colors cursor-pointer group font-black"
+          className="inline-flex items-center gap-3 px-6 py-3 border border-cyan-500/20 bg-cyan-950/20 rounded-xl text-xs sm:text-sm font-mono font-black uppercase tracking-widest text-cyan-400 hover:text-cyan-300 hover:border-cyan-400/50 hover:bg-cyan-950/40 transition-all duration-200 cursor-pointer group shadow-[0_4px_20px_rgba(34,211,238,0.05)] active:scale-95 mb-10"
           id="btn-back-home"
         >
-          <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
           Back to Homepage
         </button>
 

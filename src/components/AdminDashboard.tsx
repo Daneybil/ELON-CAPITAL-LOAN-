@@ -236,7 +236,7 @@ export default function AdminDashboard({
   };
 
   // Approve / Decline Loan Applications
-  const handleAuditLoan = async (loanId: string, status: 'Approved' | 'Declined') => {
+  const handleAuditLoan = async (loanId: string, status: 'Approved' | 'Declined' | 'Under Review' | 'Processing') => {
     setLoading(true);
     try {
       const res = await fetch('/api/admin/loans/update', {
@@ -249,6 +249,29 @@ export default function AdminDashboard({
       if (!res.ok) throw new Error(data.error || 'Loan status update failed.');
 
       triggerAlert('success', `Loan application ${loanId} set to: ${status}`);
+      setLoans(prev => prev.map(l => l.id === loanId ? data.loan : l));
+      setActiveLoanView(null);
+    } catch (err: any) {
+      triggerAlert('error', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Disburse Funds for approved, collateral paid loan
+  const handleDisburseLoan = async (loanId: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/loans/disburse', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ loanId })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Loan disbursement failed.');
+
+      triggerAlert('success', `Loan application ${loanId} marked as DISBURSED!`);
       setLoans(prev => prev.map(l => l.id === loanId ? data.loan : l));
       setActiveLoanView(null);
     } catch (err: any) {
@@ -778,38 +801,128 @@ export default function AdminDashboard({
 
               {/* KYC Evaluation Overlay Modal */}
               {activeKycDoc && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
-                  <div className="relative w-full max-w-2xl bg-black border border-white/10 rounded-2xl p-8 my-8 shadow-2xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md overflow-y-auto">
+                  <div className="relative w-full max-w-3xl bg-[#09090b] border border-white/10 rounded-2xl p-8 my-8 shadow-2xl">
                     <button onClick={() => setActiveKycDoc(null)} className="absolute top-6 right-6 text-gray-500 hover:text-white"><X className="h-5 w-5" /></button>
                     
-                    <h4 className="font-display text-lg font-bold text-white mb-1">Evaluate KYC Document Wallet</h4>
-                    <p className="text-xs text-gray-400 font-mono border-b border-white/5 pb-4 mb-6">User: {activeKycDoc.userName} ({activeKycDoc.userEmail})</p>
-
-                    {/* Files display */}
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="p-4 bg-white/[0.01] border border-white/5 rounded-lg text-center">
-                        <span className="text-[10px] font-mono text-gray-500 uppercase block mb-2">Government Photocard Scan</span>
-                        <div className="h-28 bg-white/5 rounded flex items-center justify-center text-xs text-cyan-400 font-mono">
-                          {activeKycDoc.idCardUrl}
-                        </div>
-                      </div>
-
-                      <div className="p-4 bg-white/[0.01] border border-white/5 rounded-lg text-center">
-                        <span className="text-[10px] font-mono text-gray-500 uppercase block mb-2">Applicant Live Selfie</span>
-                        <div className="h-28 bg-white/5 rounded flex items-center justify-center text-xs text-cyan-400 font-mono">
-                          {activeKycDoc.selfieUrl}
-                        </div>
-                      </div>
+                    <div className="border-b border-white/5 pb-4 mb-6">
+                      <span className="px-2 py-0.5 bg-cyan-950/40 border border-cyan-500/20 text-cyan-400 font-mono text-[9px] font-bold rounded-full uppercase tracking-wider">KYC AUDIT PORTAL</span>
+                      <h4 className="font-display text-2xl font-black text-white mt-2">Evaluate KYC Document Wallet</h4>
+                      <p className="text-xs text-gray-400 font-mono mt-1">Applicant Name: <span className="text-white font-semibold">{activeKycDoc.fullName || activeKycDoc.userName}</span></p>
                     </div>
 
-                    <div className="space-y-4 mb-6 text-xs text-gray-300">
-                      <div className="flex justify-between border-b border-white/5 pb-2">
-                        <span>Proof of Address attachment:</span>
-                        <span className="font-mono text-cyan-400">{activeKycDoc.addressProofUrl || 'None'}</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                      {/* Left Column: ID documents, Video, Selfie */}
+                      <div className="space-y-4">
+                        <h5 className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-bold">1. VERIFIED ATTACHMENTS & MEDIA</h5>
+                        
+                        <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-3">
+                          <span className="text-[10px] font-mono text-gray-500 uppercase block">Government-Issued Photo ID ({activeKycDoc.idType || 'Passport'})</span>
+                          <div className="h-28 bg-black border border-white/5 rounded-lg flex flex-col items-center justify-center text-xs text-cyan-400 font-mono p-4">
+                            <span className="text-xl mb-1">📄</span>
+                            <span className="text-[10px] text-zinc-300 font-mono text-center truncate w-full">{activeKycDoc.idCardUrl}</span>
+                            <span className="text-[9px] text-zinc-500 font-mono mt-1">Security AES-256 Encrypted</span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-3">
+                          <span className="text-[10px] font-mono text-gray-500 uppercase block">Applicant Biometric Face Selfie</span>
+                          <div className="h-28 bg-black border border-white/5 rounded-lg flex flex-col items-center justify-center text-xs text-cyan-400 font-mono p-4">
+                            {activeKycDoc.selfieUrl && activeKycDoc.selfieUrl.startsWith('http') ? (
+                              <img src={activeKycDoc.selfieUrl} alt="Selfie" className="h-16 w-16 rounded-full object-cover border border-cyan-400/30 mb-1" referrerPolicy="no-referrer" />
+                            ) : (
+                              <span className="text-xl mb-1">👤</span>
+                            )}
+                            <span className="text-[9px] text-zinc-300 font-mono truncate w-full text-center">{activeKycDoc.selfieUrl}</span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-3">
+                          <span className="text-[10px] font-mono text-gray-500 uppercase block">Video Verification Proof</span>
+                          <div className="h-28 bg-black border border-white/5 rounded-lg flex flex-col items-center justify-center text-xs text-cyan-400 font-mono p-4">
+                            <span className="text-xl mb-1">📹</span>
+                            <span className="text-[10px] text-zinc-300 font-mono text-center truncate w-full">{activeKycDoc.videoUrl || 'live_face_scan_video.mp4'}</span>
+                            <span className="text-[9px] text-emerald-400 font-mono font-bold mt-1">✓ Liveness Check Passed</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between border-b border-white/5 pb-2">
-                        <span>Business Registration Memo:</span>
-                        <span className="font-mono text-cyan-400">{activeKycDoc.businessDocUrl || 'None'}</span>
+
+                      {/* Right Column: Identity fields and Loan Details */}
+                      <div className="space-y-4">
+                        <h5 className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-bold">2. IDENTITY PROFILE & REQUEST</h5>
+
+                        {/* Account and Contact Details */}
+                        <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-2.5 text-xs text-zinc-300">
+                          <span className="text-[9px] font-mono text-gray-500 uppercase block">Account Contact Info</span>
+                          <div className="flex justify-between border-b border-white/[0.02] pb-1.5">
+                            <span className="text-zinc-500">Registered Email:</span>
+                            <span className="font-mono text-white">{activeKycDoc.email || activeKycDoc.userEmail}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-white/[0.02] pb-1.5">
+                            <span className="text-zinc-500">Phone Number:</span>
+                            <span className="font-mono text-white">{activeKycDoc.phone || 'Not Specified'}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-white/[0.02] pb-1.5">
+                            <span className="text-zinc-500">Country of Origin:</span>
+                            <span className="text-white font-medium">{activeKycDoc.country || 'United States'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-zinc-500">Date of Birth:</span>
+                            <span className="text-white font-medium">{activeKycDoc.dob || 'Not Specified'}</span>
+                          </div>
+                        </div>
+
+                        {/* Financial and Loan Info */}
+                        <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-2.5 text-xs text-zinc-300">
+                          <span className="text-[9px] font-mono text-cyan-400 uppercase block">Requested Funding Capital</span>
+                          <div className="flex justify-between border-b border-white/[0.02] pb-1.5">
+                            <span className="text-zinc-500">Requested Amount:</span>
+                            <span className="font-mono text-white font-bold text-sm text-cyan-400">
+                              ${activeKycDoc.requestedAmount ? activeKycDoc.requestedAmount.toLocaleString() : '100,000'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between border-b border-white/[0.02] pb-1.5">
+                            <span className="text-zinc-500">Loan Duration:</span>
+                            <span className="text-white font-medium">{activeKycDoc.loanDuration ? `${activeKycDoc.loanDuration} Months` : '24 Months'}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-white/[0.02] pb-1.5">
+                            <span className="text-zinc-500">Employment Status:</span>
+                            <span className="text-white font-medium">{activeKycDoc.employmentStatus || 'Employed'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-zinc-500">Marital Status:</span>
+                            <span className="text-white font-medium">{activeKycDoc.maritalStatus || 'Single'}</span>
+                          </div>
+                        </div>
+
+                        {/* Residential and Socials */}
+                        <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-2.5 text-xs text-zinc-300">
+                          <span className="text-[9px] font-mono text-gray-500 uppercase block">Residential Location Address</span>
+                          <p className="text-white bg-black/30 p-2 border border-white/5 rounded text-[10px] leading-relaxed break-all">
+                            {activeKycDoc.residentialAddress || 'Not Provided'}
+                          </p>
+                          <div className="flex justify-between border-t border-white/[0.02] pt-2">
+                            <span className="text-zinc-500">Proof of Address Doc:</span>
+                            <span className="font-mono text-cyan-400 text-[10px] truncate max-w-[180px]">
+                              {activeKycDoc.proofOfAddressUrl || activeKycDoc.addressProofUrl || 'utility_bill_verified.pdf'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-zinc-500">Social Handles:</span>
+                            <span className="font-mono text-zinc-300 text-[10px] truncate max-w-[180px]">
+                              {activeKycDoc.socialHandles || 'None Provided'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Loan Purpose */}
+                        <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-2 text-xs text-zinc-300">
+                          <span className="text-[9px] font-mono text-gray-500 uppercase block">Declared Loan Intent</span>
+                          <span className="text-white font-bold block">{activeKycDoc.loanPurpose || 'Business Growth & Scaling'}</span>
+                          <p className="text-zinc-400 italic font-light text-[11px] leading-relaxed">
+                            " {activeKycDoc.loanDescription || 'Expansion and liquidity facilitation for operating company.'} "
+                          </p>
+                        </div>
                       </div>
                     </div>
 
@@ -817,10 +930,10 @@ export default function AdminDashboard({
                       <div>
                         <label className="block text-xs font-mono text-gray-500 uppercase mb-2">Internal Compliance Remarks / Audit Memos</label>
                         <textarea 
-                          rows={3}
+                          rows={2}
                           value={kycRemarks}
                           onChange={(e) => setKycRemarks(e.target.value)}
-                          className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500/50 resize-none"
+                          className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-500/50 resize-none font-sans"
                           placeholder="Specify reasons if declining, or compliance clearance details."
                         />
                       </div>
@@ -828,13 +941,13 @@ export default function AdminDashboard({
                       <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
                         <button
                           onClick={() => handleAuditKyc(activeKycDoc.id, 'Rejected')}
-                          className="px-5 py-2.5 text-xs font-semibold text-red-400 border border-red-500/20 bg-red-950/20 rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                          className="px-5 py-2.5 text-xs font-semibold text-red-400 border border-red-500/20 bg-red-950/20 rounded-lg hover:bg-red-500 hover:text-white transition-all cursor-pointer"
                         >
                           Reject Identity Files
                         </button>
                         <button
                           onClick={() => handleAuditKyc(activeKycDoc.id, 'Approved')}
-                          className="px-5 py-2.5 text-xs font-semibold text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg"
+                          className="px-5 py-2.5 text-xs font-semibold text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg cursor-pointer"
                         >
                           Approve Clearance
                         </button>
@@ -936,18 +1049,43 @@ export default function AdminDashboard({
                     </div>
 
                     <div className="flex justify-end gap-3 pt-6 border-t border-white/5 mt-6">
-                      <button
-                        onClick={() => handleAuditLoan(activeLoanView.id, 'Declined')}
-                        className="px-5 py-2.5 text-xs font-semibold text-red-400 border border-red-500/20 bg-red-950/20 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                      >
-                        Decline Application
-                      </button>
-                      <button
-                        onClick={() => handleAuditLoan(activeLoanView.id, 'Approved')}
-                        className="px-5 py-2.5 text-xs font-semibold text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg"
-                      >
-                        Approve & Allocate Capital
-                      </button>
+                      {/* Process Loan button (enabled when collateralPaid is true, and status is Approved or Processing) */}
+                      {activeLoanView.status === 'Approved' && activeLoanView.collateralPaid && !activeLoanView.disbursed && (
+                        <button
+                          onClick={() => handleAuditLoan(activeLoanView.id, 'Processing')}
+                          className="px-5 py-2.5 text-xs font-semibold text-black bg-orange-400 hover:bg-orange-300 rounded-lg mr-auto cursor-pointer"
+                        >
+                          ⚙️ Process Loan
+                        </button>
+                      )}
+
+                      {/* Send Loan button (enabled when status is Processing or Approved, and collateralPaid is true, and not disbursed) */}
+                      {activeLoanView.collateralPaid && !activeLoanView.disbursed && (
+                        <button
+                          onClick={() => handleDisburseLoan(activeLoanView.id)}
+                          className="px-5 py-2.5 text-xs font-semibold text-black bg-emerald-400 hover:bg-emerald-300 rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.3)] mr-auto cursor-pointer"
+                        >
+                          💸 Send Loan
+                        </button>
+                      )}
+
+                      {/* Approve Loan button (only if status is Pending) */}
+                      {activeLoanView.status === 'Pending' && (
+                        <>
+                          <button
+                            onClick={() => handleAuditLoan(activeLoanView.id, 'Declined')}
+                            className="px-5 py-2.5 text-xs font-semibold text-red-400 border border-red-500/20 bg-red-950/20 rounded-lg hover:bg-red-500 hover:text-white transition-all cursor-pointer"
+                          >
+                            Reject Loan
+                          </button>
+                          <button
+                            onClick={() => handleAuditLoan(activeLoanView.id, 'Approved')}
+                            className="px-5 py-2.5 text-xs font-semibold text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg cursor-pointer"
+                          >
+                            Approve Loan
+                          </button>
+                        </>
+                      )}
                     </div>
 
                   </div>

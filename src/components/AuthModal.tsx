@@ -11,6 +11,7 @@ import {
   signOut
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import CountrySelector from './CountrySelector';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -25,15 +26,25 @@ export default function AuthModal({
   onClose,
   onAuthSuccess,
 }: AuthModalProps) {
-  const [mode, setMode] = React.useState<'login' | 'register' | 'verify' | 'forgot' | 'reset'>(initialMode);
+  const [mode, setMode] = React.useState<'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'completeProfile'>(initialMode);
   
   // Registration States
   const [regName, setRegName] = React.useState('');
   const [regEmail, setRegEmail] = React.useState('');
   const [regPhone, setRegPhone] = React.useState('');
-  const [regCountry, setRegCountry] = React.useState('');
+  const [regCountry, setRegCountry] = React.useState('United States');
+  const [regDialCode, setRegDialCode] = React.useState('+1');
   const [regPassword, setRegPassword] = React.useState('');
   const [regConfirmPassword, setRegConfirmPassword] = React.useState('');
+
+  // Complete Profile States (for Google first-time login)
+  const [tempToken, setTempToken] = React.useState('');
+  const [tempUser, setTempUser] = React.useState<User | null>(null);
+  const [completeName, setCompleteName] = React.useState('');
+  const [completePhone, setCompletePhone] = React.useState('');
+  const [completeCountry, setCompleteCountry] = React.useState('United States');
+  const [completeDialCode, setCompleteDialCode] = React.useState('+1');
+  const [completeTerms, setCompleteTerms] = React.useState(false);
 
   // Login States
   const [loginEmail, setLoginEmail] = React.useState('');
@@ -85,6 +96,7 @@ export default function AuthModal({
       await sendEmailVerification(firebaseUser);
 
       // 3. Sync user profile on backend with isVerified: false
+      const fullPhone = `${regDialCode} ${regPhone}`.trim();
       const syncRes = await fetch('/api/auth/firebase-sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,7 +104,7 @@ export default function AuthModal({
           uid: firebaseUser.uid,
           email: regEmail,
           name: regName,
-          phone: regPhone,
+          phone: fullPhone,
           country: regCountry,
           isVerified: false
         })
@@ -243,11 +255,27 @@ export default function AuthModal({
         throw new Error(data.error || 'Google account synchronization failed.');
       }
 
-      setSuccess('Google credentials verified. Access authorized.');
-      setTimeout(() => {
-        onAuthSuccess(data.token, data.user);
-        onClose();
-      }, 1000);
+      // Check if user has phone and country filled
+      const isNewUser = !data.user.phone || !data.user.country || data.user.phone.trim() === '';
+
+      if (isNewUser) {
+        setTempToken(data.token);
+        setTempUser(data.user);
+        setCompleteName(data.user.name || firebaseUser.displayName || '');
+        setCompleteCountry('United States');
+        setCompleteDialCode('+1');
+        setCompletePhone('');
+        setCompleteTerms(false);
+        setMode('completeProfile');
+        setSuccess('Authentication succeeded. Please complete your profile records to continue.');
+        setTimeout(() => setSuccess(''), 2000);
+      } else {
+        setSuccess('Google credentials verified. Access authorized.');
+        setTimeout(() => {
+          onAuthSuccess(data.token, data.user);
+          onClose();
+        }, 1000);
+      }
     } catch (err: any) {
       console.error('Google login failed:', err);
       let errMsg = err.message;
@@ -255,6 +283,48 @@ export default function AuthModal({
         errMsg = 'Google authentication popup closed prior to completion.';
       }
       setError(errMsg || 'Google authentication failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!completeTerms) {
+      setError('You must accept the terms & conditions to proceed.');
+      return;
+    }
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      const fullPhone = `${completeDialCode} ${completePhone}`.trim();
+      
+      const res = await fetch('/api/user/profile/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tempToken}`
+        },
+        body: JSON.stringify({
+          name: completeName,
+          phone: fullPhone,
+          country: completeCountry
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to complete profile registration.');
+
+      setSuccess('Profile updated successfully. Access authorized.');
+      setTimeout(() => {
+        onAuthSuccess(tempToken, data.user);
+        onClose();
+      }, 1000);
+    } catch (err: any) {
+      console.error('Failed to complete profile:', err);
+      setError(err.message || 'Failed to complete profile registration.');
     } finally {
       setLoading(false);
     }
@@ -485,34 +555,33 @@ export default function AuthModal({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* COUNTRY */}
+              <div>
+                <label className="block text-[11px] font-sans font-extrabold text-gray-400 uppercase tracking-wider mb-2 text-left">Country</label>
+                <CountrySelector
+                  selectedCountry={regCountry}
+                  onChange={(cName, dCode) => {
+                    setRegCountry(cName);
+                    setRegDialCode(dCode);
+                  }}
+                  id="reg-country"
+                />
+              </div>
+
               {/* PHONE NUMBER */}
               <div>
                 <label className="block text-[11px] font-sans font-extrabold text-gray-400 uppercase tracking-wider mb-2 text-left">Phone Number</label>
-                <div className="relative glass-3d-input flex items-center">
-                  <Phone className="absolute left-4 h-4 w-4 text-zinc-500" />
+                <div className="relative glass-3d-input flex items-center overflow-hidden">
+                  <span className="pl-4 pr-3 py-3.5 text-sm text-cyan-400 font-mono font-bold border-r border-white/10 select-none bg-black/30 flex items-center h-full min-w-[3.5rem] justify-center">
+                    {regDialCode}
+                  </span>
                   <input 
                     type="tel" 
                     required
                     value={regPhone}
-                    onChange={(e) => setRegPhone(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 bg-transparent border-0 focus:ring-0 focus:outline-none text-sm text-white font-medium"
-                    placeholder="+41 44 123 45 67"
-                  />
-                </div>
-              </div>
-
-              {/* COUNTRY */}
-              <div>
-                <label className="block text-[11px] font-sans font-extrabold text-gray-400 uppercase tracking-wider mb-2 text-left">Country</label>
-                <div className="relative glass-3d-input flex items-center">
-                  <Globe className="absolute left-4 h-4 w-4 text-zinc-500" />
-                  <input 
-                    type="text" 
-                    required
-                    value={regCountry}
-                    onChange={(e) => setRegCountry(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 bg-transparent border-0 focus:ring-0 focus:outline-none text-sm text-white font-medium"
-                    placeholder="Switzerland"
+                    onChange={(e) => setRegPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="w-full pl-3 pr-4 py-3.5 bg-transparent border-0 focus:ring-0 focus:outline-none text-sm text-white font-medium"
+                    placeholder="8123456789"
                   />
                 </div>
               </div>
@@ -729,6 +798,98 @@ export default function AuthModal({
               id="btn-reset-submit"
             >
               {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Confirm Security Overhaul"}
+            </button>
+          </form>
+        )}
+
+        {/* ---------------- COMPLETE PROFILE MODE ---------------- */}
+        {mode === 'completeProfile' && (
+          <form onSubmit={handleCompleteProfileSubmit} className="space-y-6 relative z-10" id="form-complete-profile">
+            <div>
+              <h3 className="font-display text-2xl font-black text-white mb-2 uppercase tracking-wide">Complete Your Profile</h3>
+              <p className="text-xs text-gray-400">Please provide your details below to establish your secure borrower record.</p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Full Name */}
+              <div>
+                <label className="block text-[11px] font-sans font-extrabold text-gray-400 uppercase tracking-wider mb-2 text-left">Full Name</label>
+                <div className="relative glass-3d-input flex items-center">
+                  <UserIcon className="absolute left-4 h-4 w-4 text-zinc-500" />
+                  <input 
+                    type="text" 
+                    required
+                    value={completeName}
+                    onChange={(e) => setCompleteName(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3.5 bg-transparent border-0 focus:ring-0 focus:outline-none text-sm text-white font-medium"
+                    placeholder="John Doe"
+                  />
+                </div>
+              </div>
+
+              {/* Country & Phone Number */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-[11px] font-sans font-extrabold text-gray-400 uppercase tracking-wider mb-2 text-left">Country</label>
+                  <CountrySelector
+                    selectedCountry={completeCountry}
+                    onChange={(cName, dCode) => {
+                      setCompleteCountry(cName);
+                      setCompleteDialCode(dCode);
+                    }}
+                    id="complete-country"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-sans font-extrabold text-gray-400 uppercase tracking-wider mb-2 text-left">Phone Number</label>
+                  <div className="relative glass-3d-input flex items-center overflow-hidden">
+                    <span className="pl-4 pr-3 py-3.5 text-sm text-cyan-400 font-mono font-bold border-r border-white/10 select-none bg-black/30 flex items-center h-full min-w-[3.5rem] justify-center">
+                      {completeDialCode}
+                    </span>
+                    <input 
+                      type="tel" 
+                      required
+                      value={completePhone}
+                      onChange={(e) => setCompletePhone(e.target.value.replace(/[^0-9]/g, ''))}
+                      className="w-full pl-3 pr-4 py-3.5 bg-transparent border-0 focus:ring-0 focus:outline-none text-sm text-white font-medium"
+                      placeholder="8123456789"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Terms and Conditions Checkbox */}
+              <div className="pt-2">
+                <label className="flex items-start gap-3 cursor-pointer text-xs text-gray-400 hover:text-white select-none">
+                  <input 
+                    type="checkbox" 
+                    required
+                    checked={completeTerms}
+                    onChange={(e) => setCompleteTerms(e.target.checked)}
+                    className="rounded border-white/10 bg-black text-cyan-500 focus:ring-0 focus:ring-offset-0 h-4 w-4 mt-0.5"
+                    id="complete-terms-checkbox"
+                  />
+                  <span>
+                    I hereby accept the <strong className="text-white hover:underline">Terms of Service</strong> and <strong className="text-white hover:underline">Privacy Policy</strong> of Elon Musk Capital Loan.
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4 glass-3d-button flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-6"
+              id="btn-complete-profile-submit"
+            >
+              {loading ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <span className="flex items-center gap-1.5 justify-center">
+                  COMPLETE PROFILE <ArrowRight className="h-4 w-4" />
+                </span>
+              )}
             </button>
           </form>
         )}

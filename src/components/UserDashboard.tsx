@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { Calculator, History, Clock, ArrowRight, ArrowLeft, CheckCircle2, User as UserIcon } from 'lucide-react';
 import CountrySelector from './CountrySelector';
+import SearchableSelect from './SearchableSelect';
 
 interface UserDashboardProps {
   user: User;
@@ -110,13 +111,14 @@ export default function UserDashboard({
 
   // KYC Upload form State
   const [kycIdCard, setKycIdCard] = React.useState('passport_digital.png');
+  const [kycIdCardBack, setKycIdCardBack] = React.useState('passport_digital_back.png');
   const [kycSelfie, setKycSelfie] = React.useState('verification_selfie_latest.png');
   const [kycAddress, setKycAddress] = React.useState('utility_bill_copy.pdf');
   const [kycBusiness, setKycBusiness] = React.useState('certificate_of_good_standing.pdf');
 
   // Enhanced KYC Flow State
   const [kycCountry, setKycCountry] = React.useState(user.country || 'United States');
-  const [kycIdType, setKycIdType] = React.useState('Passport');
+  const [kycIdType, setKycIdType] = React.useState('National Identity Card');
   const [kycAddressText, setKycAddressText] = React.useState('');
   const [kycDeclaresAccuracy, setKycDeclaresAccuracy] = React.useState(false);
   const [kycSignature, setKycSignature] = React.useState('');
@@ -137,13 +139,25 @@ export default function UserDashboard({
   const [kycSocialHandles, setKycSocialHandles] = React.useState('');
   const [complianceSsn, setComplianceSsn] = React.useState('');
   const [isUsResident, setIsUsResident] = React.useState(true);
+  const [socialPlatform, setSocialPlatform] = React.useState('Twitter / X');
+  const [singleSocialHandle, setSingleSocialHandle] = React.useState('@johndoe_trader');
   const [twitterUsername, setTwitterUsername] = React.useState('');
-  const [telegramUsername, setTelegramUsername] = React.useState('');
   const [linkedinUsername, setLinkedinUsername] = React.useState('');
-  const [githubUsername, setGithubUsername] = React.useState('');
+  const [tiktokUsername, setTiktokUsername] = React.useState('');
+  const [facebookUsername, setFacebookUsername] = React.useState('');
+  const [youtubeUsername, setYoutubeUsername] = React.useState('');
   const [kycVideoUrl, setKycVideoUrl] = React.useState('liveness_video_proof.mp4');
   const [isVideoRecording, setIsVideoRecording] = React.useState(false);
   const [videoCountdown, setVideoCountdown] = React.useState(0);
+  const [kycBvn, setKycBvn] = React.useState('');
+
+  // Manual File Upload Input Refs
+  const idCardFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const idCardBackFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const proofOfAddressFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const businessDocFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const selfieFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const videoFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Messaging States
   const [newMsgContent, setNewMsgContent] = React.useState('');
@@ -256,14 +270,19 @@ export default function UserDashboard({
 
   const handleAutoFillPage2 = () => {
     setIsUsResident(true);
+    setKycCountry("United States");
+    setKycIdType("Driver's License");
     setComplianceSsn("987-65-4321");
-    setKycIdCard("approved_passport_scan.png");
-    setKycProofOfAddress("approved_utility_bill_scan.png");
+    setKycIdCard("approved_us_driver_license_front.png");
+    setKycIdCardBack("approved_us_driver_license_back.png");
     setKycBusiness("llc_formation_certificate_active.pdf");
+    setSocialPlatform("Twitter / X");
+    setSingleSocialHandle("@johndoe_trader");
     setTwitterUsername("@johndoe_trader");
-    setTelegramUsername("@johndoe_official");
     setLinkedinUsername("johndoe_corporate");
-    setGithubUsername("johndoe_dev");
+    setTiktokUsername("@johndoe_official");
+    setFacebookUsername("john.doe.trader");
+    setYoutubeUsername("@JohnDoeFinance");
 
     setKycSelfie("https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=180&h=180&q=80");
     setIsWebcamActive(true);
@@ -273,7 +292,7 @@ export default function UserDashboard({
     setKycDeclaresAccuracy(true);
     setKycSignature(user.name);
 
-    triggerAlert('success', '✨ Page 2 demo data auto-filled! Credentials, selfie, video proof, and signature populated. Ready to submit!');
+    triggerAlert('success', '✨ Page 2 demo data auto-filled! Credentials, ID scan, selfie, video proof, and signature populated. Ready to submit!');
   };
 
   // Fetch all user state elements
@@ -669,6 +688,32 @@ export default function UserDashboard({
 
   const handleUnifiedSubmit = async () => {
     setErrorMsg('');
+
+    // Check for existing active loan application
+    const hasActiveLoan = loans.some(l => !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled'].includes(l.status));
+    if (hasActiveLoan) {
+      triggerAlert('error', 'You already have an active loan application. Please wait until your current application is completed, rejected, or fully settled before submitting a new application.');
+      return;
+    }
+
+    // SSN validation for United States residents
+    if (kycCountry === 'United States' && !complianceSsn.trim()) {
+      triggerAlert('error', 'Social Security Number (SSN) is required for United States residents.');
+      return;
+    }
+
+    // Declaration checkbox validation
+    if (!kycDeclaresAccuracy) {
+      triggerAlert('error', 'You must review and agree to the Applicant Undertaking declaration before submitting.');
+      return;
+    }
+
+    // Electronic signature validation
+    if (!kycSignature.trim()) {
+      triggerAlert('error', 'Please type your full legal name as your electronic signature.');
+      return;
+    }
+
     setActionLoading(true);
 
     try {
@@ -689,7 +734,7 @@ export default function UserDashboard({
         maritalStatus: loanPersonal.marital,
         loanPurpose: loanFunding.purpose,
         loanDescription: loanFunding.description || 'Sovereign institutional capital facility allocation request.',
-        socialHandles: [twitterUsername, telegramUsername, linkedinUsername, githubUsername].filter(Boolean).map(u => u.trim()).join(', ') || kycSocialHandles || 'N/A',
+        socialHandles: [singleSocialHandle || twitterUsername, linkedinUsername].filter(Boolean).map(u => u.trim()).join(', ') || kycSocialHandles || 'N/A',
         idType: kycIdType,
         videoUrl: kycVideoUrl || 'liveness_video_proof.mp4',
         requestedAmount: Number(loanFunding.amount || 100000),
@@ -776,7 +821,7 @@ export default function UserDashboard({
   const activeTicket = tickets.find(t => t.id === selectedTicketId);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" id="user-dashboard-root">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 lg:pt-32 pb-16" id="user-dashboard-root">
       
       {/* Alert Overlays */}
       {successMsg && (
@@ -791,37 +836,37 @@ export default function UserDashboard({
       )}
 
       {/* Dashboard Top Frame */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-10 pb-8 border-b border-white/5 gap-6">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-10 pb-8 border-b-2 border-white/10 gap-6">
         <div>
-          <span className="text-[10px] font-mono tracking-[0.2em] text-cyan-400 font-bold uppercase block mb-1">
+          <span className="text-xs font-mono tracking-[0.25em] text-cyan-400 font-black uppercase block mb-1.5">
             Elon Capital • Secured Sovereign Portal
           </span>
-          <h1 className="font-display text-4xl sm:text-5xl font-black text-white tracking-tight uppercase leading-none">
-            Institutional Dashboard
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase leading-none">
+            Personal Dashboard
           </h1>
-          <p className="text-sm text-gray-400 mt-2 max-w-xl">
+          <p className="text-base sm:text-lg font-semibold text-zinc-200 mt-2.5 max-w-2xl leading-relaxed">
             Manage your sovereign credit facility, complete mandatory compliance checks, and track treasury disbursements.
           </p>
         </div>
 
         {/* Global CTA & Balance */}
         <div className="flex flex-wrap items-center gap-4">
-          <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl font-mono text-left">
-            <span className="block text-[8px] text-gray-500 uppercase tracking-widest font-bold">Approved Credit Limit</span>
-            <span className="text-cyan-400 font-bold font-mono text-sm">$500,000,000 USD</span>
+          <div className="p-4 bg-zinc-950/80 border-2 border-cyan-400/30 rounded-2xl font-mono text-left shadow-[0_0_20px_rgba(34,211,238,0.15)]">
+            <span className="block text-xs text-zinc-400 uppercase tracking-widest font-black">Approved Credit Limit</span>
+            <span className="text-cyan-400 font-black font-mono text-lg sm:text-xl block mt-0.5">$500,000,000 USD</span>
           </div>
 
           <div className="flex items-center gap-3">
             <button
               onClick={() => { handleTabChange('apply'); setWizardStep(1); }}
-              className="px-5 py-3 text-xs font-bold uppercase tracking-wider text-black bg-white hover:bg-cyan-400 rounded-lg transition-all duration-300 flex items-center gap-2 shadow-sm cursor-pointer"
+              className="px-6 py-4 text-sm sm:text-base font-black uppercase tracking-wider text-black bg-cyan-400 hover:bg-cyan-300 rounded-xl transition-all duration-300 flex items-center gap-2.5 shadow-[0_0_20px_rgba(34,211,238,0.4)] cursor-pointer font-display"
               id="btn-dash-apply-funding"
             >
-              <Plus className="h-4 w-4" /> Apply for Funding
+              <Plus className="h-5 w-5 stroke-[3]" /> Apply for Funding
             </button>
             <button
               onClick={onLogout}
-              className="px-4 py-3 text-xs font-semibold text-gray-400 hover:text-red-400 border border-white/5 hover:border-red-500/20 rounded-lg transition-all"
+              className="px-5 py-4 text-sm sm:text-base font-black text-gray-200 hover:text-red-400 border-2 border-white/10 hover:border-red-500/30 rounded-xl transition-all cursor-pointer font-display"
               id="btn-dash-logout"
             >
               Logout
@@ -833,62 +878,62 @@ export default function UserDashboard({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         
         {/* SIDEBAR NAVIGATION */}
-        <div className="lg:col-span-1 space-y-2" id="dash-sidebar">
+        <div className="lg:col-span-1 space-y-2.5" id="dash-sidebar">
           <button
             onClick={() => handleTabChange('overview')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === 'overview' ? 'bg-white/5 text-cyan-400 border-l-2 border-cyan-400' : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
+            className={`w-full flex items-center gap-3.5 px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+              activeTab === 'overview' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <Activity className="h-4 w-4" /> Overview & Logs
+            <Activity className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Overview & Logs
           </button>
 
           <button
             onClick={() => handleTabChange('loans')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === 'loans' ? 'bg-white/5 text-cyan-400 border-l-2 border-cyan-400' : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
+            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+              activeTab === 'loans' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <span className="flex items-center gap-3"><FileText className="h-4 w-4" /> Loan Applications</span>
-            {loans.length > 0 && <span className="bg-white/10 text-white font-mono text-[10px] px-2 py-0.5 rounded-full">{loans.length}</span>}
+            <span className="flex items-center gap-3.5"><FileText className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Loan Applications</span>
+            {loans.length > 0 && <span className="bg-cyan-400 text-black font-mono font-black text-xs px-2.5 py-0.5 rounded-full">{loans.length}</span>}
           </button>
 
           <button
             onClick={() => handleTabChange('kyc')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === 'kyc' ? 'bg-white/5 text-cyan-400 border-l-2 border-cyan-400' : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
+            className={`w-full flex items-center gap-3.5 px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+              activeTab === 'kyc' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <ShieldCheck className="h-4 w-4" /> Document KYC
+            <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Document KYC
           </button>
 
           <button
             onClick={() => handleTabChange('messages')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === 'messages' ? 'bg-white/5 text-cyan-400 border-l-2 border-cyan-400' : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
+            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+              activeTab === 'messages' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <span className="flex items-center gap-3"><MessageSquare className="h-4 w-4" /> Message Desk</span>
-            {unreadMsgCount > 0 && <span className="bg-cyan-500 text-black font-bold font-mono text-[10px] px-2 py-0.5 rounded-full">{unreadMsgCount}</span>}
+            <span className="flex items-center gap-3.5"><MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Message Desk</span>
+            {unreadMsgCount > 0 && <span className="bg-cyan-400 text-black font-black font-mono text-xs px-2.5 py-0.5 rounded-full">{unreadMsgCount}</span>}
           </button>
 
           <button
             onClick={() => handleTabChange('support')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === 'support' ? 'bg-white/5 text-cyan-400 border-l-2 border-cyan-400' : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
+            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+              activeTab === 'support' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <span className="flex items-center gap-3"><HelpCircle className="h-4 w-4" /> Support Center</span>
-            {tickets.length > 0 && <span className="bg-white/10 text-white font-mono text-[10px] px-2 py-0.5 rounded-full">{tickets.length}</span>}
+            <span className="flex items-center gap-3.5"><HelpCircle className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Support Center</span>
+            {tickets.length > 0 && <span className="bg-white/20 text-white font-mono font-black text-xs px-2.5 py-0.5 rounded-full">{tickets.length}</span>}
           </button>
 
           <button
             onClick={() => { handleTabChange('settings'); markNotificationsRead(); }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === 'settings' ? 'bg-white/5 text-cyan-400 border-l-2 border-cyan-400' : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
+            className={`w-full flex items-center gap-3.5 px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+              activeTab === 'settings' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <Settings className="h-4 w-4" /> Account Settings
+            <Settings className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Account Settings
           </button>
         </div>
 
@@ -905,47 +950,47 @@ export default function UserDashboard({
                   <div className="absolute right-0 bottom-0 top-0 w-1/3 bg-radial from-cyan-500/5 to-transparent pointer-events-none" />
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-display text-2xl font-black text-white uppercase tracking-wide">
+                      <h3 className="font-display text-2xl sm:text-3xl font-black text-white uppercase tracking-wide">
                         Welcome Back, {user.name}
                       </h3>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-sm sm:text-base font-bold text-zinc-200 mt-1.5 leading-relaxed">
                         Your account is active. Complete the required operational milestones below to receive funding.
                       </p>
                     </div>
 
                     {/* Completion Checklist Checklist */}
-                    <div className="pt-2 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    <div className="pt-2 border-t border-white/10 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm font-black">
                       <div className="flex items-center gap-2.5">
-                        <CheckCircle2 className="h-4 w-4 text-cyan-400" />
-                        <span className="text-zinc-300">Create Secure EMC Account</span>
+                        <CheckCircle2 className="h-4 w-4 text-cyan-400 stroke-[3]" />
+                        <span className="text-white font-black">Create Secure EMC Account</span>
                       </div>
                       <div className="flex items-center gap-2.5">
                         {kycStatus?.status === 'Approved' ? (
-                          <CheckCircle2 className="h-4 w-4 text-cyan-400" />
+                          <CheckCircle2 className="h-4 w-4 text-cyan-400 stroke-[3]" />
                         ) : (
-                          <span className="h-4 w-4 rounded-full border border-zinc-600 flex-shrink-0" />
+                          <span className="h-4 w-4 rounded-full border-2 border-zinc-500 flex-shrink-0" />
                         )}
-                        <span className={kycStatus?.status === 'Approved' ? 'text-zinc-300' : 'text-zinc-500'}>
+                        <span className={kycStatus?.status === 'Approved' ? 'text-white font-black' : 'text-zinc-300 font-bold'}>
                           Complete KYC Identity Verification
                         </span>
                       </div>
                       <div className="flex items-center gap-2.5">
                         {loans.length > 0 ? (
-                          <CheckCircle2 className="h-4 w-4 text-cyan-400" />
+                          <CheckCircle2 className="h-4 w-4 text-cyan-400 stroke-[3]" />
                         ) : (
-                          <span className="h-4 w-4 rounded-full border border-zinc-600 flex-shrink-0" />
+                          <span className="h-4 w-4 rounded-full border-2 border-zinc-500 flex-shrink-0" />
                         )}
-                        <span className={loans.length > 0 ? 'text-zinc-300' : 'text-zinc-500'}>
+                        <span className={loans.length > 0 ? 'text-white font-black' : 'text-zinc-300 font-bold'}>
                           Submit Loan Capital Request
                         </span>
                       </div>
                       <div className="flex items-center gap-2.5">
                         {activeLoan?.collateralPaid ? (
-                          <CheckCircle2 className="h-4 w-4 text-cyan-400" />
+                          <CheckCircle2 className="h-4 w-4 text-cyan-400 stroke-[3]" />
                         ) : (
-                          <span className="h-4 w-4 rounded-full border border-zinc-600 flex-shrink-0" />
+                          <span className="h-4 w-4 rounded-full border-2 border-zinc-500 flex-shrink-0" />
                         )}
-                        <span className={activeLoan?.collateralPaid ? 'text-zinc-300' : 'text-zinc-500'}>
+                        <span className={activeLoan?.collateralPaid ? 'text-white font-black' : 'text-zinc-300 font-bold'}>
                           Remit Refundable Collateral Fee
                         </span>
                       </div>
@@ -956,29 +1001,29 @@ export default function UserDashboard({
                 {/* 2. STATUS BOARD BENTO GRID */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="dash-status-grid">
                   {/* KYC Compliance Status Card */}
-                  <div className="p-6 bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 rounded-xl flex items-center justify-between transition-all">
+                  <div className="p-6 bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 rounded-2xl flex items-center justify-between transition-all">
                     <div className="space-y-1.5 text-left">
-                      <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block">KYC Compliance Passport</span>
-                      <h4 className="text-base font-bold text-white">
+                      <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest block font-black">KYC Compliance Passport</span>
+                      <h4 className="text-lg sm:text-xl font-black text-white">
                         {kycStatus?.status === 'Approved' ? 'Verified Clearance Active' :
                          kycStatus?.status === 'Pending' ? 'In Review Queue' :
                          kycStatus?.status === 'Rejected' ? 'Re-upload Required' :
                          'Not Submitted'}
                       </h4>
-                      <p className="text-[11px] text-gray-500 leading-relaxed max-w-[210px]">
+                      <p className="text-xs sm:text-sm text-zinc-200 font-bold leading-relaxed max-w-[240px]">
                         {kycStatus?.remarks || 'Complete identity validation to unlock standard capital allocation.'}
                       </p>
                     </div>
                     <div className="flex-shrink-0 pl-4">
-                      <ShieldCheck className={`h-10 w-10 ${kycStatus?.status === 'Approved' ? 'text-cyan-400' : 'text-gray-700'}`} />
+                      <ShieldCheck className={`h-11 w-11 ${kycStatus?.status === 'Approved' ? 'text-cyan-400' : 'text-gray-600'}`} />
                     </div>
                   </div>
 
                   {/* Active Loan Capital Card */}
-                  <div className="p-6 bg-white/[0.01] hover:bg-white/[0.02] border border-white/5 rounded-xl flex items-center justify-between transition-all">
+                  <div className="p-6 bg-white/[0.02] hover:bg-white/[0.04] border border-white/10 rounded-2xl flex items-center justify-between transition-all">
                     <div className="space-y-1.5 text-left">
-                      <span className="text-[10px] font-mono text-gray-500 uppercase tracking-wider block">Capital Liquidity Line</span>
-                      <h4 className="text-base font-bold text-white">
+                      <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest block font-black">Capital Liquidity Line</span>
+                      <h4 className="text-lg sm:text-xl font-black text-white">
                         {!activeLoan ? 'No Active Loan' :
                          activeLoan.status === 'Pending' || activeLoan.status === 'Under Review' ? 'Loan Under Review' :
                          activeLoan.status === 'Approved' && !activeLoan.collateralPaid ? 'Approved (Collateral Required)' :
@@ -986,7 +1031,7 @@ export default function UserDashboard({
                          activeLoan.status === 'Declined' ? 'Request Rejected' :
                          'Undergoing Verification'}
                       </h4>
-                      <p className="text-[11px] text-gray-500 leading-relaxed max-w-[210px]">
+                      <p className="text-xs sm:text-sm text-zinc-200 font-bold leading-relaxed max-w-[240px]">
                         {!activeLoan ? 'Initialize your loan request using our 8-step compliance wizard.' :
                          activeLoan.status === 'Approved' && !activeLoan.collateralPaid ? `Refundable 25% collateral fee ($${(activeLoan.fundingDetails.requestedAmount * 0.25).toLocaleString()}) pending.` :
                          activeLoan.status === 'Approved' && activeLoan.collateralPaid ? 'Deposit confirmed. Liquid funds dispatch processing.' :
@@ -994,7 +1039,7 @@ export default function UserDashboard({
                       </p>
                     </div>
                     <div className="flex-shrink-0 pl-4">
-                      <CreditCard className={`h-10 w-10 ${activeLoan?.status === 'Approved' ? 'text-cyan-400' : 'text-gray-700'}`} />
+                      <CreditCard className={`h-11 w-11 ${activeLoan?.status === 'Approved' ? 'text-cyan-400' : 'text-gray-600'}`} />
                     </div>
                   </div>
                 </div>
@@ -1081,15 +1126,15 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => { handleTabChange('apply'); setWizardStep(1); }}
-                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border border-white/10 hover:border-cyan-400/30 rounded-2xl text-left flex flex-col justify-between h-44 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.1)] active:scale-95"
+                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border-2 border-zinc-700/80 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.15)] active:scale-95"
                       id="btn-quick-request-funding"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-950/40 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform group-hover:border-cyan-400/40">
-                        <Plus className="h-6 w-6" />
+                      <div className="h-12 w-12 rounded-xl bg-cyan-950/60 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                        <Plus className="h-6 w-6 stroke-[3]" />
                       </div>
                       <div>
-                        <span className="font-display text-sm font-black text-white block uppercase tracking-wider">Request Funding</span>
-                        <span className="text-[10px] text-zinc-400 font-sans mt-1 block leading-relaxed">Access lines of capital up to $500M with streamlined institutional clearings.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">Request Funding</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Access lines of capital up to $500M with streamlined institutional clearings.</span>
                       </div>
                     </button>
 
@@ -1097,15 +1142,15 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => handleTabChange('kyc')}
-                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border border-white/10 hover:border-cyan-400/30 rounded-2xl text-left flex flex-col justify-between h-44 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.1)] active:scale-95"
+                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border-2 border-zinc-700/80 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.15)] active:scale-95"
                       id="btn-quick-complete-kyc"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-950/40 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform group-hover:border-cyan-400/40">
-                        <ShieldCheck className="h-6 w-6" />
+                      <div className="h-12 w-12 rounded-xl bg-cyan-950/60 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                        <ShieldCheck className="h-6 w-6 stroke-[2.5]" />
                       </div>
                       <div>
-                        <span className="font-display text-sm font-black text-white block uppercase tracking-wider">Complete KYC</span>
-                        <span className="text-[10px] text-zinc-400 font-sans mt-1 block leading-relaxed">Fulfill regulatory and sovereign requirements with our secure upload system.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">Complete KYC</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Fulfill regulatory and sovereign requirements with our secure upload system.</span>
                       </div>
                     </button>
 
@@ -1113,15 +1158,15 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => setIsCalcOpen(true)}
-                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border border-white/10 hover:border-cyan-400/30 rounded-2xl text-left flex flex-col justify-between h-44 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.1)] active:scale-95"
+                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border-2 border-zinc-700/80 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.15)] active:scale-95"
                       id="btn-quick-loan-calculator"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-950/40 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform group-hover:border-cyan-400/40">
-                        <Calculator className="h-6 w-6" />
+                      <div className="h-12 w-12 rounded-xl bg-cyan-950/60 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                        <Calculator className="h-6 w-6 stroke-[2.5]" />
                       </div>
                       <div>
-                        <span className="font-display text-sm font-black text-white block uppercase tracking-wider">Loan Calculator</span>
-                        <span className="text-[10px] text-zinc-400 font-sans mt-1 block leading-relaxed">Synchronized real-time simulation module for interest and amortization rates.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">Loan Calculator</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Synchronized real-time simulation module for interest and amortization rates.</span>
                       </div>
                     </button>
 
@@ -1129,15 +1174,15 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => handleTabChange('loans')}
-                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border border-white/10 hover:border-cyan-400/30 rounded-2xl text-left flex flex-col justify-between h-44 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.1)] active:scale-95"
+                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border-2 border-zinc-700/80 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.15)] active:scale-95"
                       id="btn-quick-my-loans"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-950/40 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform group-hover:border-cyan-400/40">
-                        <FileText className="h-6 w-6" />
+                      <div className="h-12 w-12 rounded-xl bg-cyan-950/60 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                        <FileText className="h-6 w-6 stroke-[2.5]" />
                       </div>
                       <div>
-                        <span className="font-display text-sm font-black text-white block uppercase tracking-wider">My Loans</span>
-                        <span className="text-[10px] text-zinc-400 font-sans mt-1 block leading-relaxed">Access active contracts, clearing statuses, and history registers.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">My Loans</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Access active contracts, clearing statuses, and history registers.</span>
                       </div>
                     </button>
 
@@ -1145,15 +1190,15 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => setIsHistoryOpen(true)}
-                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border border-white/10 hover:border-cyan-400/30 rounded-2xl text-left flex flex-col justify-between h-44 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.1)] active:scale-95"
+                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border-2 border-zinc-700/80 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.15)] active:scale-95"
                       id="btn-quick-payment-history"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-950/40 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform group-hover:border-cyan-400/40">
-                        <History className="h-6 w-6" />
+                      <div className="h-12 w-12 rounded-xl bg-cyan-950/60 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                        <History className="h-6 w-6 stroke-[2.5]" />
                       </div>
                       <div>
-                        <span className="font-display text-sm font-black text-white block uppercase tracking-wider">Payment History</span>
-                        <span className="text-[10px] text-zinc-400 font-sans mt-1 block leading-relaxed">Review secure transaction receipts, collateral logs, and bank wires.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">Payment History</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Review secure transaction receipts, collateral logs, and bank wires.</span>
                       </div>
                     </button>
 
@@ -1161,15 +1206,15 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => handleTabChange('settings')}
-                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border border-white/10 hover:border-cyan-400/30 rounded-2xl text-left flex flex-col justify-between h-44 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.1)] active:scale-95"
+                      className="group relative p-6 bg-gradient-to-br from-neutral-900 to-black hover:from-cyan-950/20 hover:to-neutral-900 border-2 border-zinc-700/80 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-xl cursor-pointer hover:shadow-[0_10px_30px_rgba(34,211,238,0.15)] active:scale-95"
                       id="btn-quick-profile"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-950/40 border border-cyan-500/20 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform group-hover:border-cyan-400/40">
-                        <UserIcon className="h-6 w-6" />
+                      <div className="h-12 w-12 rounded-xl bg-cyan-950/60 border-2 border-cyan-400 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                        <UserIcon className="h-6 w-6 stroke-[2.5]" />
                       </div>
                       <div>
-                        <span className="font-display text-sm font-black text-white block uppercase tracking-wider">Profile Control</span>
-                        <span className="text-[10px] text-zinc-400 font-sans mt-1 block leading-relaxed">Customize account details, high-resolution avatar photos, and credentials.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">Profile Control</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Customize account details, high-resolution avatar photos, and credentials.</span>
                       </div>
                     </button>
                   </div>
@@ -1181,14 +1226,14 @@ export default function UserDashboard({
           {/* ---------------- 2. LOAN APPLICATIONS ---------------- */}
           {activeTab === 'loans' && (
             <div className="space-y-6" id="view-loans">
-              <div className="flex justify-between items-center border-b border-white/5 pb-4">
+              <div className="flex justify-between items-center border-b border-white/10 pb-4">
                 <div>
-                  <h3 className="font-display text-xl font-bold text-white mb-1">Credit & Funding Proposals</h3>
-                  <p className="text-xs text-gray-400">Review status logs of active and historic liquidity proposals.</p>
+                  <h3 className="font-display text-2xl sm:text-3xl font-black text-white mb-1 uppercase tracking-tight">Credit & Funding Proposals</h3>
+                  <p className="text-sm font-semibold text-zinc-200">Review status logs of active and historic liquidity proposals.</p>
                 </div>
                 <button
                   onClick={() => { setActiveTab('apply'); setWizardStep(1); }}
-                  className="px-4 py-2 text-xs font-medium text-black bg-white hover:bg-cyan-400 rounded-lg transition-all"
+                  className="px-5 py-2.5 text-xs font-black uppercase tracking-wider text-black bg-cyan-400 hover:bg-cyan-300 rounded-xl transition-all cursor-pointer shadow-lg"
                   id="btn-loans-new-app"
                 >
                   New Application
@@ -1196,12 +1241,12 @@ export default function UserDashboard({
               </div>
 
               {loans.length === 0 ? (
-                <div className="text-center py-16 border border-dashed border-white/10 rounded-xl" id="loans-empty-state">
-                  <FilePlus className="h-10 w-10 text-gray-600 mx-auto mb-4" />
-                  <p className="text-sm text-gray-400 font-light mb-4">You have not submitted any credit applications.</p>
+                <div className="text-center py-16 border-2 border-dashed border-zinc-700/80 rounded-2xl bg-zinc-950/40" id="loans-empty-state">
+                  <FilePlus className="h-12 w-12 text-cyan-400 mx-auto mb-4 stroke-[2.5]" />
+                  <p className="text-base text-zinc-200 font-bold mb-4">You have not submitted any credit applications.</p>
                   <button
                     onClick={() => setActiveTab('apply')}
-                    className="px-5 py-2.5 text-xs text-black bg-white rounded-lg hover:bg-cyan-400 font-semibold"
+                    className="px-6 py-3 text-xs text-black bg-cyan-400 rounded-xl hover:bg-cyan-300 font-black uppercase tracking-wider shadow-md"
                   >
                     Initiate First Application
                   </button>
@@ -1211,55 +1256,55 @@ export default function UserDashboard({
                   {loans.map((loan) => (
                     <div 
                       key={loan.id}
-                      className="border border-white/5 bg-white/[0.005] hover:bg-white/[0.01] rounded-xl p-6 transition-all"
+                      className="border-2 border-zinc-700/80 bg-zinc-950/60 hover:border-cyan-400/50 rounded-2xl p-6 transition-all"
                       id={`loan-item-${loan.id}`}
                     >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                         <div>
-                          <span className="font-mono text-[10px] text-gray-500">REF ID: {loan.id}</span>
-                          <h4 className="font-display text-lg font-bold text-white mt-1">
+                          <span className="font-mono text-xs font-black text-cyan-400 uppercase tracking-widest">REF ID: {loan.id}</span>
+                          <h4 className="font-display text-xl sm:text-2xl font-black text-white mt-1">
                             ${loan.fundingDetails.requestedAmount.toLocaleString()}{' '}
-                            <span className="text-xs text-gray-400 font-sans font-light">for {loan.fundingDetails.purpose}</span>
+                            <span className="text-sm text-zinc-300 font-bold">for {loan.fundingDetails.purpose}</span>
                           </h4>
                         </div>
                         <div className="flex items-center gap-2">
                           {loan.requiresEnhancedVerification && (
-                            <span className="px-2.5 py-1 bg-yellow-950/40 border border-yellow-500/20 text-yellow-500 font-mono text-[9px] font-bold rounded-full flex items-center gap-1 uppercase">
-                              <AlertTriangle className="h-3 w-3" /> Enhanced Audit Req
+                            <span className="px-3 py-1 bg-yellow-950/60 border border-yellow-500/40 text-yellow-400 font-mono text-xs font-black rounded-full flex items-center gap-1 uppercase">
+                              <AlertTriangle className="h-3.5 w-3.5" /> Enhanced Audit Req
                             </span>
                           )}
-                          <span className={`px-3 py-1 font-mono text-xs font-bold rounded-full border uppercase ${
-                            loan.status === 'Approved' ? 'bg-cyan-950/40 border-cyan-500/30 text-cyan-400' :
-                            loan.status === 'Declined' ? 'bg-red-950/40 border-red-500/20 text-red-500' :
-                            loan.status === 'Under Review' ? 'bg-blue-950/40 border-blue-500/20 text-blue-400' :
-                            'bg-yellow-950/40 border-yellow-500/20 text-yellow-500'
+                          <span className={`px-3.5 py-1 font-mono text-xs font-black rounded-full border-2 uppercase ${
+                            loan.status === 'Approved' ? 'bg-cyan-950/60 border-cyan-400 text-cyan-300' :
+                            loan.status === 'Declined' ? 'bg-red-950/60 border-red-500 text-red-400' :
+                            loan.status === 'Under Review' ? 'bg-blue-950/60 border-blue-400 text-blue-300' :
+                            'bg-yellow-950/60 border-yellow-400 text-yellow-300'
                           }`}>
                             {loan.status}
                           </span>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 border-t border-b border-white/5 text-xs font-light">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 border-t border-b border-white/10 text-sm">
                         <div>
-                          <span className="block text-[10px] text-gray-500 uppercase font-mono mb-0.5">Repayment Method</span>
-                          <span className="text-gray-300 font-medium">{loan.fundingDetails.repaymentPreference}</span>
+                          <span className="block text-xs text-cyan-400 uppercase font-mono font-black mb-1">Repayment Method</span>
+                          <span className="text-white font-bold">{loan.fundingDetails.repaymentPreference}</span>
                         </div>
                         <div>
-                          <span className="block text-[10px] text-gray-500 uppercase font-mono mb-0.5">Applicant Entity</span>
-                          <span className="text-gray-300 font-medium">{loan.businessInfo?.companyName || "Personal Enterprise"}</span>
+                          <span className="block text-xs text-cyan-400 uppercase font-mono font-black mb-1">Applicant Entity</span>
+                          <span className="text-white font-bold">{loan.businessInfo?.companyName || "Personal Enterprise"}</span>
                         </div>
                         <div>
-                          <span className="block text-[10px] text-gray-500 uppercase font-mono mb-0.5">Credit Score</span>
-                          <span className="text-gray-300 font-medium font-mono">{loan.financialInfo.creditScore || "Not Scored"}</span>
+                          <span className="block text-xs text-cyan-400 uppercase font-mono font-black mb-1">Credit Score</span>
+                          <span className="text-white font-bold font-mono">{loan.financialInfo.creditScore || "Not Scored"}</span>
                         </div>
                         <div>
-                          <span className="block text-[10px] text-gray-500 uppercase font-mono mb-0.5">Submission Date</span>
-                          <span className="text-gray-300 font-medium font-mono">{new Date(loan.createdAt).toLocaleDateString()}</span>
+                          <span className="block text-xs text-cyan-400 uppercase font-mono font-black mb-1">Submission Date</span>
+                          <span className="text-white font-bold font-mono">{new Date(loan.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
 
-                      <p className="text-xs text-gray-400 font-light leading-relaxed mt-4">
-                        <span className="text-white font-medium">Description:</span> {loan.fundingDetails.description}
+                      <p className="text-sm text-zinc-200 font-bold leading-relaxed mt-4">
+                        <span className="text-white font-black">Description:</span> {loan.fundingDetails.description}
                       </p>
 
                       {loan.status === 'Approved' && (
@@ -1431,6 +1476,30 @@ export default function UserDashboard({
           {/* ---------------- 3. APPLY FOR FUNDING (2-PAGE APPLICATION FORM) ---------------- */}
           {activeTab === 'apply' && (
             <div className="max-w-4xl mx-auto py-8 space-y-10" id="view-apply-wizard">
+              {/* Active Loan Enforcement Warning Banner */}
+              {loans.some(l => !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled'].includes(l.status)) && (
+                <div className="bg-amber-950/80 border-2 border-amber-400 p-6 rounded-2xl space-y-4 text-left shadow-[0_0_25px_rgba(251,191,36,0.2)] animate-fade-in">
+                  <div className="flex items-center gap-3 text-amber-300 font-display font-black text-xl uppercase tracking-wider">
+                    <AlertTriangle className="h-7 w-7 text-amber-400 flex-shrink-0" />
+                    <span>Active Loan Application In Progress</span>
+                  </div>
+                  <p className="text-base font-bold text-white leading-relaxed">
+                    You already have an active loan application ({loans.find(l => !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled'].includes(l.status))?.id} - Status: <strong className="text-amber-300">{loans.find(l => !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled'].includes(l.status))?.status}</strong>). Under institutional credit policy, applicants may only hold one active loan application at a time.
+                  </p>
+                  <p className="text-sm font-semibold text-zinc-300">
+                    Please wait until your current application is finalized, approved, rejected, or fully settled before submitting a new application.
+                  </p>
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange('loans')}
+                      className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase tracking-widest rounded-xl transition cursor-pointer font-display shadow-[0_0_15px_rgba(251,191,36,0.3)]"
+                    >
+                      View My Active Application →
+                    </button>
+                  </div>
+                </div>
+              )}
               {/* Step Tracker Header */}
               <div className="p-6 rounded-2xl bg-zinc-950/80 border-2 border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-6" id="apply-step-header">
                 <div className="flex items-center gap-4">
@@ -1484,23 +1553,26 @@ export default function UserDashboard({
 
                   {/* Identity Section */}
                   <div className="bg-black/40 border-2 border-white/10 p-8 rounded-3xl space-y-6">
-                    <h3 className="font-display text-2xl font-black text-white uppercase tracking-tight border-b border-white/10 pb-4">
+                    <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight border-b-2 border-cyan-400/40 pb-4">
                       1. Account & Personal Information
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <p className="text-base font-semibold text-zinc-200 leading-relaxed">
+                      Please enter your full legal identity details exactly as they appear on your official government identification documents.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                       <div>
-                        <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Full Legal Name</label>
+                        <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Full Legal Name *</label>
                         <input
                           type="text"
                           required
                           value={kycFullName}
                           onChange={(e) => setKycFullName(e.target.value)}
                           className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none transition-colors"
-                          placeholder="Johnathan Doe"
+                          placeholder="e.g. Johnathan Alexander Doe"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Email Address</label>
+                        <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Email Address *</label>
                         <input
                           type="email"
                           required
@@ -1511,7 +1583,7 @@ export default function UserDashboard({
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Phone Number</label>
+                        <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Phone Number *</label>
                         <input
                           type="text"
                           required
@@ -1522,10 +1594,13 @@ export default function UserDashboard({
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Country / Jurisdiction</label>
+                        <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Country / Sovereign Jurisdiction *</label>
                         <CountrySelector
                           selectedCountry={kycCountry}
-                          onChange={(cName) => setKycCountry(cName)}
+                          onChange={(cName) => {
+                            setKycCountry(cName);
+                            setIsUsResident(cName === 'United States');
+                          }}
                           id="apply-country-selector"
                         />
                       </div>
@@ -1533,7 +1608,7 @@ export default function UserDashboard({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                       <div>
-                        <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-1">Date of Birth</label>
+                        <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Date of Birth *</label>
                         <input
                           type="date"
                           required
@@ -1545,29 +1620,26 @@ export default function UserDashboard({
                           className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none transition-colors"
                         />
                         <div className="text-xs font-black text-amber-400 uppercase tracking-wide mt-2" id="compliance-warning-dob">
-                          ⚠️ REQUIRES REGULATORY COMPLIANCE AND VALIDATION AUDIT
+                          ⚠️ Applicants must be at least 18 years of age.
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Marital Status</label>
-                        <select
+                        <SearchableSelect
+                          label="Marital Status"
+                          required
+                          options={['Single', 'Married', 'Divorced', 'Widowed', 'Separated', 'Civil Partnership']}
                           value={loanPersonal.marital}
-                          onChange={(e) => {
-                            setLoanPersonal({ ...loanPersonal, marital: e.target.value });
-                            setKycMaritalStatus(e.target.value);
+                          onChange={(val) => {
+                            setLoanPersonal({ ...loanPersonal, marital: val });
+                            setKycMaritalStatus(val);
                           }}
-                          className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none transition-colors cursor-pointer select-none"
-                        >
-                          <option value="Single" className="bg-zinc-900 text-white font-bold py-2">Single</option>
-                          <option value="Married" className="bg-zinc-900 text-white font-bold py-2">Married</option>
-                          <option value="Divorced" className="bg-zinc-900 text-white font-bold py-2">Divorced</option>
-                          <option value="Widowed" className="bg-zinc-900 text-white font-bold py-2">Widowed</option>
-                        </select>
+                          id="kyc-marital-status-select"
+                        />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Primary Residential Address</label>
+                      <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Primary Residential Address *</label>
                       <textarea
                         required
                         value={loanPersonal.address}
@@ -1575,7 +1647,7 @@ export default function UserDashboard({
                           setLoanPersonal({ ...loanPersonal, address: e.target.value });
                           setKycAddressText(e.target.value);
                         }}
-                        placeholder="Type full residential address (street, city, state, postal code)"
+                        placeholder="Enter street name, house number, city, state, postal code, and country"
                         className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none transition-colors h-24 resize-none"
                       />
                     </div>
@@ -1583,36 +1655,45 @@ export default function UserDashboard({
 
                   {/* Financial Profile Section */}
                   <div className="bg-black/40 border-2 border-white/10 p-8 rounded-3xl space-y-6">
-                    <h3 className="font-display text-2xl font-black text-white uppercase tracking-tight border-b border-white/10 pb-4">
+                    <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight border-b-2 border-cyan-400/40 pb-4">
                       2. Capital & Financial Profile
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <p className="text-base font-semibold text-zinc-200 leading-relaxed">
+                      State your current professional status and requested credit facility amount to establish your funding tier.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                       <div>
-                        <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Profession and Employment Status</label>
-                        <select
+                        <SearchableSelect
+                          label="Profession / Employment Status"
+                          required
+                          options={[
+                            'Small Business Owner',
+                            'Crypto Trader / Web3 Investor',
+                            'Digital Asset Allocator',
+                            'Forex & Financial Market Trader',
+                            'Software Engineer / Developer',
+                            'Independent Corporate Institution',
+                            'Self-Employed Freelancer',
+                            'Employed / Salaried Officer',
+                            'Financial Market Analyst',
+                            'Corporate Officer',
+                            'Doctor / Healthcare Specialist',
+                            'Attorney / Legal Professional',
+                            'Consultant / Executive',
+                            'Real Estate Developer',
+                            'Other Professional Status'
+                          ]}
                           value={loanEmployment.status}
-                          onChange={(e) => {
-                            setLoanEmployment({ ...loanEmployment, status: e.target.value });
-                            setKycEmploymentStatus(e.target.value);
+                          onChange={(val) => {
+                            setLoanEmployment({ ...loanEmployment, status: val });
+                            setKycEmploymentStatus(val);
                           }}
-                          className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none transition-colors cursor-pointer select-none"
-                        >
-                          <option value="Small Business Owner" className="bg-zinc-900 text-white font-bold py-2">Small Business Owner</option>
-                          <option value="Crypto Trader / Web3 Investor" className="bg-zinc-900 text-white font-bold py-2">Crypto Trader / Web3 Investor</option>
-                          <option value="Digital Asset Allocator" className="bg-zinc-900 text-white font-bold py-2">Digital Asset Allocator</option>
-                          <option value="Forex & Financial Market Trader" className="bg-zinc-900 text-white font-bold py-2">Forex & Financial Market Trader</option>
-                          <option value="Software Engineer / Developer" className="bg-zinc-900 text-white font-bold py-2">Software Engineer / Developer</option>
-                          <option value="Independent Corporate Institution" className="bg-zinc-900 text-white font-bold py-2">Independent Corporate Institution</option>
-                          <option value="Self-Employed Freelancer" className="bg-zinc-900 text-white font-bold py-2">Self-Employed Freelancer</option>
-                          <option value="Employed / Salaried Officer" className="bg-zinc-900 text-white font-bold py-2">Employed / Salaried Officer</option>
-                          <option value="Financial Market Analyst" className="bg-zinc-900 text-white font-bold py-2">Financial Market Analyst</option>
-                          <option value="Corporate Officer" className="bg-zinc-900 text-white font-bold py-2">Corporate Officer</option>
-                          <option value="Other Professional Status" className="bg-zinc-900 text-white font-bold py-2">Other Professional Status</option>
-                        </select>
+                          id="kyc-employment-status-select"
+                        />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Estimated Monthly Income (USD)</label>
+                        <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Estimated Monthly Income (USD) *</label>
                         <input
                           type="number"
                           required
@@ -1626,7 +1707,7 @@ export default function UserDashboard({
 
                     {loanEmployment.status === 'Other Professional Status' && (
                       <div className="animate-fade-in">
-                        <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Please describe your professional occupation</label>
+                        <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Please describe your professional occupation</label>
                         <input
                           type="text"
                           required
@@ -1640,7 +1721,7 @@ export default function UserDashboard({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Requested Funding Amount (USD)</label>
+                        <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Requested Funding Amount (USD) *</label>
                         <input
                           type="number"
                           required
@@ -1652,29 +1733,33 @@ export default function UserDashboard({
                       </div>
 
                       <div>
-                        <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Primary Purpose of Funding</label>
-                        <select
+                        <SearchableSelect
+                          label="Primary Purpose of Funding"
+                          required
+                          options={[
+                            'Business Expansion',
+                            'Treasury Liquidity',
+                            'Real Estate Acquisition',
+                            'Working Capital',
+                            'Research & Development (R&D)',
+                            'Equipment & Asset Purchase',
+                            'Web3 Development',
+                            'Debt Consolidation',
+                            'Inventory Acquisition',
+                            'Other Capital Requirement'
+                          ]}
                           value={loanFunding.purpose}
-                          onChange={(e) => {
-                            setLoanFunding({ ...loanFunding, purpose: e.target.value });
-                            setKycLoanPurpose(e.target.value);
+                          onChange={(val) => {
+                            setLoanFunding({ ...loanFunding, purpose: val });
+                            setKycLoanPurpose(val);
                           }}
-                          className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none transition-colors cursor-pointer select-none"
-                        >
-                          <option value="Business Expansion" className="bg-zinc-900 text-white font-bold py-2">Business Expansion</option>
-                          <option value="Treasury Liquidity" className="bg-zinc-900 text-white font-bold py-2">Treasury Liquidity</option>
-                          <option value="Real Estate Acquisition" className="bg-zinc-900 text-white font-bold py-2">Real Estate Acquisition</option>
-                          <option value="Working Capital" className="bg-zinc-900 text-white font-bold py-2">Working Capital</option>
-                          <option value="Research & Development (R&D)" className="bg-zinc-900 text-white font-bold py-2">Research & Development (R&D)</option>
-                          <option value="Equipment & Asset Purchase" className="bg-zinc-900 text-white font-bold py-2">Equipment & Asset Purchase</option>
-                          <option value="Web3 Development" className="bg-zinc-900 text-white font-bold py-2">Web3 Development</option>
-                          <option value="Other Capital Requirement" className="bg-zinc-900 text-white font-bold py-2">Other Capital Requirement</option>
-                        </select>
+                          id="kyc-funding-purpose-select"
+                        />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider mb-2">Detailed Purpose / Project Scope Description</label>
+                      <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Detailed Purpose / Project Scope Description *</label>
                       <textarea
                         required
                         value={loanFunding.description}
@@ -1703,8 +1788,8 @@ export default function UserDashboard({
                       id="btn-apply-next-step-3d"
                     >
                       <span className="absolute inset-0 rounded-xl bg-cyan-700 translate-y-1 block"></span>
-                      <span className="relative flex items-center justify-center gap-2 px-10 py-4 rounded-xl bg-cyan-400 text-black text-xs font-black uppercase tracking-widest -translate-y-1 group-hover:-translate-y-0.5 group-active:translate-y-0 transition-all duration-150 font-display">
-                        Continue to Security & Biometrics →
+                      <span className="relative flex items-center justify-center gap-2 px-10 py-4 rounded-xl bg-cyan-400 text-black text-sm font-black uppercase tracking-widest -translate-y-1 group-hover:-translate-y-0.5 group-active:translate-y-0 transition-all duration-150 font-display">
+                        Continue to Identity Verification & Document Scans →
                       </span>
                     </button>
                   </div>
@@ -1749,354 +1834,571 @@ export default function UserDashboard({
                     </button>
                   </div>
 
-                  {/* SSN / ID verification segment */}
+                  {/* Country Selection & SSN Section */}
                   <div className="bg-black/40 border-2 border-white/10 p-8 rounded-3xl space-y-6">
-                    <h3 className="font-display text-2xl font-black text-white uppercase tracking-tight border-b border-white/10 pb-4">
-                      1. Identity Credentials & SSN
+                    <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight border-b-2 border-cyan-400/40 pb-4">
+                      1. Country Selection & Identification Credentials
                     </h3>
 
-                    <div className="space-y-4">
-                      <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider">Are you a Resident / Citizen of the United States?</label>
-                      <div className="grid grid-cols-2 gap-4">
-                        <button
-                          type="button"
-                          onClick={() => setIsUsResident(true)}
-                          className={`p-4 rounded-xl border-2 transition-all duration-200 font-bold uppercase text-xs tracking-wider cursor-pointer ${
-                            isUsResident ? 'bg-cyan-950/40 border-cyan-400 text-white' : 'bg-black border-zinc-700 text-gray-400 hover:border-zinc-500'
-                          }`}
-                        >
-                          🇺🇸 Yes (Requires SSN Verification)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsUsResident(false)}
-                          className={`p-4 rounded-xl border-2 transition-all duration-200 font-bold uppercase text-xs tracking-wider cursor-pointer ${
-                            !isUsResident ? 'bg-cyan-950/40 border-cyan-400 text-white' : 'bg-black border-zinc-700 text-gray-400 hover:border-zinc-500'
-                          }`}
-                        >
-                          🌐 No (Requires Passport/National ID)
-                        </button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="block text-base font-black text-white uppercase tracking-wider">Country of Primary Citizenship / Jurisdiction *</label>
+                        <CountrySelector
+                          selectedCountry={kycCountry}
+                          onChange={(cName) => {
+                            setKycCountry(cName);
+                            setIsUsResident(cName === 'United States');
+                          }}
+                          id="page2-country-selector"
+                        />
+                        <p className="text-xs font-bold text-cyan-300 mt-2">
+                          ✓ All 195+ sovereign countries & territories worldwide are fully supported.
+                        </p>
                       </div>
-                    </div>
 
-                    <div>
-                      {isUsResident ? (
+                      {kycCountry === 'United States' && (
                         <div className="space-y-2 animate-fade-in">
-                          <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider">Social Security Number (US SSN)</label>
+                          <label className="block text-base font-black text-white uppercase tracking-wider">Social Security Number (US SSN) *</label>
                           <input
                             type="text"
                             required
                             value={complianceSsn}
                             onChange={(e) => setComplianceSsn(e.target.value)}
-                            className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none transition-colors font-mono"
-                            placeholder="XXX-XX-XXXX"
+                            className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-black text-white focus:outline-none transition-colors font-mono"
+                            placeholder="XXX-XX-XXXX (Mandatory for US Residents)"
                           />
-                          <p className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
-                            🛡️ Encrypted and transmitted directly to credit clearinghouse databases.
+                          <p className="text-xs font-bold text-cyan-300">
+                            🛡️ Social Security Number is required for United States residents to facilitate credit bureau validation.
                           </p>
                         </div>
-                      ) : (
+                      )}
+
+                      {kycCountry === 'Nigeria' && (
                         <div className="space-y-2 animate-fade-in">
-                          <label className="block text-sm font-black text-zinc-100 uppercase tracking-wider">Passport / National Identity Card Number</label>
+                          <label className="block text-base font-black text-white uppercase tracking-wider">Bank Verification Number (BVN) *</label>
                           <input
                             type="text"
                             required
-                            value={complianceSsn}
-                            onChange={(e) => setComplianceSsn(e.target.value)}
-                            className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none transition-colors font-mono"
-                            placeholder="e.g. F819283401"
+                            value={kycBvn}
+                            onChange={(e) => setKycBvn(e.target.value)}
+                            className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-black text-white focus:outline-none transition-colors font-mono"
+                            placeholder="11-Digit BVN Number (e.g. 22123456789)"
                           />
-                          <p className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
-                            🛡️ Subject to OFAC screening protocols and sovereign clearinghouse matches.
+                          <p className="text-xs font-bold text-cyan-300">
+                            🛡️ Bank Verification Number (BVN) is required for Nigerian identity verification.
                           </p>
                         </div>
                       )}
                     </div>
+                  </div>
 
-                    {/* ID Upload scan inputs */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
-                      <div className="space-y-2">
-                        <label className="block text-sm font-black text-zinc-300 uppercase tracking-wider">Government Issued ID card Scan</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            required
-                            value={kycIdCard}
-                            onChange={(e) => setKycIdCard(e.target.value)}
-                            className="flex-1 px-4 py-3 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-xs font-mono text-white focus:outline-none"
-                            placeholder="passport_scan.png"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setKycIdCard(`approved_${kycIdType.toLowerCase().replace(/\s/g, '_')}_scan.png`);
-                              triggerAlert('success', 'Sample Sovereign photo ID loaded.');
-                            }}
-                            className="px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-mono text-zinc-300 uppercase tracking-wider transition cursor-pointer"
-                          >
-                            Auto Load ID
-                          </button>
-                        </div>
+                  {/* Identification Document Selection & Adaptive Document Upload */}
+                  <div className="bg-black/40 border-2 border-white/10 p-8 rounded-3xl space-y-6">
+                    <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight border-b-2 border-cyan-400/40 pb-4">
+                      2. Identification Document & Adaptive Scan Upload
+                    </h3>
+
+                    <p className="text-base font-semibold text-zinc-200 leading-relaxed">
+                      Select which official government identification document you wish to upload for identity verification.
+                    </p>
+
+                    {/* Document Selector Buttons */}
+                    <div className="space-y-3">
+                      <label className="block text-base font-black text-white uppercase tracking-wider">Select Document Type *</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                        {[
+                          { id: 'National Identity Card', label: 'National ID Card', icon: '🪪' },
+                          { id: 'International Passport', label: 'Passport', icon: '🛂' },
+                          { id: "Driver's License", label: "Driver's License", icon: '🚗' },
+                          { id: 'Residence Permit', label: 'Residence Permit', icon: '📄' },
+                          { id: 'Other Government ID', label: 'Other Gov ID', icon: '🛡️' }
+                        ].map((doc) => {
+                          const isSelected = kycIdType === doc.id;
+                          return (
+                            <button
+                              key={doc.id}
+                              type="button"
+                              onClick={() => setKycIdType(doc.id)}
+                              className={`p-4 rounded-2xl border-2 transition-all text-center flex flex-col items-center justify-center gap-2 cursor-pointer font-display ${
+                                isSelected
+                                  ? 'bg-cyan-950/60 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)]'
+                                  : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-white'
+                              }`}
+                            >
+                              <span className="text-2xl">{doc.icon}</span>
+                              <span className="text-xs font-black uppercase tracking-wider">{doc.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
+                    </div>
 
-                      <div className="space-y-2">
-                        <label className="block text-sm font-black text-zinc-300 uppercase tracking-wider">Proof of Residence Document</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            required
-                            value={kycProofOfAddress}
-                            onChange={(e) => setKycProofOfAddress(e.target.value)}
-                            className="flex-1 px-4 py-3 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-xs font-mono text-white focus:outline-none"
-                            placeholder="utility_bill.pdf"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setKycProofOfAddress("approved_utility_bill_scan.png");
-                              triggerAlert('success', 'Sample proof of residence bill loaded.');
-                            }}
-                            className="px-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-mono text-zinc-300 uppercase tracking-wider transition cursor-pointer"
-                          >
-                            Auto Load Bill
-                          </button>
+                    {/* Adaptive Upload Section */}
+                    {(() => {
+                      const isTwoSided = kycIdType === 'National Identity Card' || kycIdType === "Driver's License" || kycIdType === 'Residence Permit' || kycIdType === 'Other Government ID';
+
+                      return (
+                        <div className="pt-4 border-t border-white/10 space-y-6">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-black text-cyan-300 uppercase tracking-wider">
+                              Document Upload Requirement: {isTwoSided ? 'Front & Back Scans Required (2 Sides)' : 'Photo Page Scan Required (1 Side)'}
+                            </span>
+                            <span className="text-xs font-black uppercase tracking-widest bg-amber-400 text-black px-3 py-1 rounded-md">
+                              Mandatory Verification
+                            </span>
+                          </div>
+
+                          {isTwoSided ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {/* Front Upload Card */}
+                              <div className="bg-zinc-950/80 p-6 rounded-2xl border-2 border-zinc-700 space-y-4">
+                                <div className="space-y-1">
+                                  <h5 className="text-base font-black text-white uppercase tracking-wider">Upload Front of {kycIdType} *</h5>
+                                  <p className="text-xs font-semibold text-zinc-300">
+                                    Upload a clear photo or scan of the FRONT side showing photo, name, and ID details.
+                                  </p>
+                                </div>
+
+                                <input
+                                  type="file"
+                                  ref={idCardFileInputRef}
+                                  accept="image/*,.pdf"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setKycIdCard(file.name);
+                                      triggerAlert('success', `📁 Front ID uploaded: ${file.name}`);
+                                    }
+                                  }}
+                                />
+
+                                <div className="space-y-3 pt-1">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => idCardFileInputRef.current?.click()}
+                                      className="px-5 py-3 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-black uppercase tracking-wider rounded-xl transition cursor-pointer flex-1 font-display"
+                                    >
+                                      📁 Upload Front Image
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setKycIdCard("approved_national_id_front.png");
+                                        triggerAlert('success', 'Sample front ID scan loaded.');
+                                      }}
+                                      className="px-3 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-mono font-bold text-white transition cursor-pointer"
+                                    >
+                                      Sample
+                                    </button>
+                                  </div>
+                                  <div className="px-4 py-3 bg-black border border-zinc-800 rounded-xl text-xs font-mono text-cyan-300 truncate font-bold">
+                                    {kycIdCard || 'No front file selected'}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Back Upload Card */}
+                              <div className="bg-zinc-950/80 p-6 rounded-2xl border-2 border-zinc-700 space-y-4">
+                                <div className="space-y-1">
+                                  <h5 className="text-base font-black text-white uppercase tracking-wider">Upload Back of {kycIdType} *</h5>
+                                  <p className="text-xs font-semibold text-zinc-300">
+                                    Upload a clear photo or scan of the BACK side showing magnetic barcodes or address details.
+                                  </p>
+                                </div>
+
+                                <input
+                                  type="file"
+                                  ref={idCardBackFileInputRef}
+                                  accept="image/*,.pdf"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      setKycIdCardBack(file.name);
+                                      triggerAlert('success', `📁 Back ID uploaded: ${file.name}`);
+                                    }
+                                  }}
+                                />
+
+                                <div className="space-y-3 pt-1">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => idCardBackFileInputRef.current?.click()}
+                                      className="px-5 py-3 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-black uppercase tracking-wider rounded-xl transition cursor-pointer flex-1 font-display"
+                                    >
+                                      📁 Upload Back Image
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setKycIdCardBack("approved_national_id_back.png");
+                                        triggerAlert('success', 'Sample back ID scan loaded.');
+                                      }}
+                                      className="px-3 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-mono font-bold text-white transition cursor-pointer"
+                                    >
+                                      Sample
+                                    </button>
+                                  </div>
+                                  <div className="px-4 py-3 bg-black border border-zinc-800 rounded-xl text-xs font-mono text-cyan-300 truncate font-bold">
+                                    {kycIdCardBack || 'No back file selected'}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Passport Single Upload Card */
+                            <div className="bg-zinc-950/80 p-6 rounded-2xl border-2 border-zinc-700 space-y-4 max-w-2xl">
+                              <div className="space-y-1">
+                                <h5 className="text-base font-black text-white uppercase tracking-wider">Upload Passport Information Page *</h5>
+                                <p className="text-xs font-semibold text-zinc-300">
+                                  Upload a clear photo or scan of your passport information page showing your photo, full name, passport number, expiry date, and MRZ lines.
+                                </p>
+                              </div>
+
+                              <input
+                                type="file"
+                                ref={idCardFileInputRef}
+                                accept="image/*,.pdf"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setKycIdCard(file.name);
+                                    triggerAlert('success', `📁 Passport page uploaded: ${file.name}`);
+                                  }
+                                }}
+                              />
+
+                              <div className="space-y-3 pt-1">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => idCardFileInputRef.current?.click()}
+                                    className="px-6 py-3.5 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-black uppercase tracking-wider rounded-xl transition cursor-pointer flex-1 font-display"
+                                  >
+                                    📁 Upload Passport Page Image
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setKycIdCard("approved_international_passport_scan.png");
+                                      triggerAlert('success', 'Sample passport scan loaded.');
+                                    }}
+                                    className="px-4 py-3.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-mono font-bold text-white transition cursor-pointer"
+                                  >
+                                    Sample
+                                  </button>
+                                </div>
+                                <div className="px-4 py-3 bg-black border border-zinc-800 rounded-xl text-xs font-mono text-cyan-300 truncate font-bold">
+                                  {kycIdCard || 'No passport file selected'}
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Mandatory Proof of Address Upload */}
+                  <div className="bg-black/40 border-2 border-white/10 p-8 rounded-3xl relative overflow-hidden" id="apply-proof-of-address-section">
+                    <div className="absolute right-0 top-0 bg-amber-400 text-black text-xs font-black uppercase px-4 py-1.5 tracking-widest rounded-bl-xl shadow-lg font-display">
+                      Mandatory Requirement *
+                    </div>
+                    <div className="space-y-4">
+                      <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight border-b-2 border-white/10 pb-4">
+                        3. Proof of Residential Address Upload *
+                      </h3>
+                      <p className="text-base font-semibold text-zinc-200 leading-relaxed">
+                        Upload a recent official utility bill, bank statement, municipal notice, or government residential document showing your full name and residential address.
+                      </p>
+
+                      <input
+                        type="file"
+                        ref={proofOfAddressFileInputRef}
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setKycProofOfAddress(file.name);
+                            triggerAlert('success', `📁 Proof of Address uploaded: ${file.name}`);
+                          }
+                        }}
+                      />
+
+                      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => proofOfAddressFileInputRef.current?.click()}
+                          className="px-6 py-4 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-black uppercase tracking-widest rounded-xl transition cursor-pointer flex items-center justify-center gap-2 font-display shadow-[0_0_15px_rgba(34,211,238,0.25)]"
+                        >
+                          <span>📁 Upload Proof of Address</span>
+                        </button>
+                        <input
+                          type="text"
+                          required
+                          value={kycProofOfAddress}
+                          onChange={(e) => setKycProofOfAddress(e.target.value)}
+                          className="flex-1 px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none font-mono"
+                          placeholder="e.g. utility_bill_2026.pdf *"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setKycProofOfAddress('utility_bill_verified_residential.pdf');
+                            triggerAlert('success', 'Sample Proof of Address loaded.');
+                          }}
+                          className="px-5 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-mono font-black text-white uppercase tracking-wider transition cursor-pointer"
+                        >
+                          Sample
+                        </button>
                       </div>
                     </div>
                   </div>
 
-                  {/* Optional Corporate files */}
-                  <div className="bg-black/40 border-2 border-cyan-500/10 p-8 rounded-3xl relative overflow-hidden" id="apply-business-doc-section">
-                    <div className="absolute right-0 top-0 bg-cyan-400 text-black text-[9px] font-black uppercase px-4 py-1 tracking-widest rounded-bl-xl shadow-lg">
-                      Highly Recommended Optional File
+                  {/* Supporting Business Documents (Optional) */}
+                  <div className="bg-black/40 border-2 border-white/10 p-8 rounded-3xl relative overflow-hidden" id="apply-business-doc-section">
+                    <div className="absolute right-0 top-0 bg-cyan-400 text-black text-xs font-black uppercase px-4 py-1.5 tracking-widest rounded-bl-xl shadow-lg font-display">
+                      Optional Document
                     </div>
                     <div className="space-y-4">
-                      <h4 className="font-display text-xl font-black text-white uppercase tracking-tight">
-                        2. Supporting Business Document (Optional)
-                      </h4>
-                      <p className="text-sm text-zinc-300 leading-relaxed font-light">
-                        Upload secondary documentation (e.g., business incorporation, LLC license, or utility files) to optimize credit analysis parameters. <strong className="text-cyan-400 font-bold">Submitting increases approval rating by 85%.</strong>
+                      <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight border-b-2 border-white/10 pb-4">
+                        4. Supporting Business Documents (Optional)
+                      </h3>
+                      <p className="text-base font-semibold text-zinc-200 leading-relaxed">
+                        You may optionally upload business incorporation certificates, LLC licenses, or tax records from your phone or device gallery to optimize credit limit evaluation.
                       </p>
 
-                      <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                      <input
+                        type="file"
+                        ref={businessDocFileInputRef}
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setKycBusiness(file.name);
+                            triggerAlert('success', `📁 Business document selected: ${file.name}`);
+                          }
+                        }}
+                      />
+
+                      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => businessDocFileInputRef.current?.click()}
+                          className="px-6 py-3.5 bg-zinc-700 hover:bg-zinc-600 text-white text-xs font-black uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2 border border-zinc-500 font-display"
+                        >
+                          <span>📁 Upload Business File</span>
+                        </button>
                         <input
                           type="text"
                           value={kycBusiness}
                           onChange={(e) => setKycBusiness(e.target.value)}
-                          className="flex-1 px-5 py-4 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none font-mono"
-                          placeholder="e.g. corporate_formation.pdf (Optional)"
+                          className="flex-1 px-5 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-sm font-bold text-white focus:outline-none font-mono"
+                          placeholder="e.g. llc_formation.pdf (Optional)"
                         />
                         <button
                           type="button"
                           onClick={() => {
                             setKycBusiness('llc_formation_certificate_active.pdf');
-                            triggerAlert('success', 'Corporate business files pre-loaded.');
+                            triggerAlert('success', 'Sample corporate document loaded.');
                           }}
-                          className="px-5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-mono text-zinc-300 uppercase tracking-wider transition cursor-pointer py-4"
+                          className="px-4 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-mono font-black text-white uppercase tracking-wider transition cursor-pointer"
                         >
-                          Pre-Populate Document
+                          Sample
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  {/* User social handles (Twitter, Telegram, LinkedIn, GitHub) */}
-                  <div className="bg-black/40 border-2 border-white/5 p-8 rounded-3xl space-y-6">
-                    <h3 className="font-display text-2xl font-black text-white uppercase tracking-tight border-b border-white/10 pb-4">
-                      3. Verified Social Media Usernames (Not Links!)
+                  {/* Verified Social Media Username (Single Space) */}
+                  <div className="bg-black/40 border-2 border-white/10 p-8 rounded-3xl space-y-6">
+                    <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight border-b-2 border-white/10 pb-4">
+                      5. Verified Social Media Handle (1 Space Only)
                     </h3>
-                    <p className="text-sm text-zinc-400 leading-relaxed font-light">
-                      Provide platform usernames directly for manual network checks. <strong className="text-white font-mono">Input username handles only, no links.</strong>
+                    <p className="text-base font-semibold text-cyan-300 leading-relaxed">
+                      Please select 1 social platform below and input your exact account handle/username for identity verification.
                     </p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
                       <div>
-                        <label className="block text-sm font-black text-zinc-300 uppercase tracking-wider mb-2">Twitter / X Username</label>
-                        <input
-                          type="text"
-                          value={twitterUsername}
-                          onChange={(e) => setTwitterUsername(e.target.value)}
-                          className="w-full px-5 py-4 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none font-mono"
-                          placeholder="@elonmusk"
-                        />
+                        <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Select Social Platform *</label>
+                        <select
+                          value={socialPlatform}
+                          onChange={(e) => setSocialPlatform(e.target.value)}
+                          className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-black text-white focus:outline-none font-mono"
+                        >
+                          <option value="Twitter / X">Twitter / X</option>
+                          <option value="Instagram">Instagram</option>
+                          <option value="TikTok">TikTok</option>
+                          <option value="Facebook">Facebook</option>
+                          <option value="YouTube">YouTube</option>
+                          <option value="LinkedIn">LinkedIn</option>
+                        </select>
                       </div>
-                      <div>
-                        <label className="block text-sm font-black text-zinc-300 uppercase tracking-wider mb-2">Telegram Handle</label>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-sm sm:text-base font-black text-zinc-100 uppercase tracking-wider mb-2">Username / Handle Only (No Links) *</label>
                         <input
                           type="text"
-                          value={telegramUsername}
-                          onChange={(e) => setTelegramUsername(e.target.value)}
-                          className="w-full px-5 py-4 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none font-mono"
-                          placeholder="@sovereign_trader"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-black text-zinc-300 uppercase tracking-wider mb-2">LinkedIn Handle</label>
-                        <input
-                          type="text"
-                          value={linkedinUsername}
-                          onChange={(e) => setLinkedinUsername(e.target.value)}
-                          className="w-full px-5 py-4 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none font-mono"
-                          placeholder="johndoe_trading"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-black text-zinc-300 uppercase tracking-wider mb-2">GitHub Username</label>
-                        <input
-                          type="text"
-                          value={githubUsername}
-                          onChange={(e) => setGithubUsername(e.target.value)}
-                          className="w-full px-5 py-4 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-bold text-white focus:outline-none font-mono"
-                          placeholder="johndoe_dev"
+                          required
+                          value={singleSocialHandle}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setSingleSocialHandle(val);
+                            setTwitterUsername(val);
+                          }}
+                          className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-black text-white focus:outline-none font-mono"
+                          placeholder="e.g. @johndoe_official or johndoe_trader"
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Biometric webcam simulation */}
-                  <div className="bg-black/40 border-2 border-white/5 p-8 rounded-3xl space-y-6">
-                    <h3 className="font-display text-2xl font-black text-white uppercase tracking-tight border-b border-white/10 pb-4">
-                      4. Liveness Biometric Authentication
+                  {/* Biometric Face Photo / Selfie (Upload File Only) */}
+                  <div className="bg-black/40 border-2 border-white/10 p-8 rounded-3xl space-y-6">
+                    <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight border-b-2 border-white/10 pb-4">
+                      6. Biometric Selfie Photo Verification
                     </h3>
 
-                    <div className="flex flex-col lg:flex-row items-center gap-8 p-6 bg-neutral-950/60 rounded-2xl border border-white/5">
-                      <div className="relative h-44 w-44 rounded-full border-4 border-dashed border-cyan-400 flex items-center justify-center overflow-hidden bg-black flex-shrink-0 shadow-[0_0_20px_rgba(34,211,238,0.15)]">
-                        {isWebcamActive ? (
-                          webcamCountdown > 0 ? (
-                            <div className="text-center space-y-1">
-                              <span className="text-4xl font-black text-cyan-400 animate-ping block">{webcamCountdown}</span>
-                              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-widest block font-bold">Hold Position</span>
-                            </div>
-                          ) : (
-                            <div className="h-full w-full relative">
-                              <img src={kycSelfie.startsWith('http') ? kycSelfie : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=180&h=180&q=80"} className="h-full w-full object-cover animate-fade-in" alt="Biometric Scan" referrerPolicy="no-referrer" />
-                              <div className="absolute inset-0 bg-cyan-400/10 border-2 border-cyan-400/30 pointer-events-none rounded-full" />
-                            </div>
-                          )
+                    <p className="text-base font-semibold text-zinc-200 leading-relaxed">
+                      Select and upload an existing clear photo or selfie image file directly from your phone or device gallery.
+                    </p>
+
+                    <input
+                      type="file"
+                      ref={selfieFileInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (evt) => {
+                            if (evt.target?.result) {
+                              setKycSelfie(evt.target.result as string);
+                              triggerAlert('success', `📁 Selfie photo uploaded from device gallery: ${file.name}`);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+
+                    <div className="flex flex-col lg:flex-row items-center gap-8 p-6 bg-zinc-950/80 rounded-2xl border-2 border-white/10">
+                      <div className="relative h-44 w-44 rounded-full border-4 border-cyan-400 flex items-center justify-center overflow-hidden bg-black flex-shrink-0 shadow-[0_0_20px_rgba(34,211,238,0.25)]">
+                        {kycSelfie ? (
+                          <div className="h-full w-full relative">
+                            <img src={kycSelfie.startsWith('http') || kycSelfie.startsWith('data:') ? kycSelfie : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=180&h=180&q=80"} className="h-full w-full object-cover" alt="Biometric Selfie Photo" referrerPolicy="no-referrer" />
+                            <div className="absolute inset-0 bg-cyan-400/10 border-2 border-cyan-400/30 pointer-events-none rounded-full" />
+                          </div>
                         ) : (
                           <div className="text-center px-4 space-y-2">
-                            <span className="h-4 w-4 rounded-full bg-zinc-800 mx-auto block animate-pulse" />
-                            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block">Camera Standby</span>
+                            <span className="text-3xl block">👤</span>
+                            <span className="text-xs font-black text-zinc-400 uppercase tracking-wider block font-mono">No Photo</span>
                           </div>
-                        )}
-                        {isWebcamActive && webcamCountdown === 0 && (
-                          <div className="absolute top-0 left-0 right-0 h-1 bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.8)] animate-bounce" />
                         )}
                       </div>
 
                       <div className="space-y-4 text-left flex-1">
-                        <h5 className="text-lg font-black text-white uppercase tracking-wider">Liveness Capture protocol</h5>
-                        <p className="text-sm text-zinc-300 leading-relaxed font-light">
-                          Sovereign compliance requires verified biometric confirmation. Grant secure system camera clearance to verify facial structures against your uploaded identification credentials.
+                        <h5 className="text-xl font-black text-white uppercase tracking-wider">Upload Biometric Selfie Image File</h5>
+                        <p className="text-base font-semibold text-zinc-300 leading-relaxed">
+                          Ensure your face is well-lit, clearly centered, and unobscured by glasses or hats.
                         </p>
                         <div className="flex flex-wrap gap-3 pt-1">
                           <button
                             type="button"
-                            onClick={() => {
-                              setIsWebcamActive(true);
-                              setWebcamCountdown(3);
-                              const countInterval = setInterval(() => {
-                                setWebcamCountdown(prev => {
-                                  if (prev <= 1) {
-                                    clearInterval(countInterval);
-                                    setKycSelfie("https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=180&h=180&q=80");
-                                    triggerAlert('success', 'Biometric liveness coordinates captured and encrypted.');
-                                    return 0;
-                                  }
-                                  return prev - 1;
-                                });
-                              }, 1000);
-                            }}
-                            className="px-5 py-3 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-extrabold uppercase tracking-widest rounded-xl transition-colors cursor-pointer"
+                            onClick={() => selfieFileInputRef.current?.click()}
+                            className="px-6 py-4 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-black uppercase tracking-widest rounded-xl transition-colors cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.3)] font-display"
                           >
-                            Activate Biometric Scanner
+                            📁 Upload Selfie Photo from Device Gallery
                           </button>
                           <button
                             type="button"
                             onClick={() => {
                               setKycSelfie("https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=180&h=180&q=80");
-                              setIsWebcamActive(true);
-                              setWebcamCountdown(0);
-                              triggerAlert('success', 'Biometric profile pre-populated.');
+                              triggerAlert('success', 'Sample biometric selfie photo loaded.');
                             }}
-                            className="px-4 py-3 bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-mono uppercase tracking-wider rounded-xl transition-colors border border-white/10 cursor-pointer"
+                            className="px-5 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-mono font-black text-white uppercase tracking-wider transition cursor-pointer"
                           >
-                            Pre-populate Photo File
+                            Sample Photo
                           </button>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Liveness video statement recording */}
-                  <div className="bg-black/40 border-2 border-white/5 p-8 rounded-3xl space-y-6">
-                    <h3 className="font-display text-2xl font-black text-white uppercase tracking-tight border-b border-white/10 pb-4">
-                      5. Live Video statement Verification
+                  {/* Video Statement Upload Verification (Upload File Only) */}
+                  <div className="bg-black/40 border-2 border-white/10 p-8 rounded-3xl space-y-6">
+                    <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight border-b-2 border-white/10 pb-4">
+                      7. Video Verification Statement
                     </h3>
 
-                    <div className="flex flex-col lg:flex-row items-center gap-8 p-6 bg-neutral-950/60 rounded-2xl border border-white/5">
-                      <div className="relative h-32 w-52 rounded-xl border border-white/10 bg-black flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {isVideoRecording ? (
-                          <div className="text-center space-y-1 text-red-500 animate-pulse">
-                            <span className="text-2xl font-black block font-mono">REC {videoCountdown}s</span>
-                            <span className="text-[9px] font-mono uppercase tracking-widest block font-bold">RECITING STATEMENT</span>
-                          </div>
-                        ) : kycVideoUrl ? (
-                          <div className="text-center space-y-1">
-                            <span className="text-3xl block">🎥</span>
-                            <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest block font-bold">Proof Securely Saved</span>
-                          </div>
-                        ) : (
-                          <span className="text-zinc-600 font-mono text-xs uppercase">No Video Saved</span>
-                        )}
+                    <p className="text-base font-semibold text-zinc-200 leading-relaxed">
+                      Record a short verification video using your phone or camera clearly reciting the exact declaration below, then upload the video file here.
+                    </p>
+
+                    <input
+                      type="file"
+                      ref={videoFileInputRef}
+                      accept="video/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setKycVideoUrl(file.name);
+                          triggerAlert('success', `📁 Recorded video statement uploaded: ${file.name}`);
+                        }
+                      }}
+                    />
+
+                    <div className="space-y-6">
+                      <div className="p-6 bg-black border-2 border-amber-400/50 rounded-2xl font-display text-center shadow-[0_0_20px_rgba(251,191,36,0.15)]">
+                        <span className="block text-xs text-amber-300 font-mono tracking-widest uppercase font-black mb-3">📜 EXACT STATEMENT TO SPEAK IN YOUR RECORDED VIDEO</span>
+                        <p className="text-lg font-black text-white italic tracking-wide leading-relaxed">
+                          "Hello, I am <span className="text-cyan-300 not-italic font-mono underline">{kycFullName || user.name || 'Applicant'}</span>, requesting this credit line facility from Eloan Capital today, <span className="text-amber-300 not-italic font-mono font-bold">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>. This video serves as proof of my identity and authorization."
+                        </p>
                       </div>
 
-                      <div className="space-y-4 text-left flex-1">
-                        <h5 className="text-lg font-black text-white uppercase tracking-wider">Verbal Statement Recitation</h5>
-                        <p className="text-sm text-zinc-300 leading-relaxed font-light">
-                          Read the statement below aloud clearly. Recording will execute for 5 seconds.
-                        </p>
-
-                        <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-xl font-display text-center my-2 shadow-inner">
-                          <span className="block text-[9px] text-zinc-500 font-mono tracking-widest uppercase mb-1">VERBAL STATEMENT TO RECITE</span>
-                          <p className="text-base font-black text-white italic tracking-wide">
-                            "Hello, I am requesting for this credit limit from Elon Capital. Today is July 21, 2026."
-                          </p>
+                      <div className="flex flex-col sm:flex-row items-center gap-4 p-6 bg-zinc-950/80 rounded-2xl border-2 border-white/10">
+                        <div className="relative h-28 w-48 rounded-xl border-2 border-cyan-400/40 bg-black flex items-center justify-center overflow-hidden flex-shrink-0 shadow-[0_0_15px_rgba(34,211,238,0.15)]">
+                          {kycVideoUrl ? (
+                            <div className="text-center space-y-1 p-2">
+                              <span className="text-2xl block">🎥</span>
+                              <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest block font-black">Video Ready</span>
+                              <span className="text-[10px] font-mono text-zinc-300 block truncate max-w-[160px]">{kycVideoUrl}</span>
+                            </div>
+                          ) : (
+                            <span className="text-zinc-400 font-mono text-xs uppercase font-bold">No Video Selected</span>
+                          )}
                         </div>
 
-                        <div className="flex flex-wrap gap-3 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsVideoRecording(true);
-                              setVideoCountdown(5);
-                              const vInterval = setInterval(() => {
-                                setVideoCountdown(prev => {
-                                  if (prev <= 1) {
-                                    clearInterval(vInterval);
-                                    setIsVideoRecording(false);
-                                    setKycVideoUrl(`liveness_video_recording_${Math.floor(1000 + Math.random() * 9000)}.mp4`);
-                                    triggerAlert('success', 'Liveness video proof captured and secured.');
-                                    return 0;
-                                  }
-                                  return prev - 1;
-                                });
-                              }, 1000);
-                            }}
-                            className="px-5 py-3 bg-red-500 hover:bg-red-400 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer flex items-center gap-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]"
-                          >
-                            <span className="h-3 w-3 bg-white rounded-full animate-ping" /> Record 5-Sec Video Statement
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setKycVideoUrl("simulation_liveness_proof.mp4");
-                              triggerAlert('success', 'Pre-populated liveness proof video.');
-                            }}
-                            className="px-4 py-3 bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-mono uppercase tracking-wider rounded-xl transition-all border border-white/10 cursor-pointer"
-                          >
-                            Pre-populate Video Proof
-                          </button>
+                        <div className="space-y-3 text-left flex-1">
+                          <h5 className="text-base font-black text-white uppercase tracking-wider">Upload Recorded Video File</h5>
+                          <div className="flex flex-wrap gap-3">
+                            <button
+                              type="button"
+                              onClick={() => videoFileInputRef.current?.click()}
+                              className="px-6 py-3.5 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.2)] font-display"
+                            >
+                              📁 Upload Recorded Video File
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setKycVideoUrl("liveness_video_recording_8821.mp4");
+                                triggerAlert('success', 'Sample video statement loaded.');
+                              }}
+                              className="px-4 py-3.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-mono font-bold text-white transition cursor-pointer"
+                            >
+                              Sample Video
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -2104,43 +2406,43 @@ export default function UserDashboard({
 
                   {/* Applicant undertaking & electronic signature */}
                   <div className="bg-black/40 border-2 border-white/10 p-8 rounded-3xl space-y-6">
-                    <h3 className="font-display text-2xl font-black text-white uppercase tracking-tight border-b border-white/10 pb-4">
-                      6. Applicant Undertaking & Signature
+                    <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight border-b-2 border-white/10 pb-4">
+                      8. Applicant Undertaking & Electronic Signature
                     </h3>
 
-                    <div className="p-5 bg-cyan-950/20 border-2 border-cyan-500/20 rounded-2xl space-y-3">
-                      <p className="text-xs font-mono text-cyan-400 uppercase tracking-widest font-black">Official Undertaking Statement</p>
-                      <p className="text-sm text-zinc-300 font-light leading-relaxed">
-                        "I hereby declare, under penalty of perjury, that all administrative, personal, and financial information supplied during this onboarding process is fully accurate, truthful, and authentic. I authorize Elon Capital and its accredited risk compliance partners to conduct all standard international credit checks, security screens, and biometric validations."
+                    <div className="p-6 bg-cyan-950/40 border-2 border-cyan-400/40 rounded-2xl space-y-3 shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+                      <p className="text-xs font-mono text-cyan-300 uppercase tracking-widest font-black">Official Legal Undertaking Declaration</p>
+                      <p className="text-base sm:text-lg text-white font-bold leading-relaxed">
+                        "I, <span className="text-cyan-300 underline font-black font-mono">{kycFullName || user.name || 'Applicant'}</span>, hereby declare under penalty of perjury that all personal, financial, and identity information supplied in this onboarding portfolio is accurate, truthful, and authentic. I confirm that all uploaded documents are genuine government-issued credentials. I understand that providing false or misleading information carries legal consequences and may result in immediate loan rejection, termination of services, and reporting to legal authorities. I agree to the terms and conditions of Eloan Capital."
                       </p>
                     </div>
 
-                    <div className="space-y-3 pt-2">
-                      <label className="flex items-start gap-3 cursor-pointer text-sm font-bold text-zinc-300 hover:text-white select-none text-left">
+                    <div className="space-y-4 pt-2">
+                      <label className="flex items-start gap-3 cursor-pointer text-base font-bold text-white hover:text-cyan-300 select-none text-left">
                         <input
                           type="checkbox"
                           required
                           checked={kycDeclaresAccuracy}
                           onChange={(e) => setKycDeclaresAccuracy(e.target.checked)}
-                          className="rounded border-zinc-700 bg-black text-cyan-500 focus:ring-0 h-5 w-5 mt-0.5 cursor-pointer"
+                          className="rounded border-zinc-600 bg-zinc-900 text-cyan-400 focus:ring-0 h-6 w-6 mt-0.5 cursor-pointer flex-shrink-0"
                         />
-                        <span>I confirm that all information provided in this 2-page capital request portfolio is accurate and authentic.</span>
+                        <span>I confirm and accept the legal undertaking above and declare that all information provided is true and authentic.</span>
                       </label>
-                    </div>
 
-                    <div className="pt-2">
-                      <label className="block text-sm font-black text-zinc-300 uppercase tracking-wider mb-2">Electronic Signature (Type Your Full Legal Name)</label>
-                      <input
-                        type="text"
-                        required
-                        value={kycSignature}
-                        onChange={(e) => setKycSignature(e.target.value)}
-                        placeholder={user.name}
-                        className="w-full px-5 py-4 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-base font-mono font-bold text-white focus:outline-none"
-                      />
-                      <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider mt-2">
-                        Typed signature must match user profile name: <strong className="text-zinc-300 font-mono">{user.name}</strong>
-                      </p>
+                      <div className="pt-2">
+                        <label className="block text-sm sm:text-base font-black text-white uppercase tracking-wider mb-2">Type Full Legal Name as Electronic Signature *</label>
+                        <input
+                          type="text"
+                          required
+                          value={kycSignature}
+                          onChange={(e) => setKycSignature(e.target.value)}
+                          placeholder={kycFullName || user.name || 'Johnathan Doe'}
+                          className="w-full px-5 py-4 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-lg font-mono font-black text-white focus:outline-none"
+                        />
+                        <p className="text-xs font-bold text-zinc-300 uppercase tracking-wider mt-2">
+                          Typed signature must match legal applicant name: <strong className="text-cyan-400 font-mono font-black">{kycFullName || user.name || 'Johnathan Doe'}</strong>
+                        </p>
+                      </div>
                     </div>
                   </div>
 
@@ -2166,7 +2468,7 @@ export default function UserDashboard({
                     >
                       <span className="absolute inset-0 rounded-xl bg-cyan-700 translate-y-1 block"></span>
                       <span className="relative flex items-center justify-center gap-2 px-10 py-4 rounded-xl bg-cyan-400 text-black text-xs font-black uppercase tracking-widest -translate-y-1 group-hover:-translate-y-0.5 group-active:translate-y-0 transition-all duration-150 font-display">
-                        {actionLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Transmit Capital Portfolio 🚀"}
+                        {actionLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Submit Loan Application 🚀"}
                       </span>
                     </button>
                   </div>
@@ -2194,11 +2496,14 @@ export default function UserDashboard({
                      kycStatus?.status === 'Rejected' ? '❌ Security Audit Failed' :
                      '⚠️ Onboarding Audit Required'}
                   </h4>
-                  <p className="text-sm text-zinc-300 font-light">
+                  <p className="text-base font-semibold text-zinc-300 leading-relaxed">
                     {kycStatus?.status === 'Approved' ? 'Your identity coordinates have been verified against international federal registries and credit bureaus.' :
-                     kycStatus?.status === 'Pending' ? 'Compliance officers are validating your SSN and liveness records. Audit completes within 2 hours.' :
+                     kycStatus?.status === 'Pending' ? (kycCountry === 'United States' ? 'Our compliance team is reviewing your submitted SSN and identity documents.' : 'Our compliance team is reviewing your submitted identity documents and verification information.') :
                      kycStatus?.status === 'Rejected' ? 'Re-submission requested. Please check administrative feedback and correct parameters.' :
-                     'Submit your administrative coordinates and biometric scan to activate sovereign capital limit drawdowns.'}
+                     'Submit your administrative coordinates and identity verification portfolio to activate sovereign capital limit drawdowns.'}
+                  </p>
+                  <p className="text-xs font-mono font-black text-cyan-400 mt-2 uppercase tracking-widest">
+                    ⏱️ Estimated Review Time: 24–72 Hours
                   </p>
                   {kycStatus?.remarks && (
                     <div className="p-3 bg-red-950/20 border border-red-500/20 text-xs font-mono text-red-400 rounded-xl mt-3">
@@ -2218,14 +2523,14 @@ export default function UserDashboard({
 
               {/* If Unsubmitted or Rejected, show Unified Onboarding Call to Action */}
               {(kycStatus === null || kycStatus?.status === 'Rejected' || kycStatus?.status === 'Pending_Upload') && (
-                <div className="p-8 rounded-3xl bg-gradient-to-br from-neutral-900/40 to-black border-2 border-dashed border-zinc-800 space-y-6 text-center animate-fade-in" id="kyc-prompt-unified">
+                <div className="p-8 rounded-3xl bg-gradient-to-br from-neutral-900/80 to-black border-2 border-dashed border-zinc-700 space-y-6 text-center animate-fade-in" id="kyc-prompt-unified">
                   <div className="h-16 w-16 bg-cyan-950/60 border-2 border-cyan-400 rounded-full flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(34,211,238,0.2)]">
-                    <ShieldCheck className="h-8 w-8 text-cyan-400" />
+                    <ShieldCheck className="h-8 w-8 text-cyan-400 stroke-[2.5]" />
                   </div>
                   <div className="space-y-2">
-                    <h4 className="font-display text-2xl font-black text-white uppercase tracking-tight">Unified Account Verification & Compliance</h4>
-                    <p className="text-sm text-zinc-300 max-w-2xl mx-auto leading-relaxed font-light">
-                      We have streamlined our processes! You no longer need to fill out separate KYC forms. Identity verification, SSN check, biometric proof, and business documents are now fully integrated into a <strong className="text-cyan-400 font-mono">single, 2-page Capital Limit application</strong>.
+                    <h4 className="font-display text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">Unified Account Verification & Compliance</h4>
+                    <p className="text-base text-zinc-200 max-w-2xl mx-auto leading-relaxed font-bold">
+                      We have streamlined our processes! You no longer need to fill out separate KYC forms. Identity verification, SSN check, biometric proof, and business documents are now fully integrated into a <strong className="text-cyan-300 font-mono font-black">single, 2-page Capital Limit application</strong>.
                     </p>
                   </div>
 
@@ -2250,23 +2555,23 @@ export default function UserDashboard({
 
               {/* If Pending, show active analysis tracker */}
               {kycStatus?.status === 'Pending' && (
-                <div className="p-10 rounded-3xl bg-zinc-950/80 border-2 border-white/5 space-y-6 text-center animate-fade-in" id="kyc-pending-status-card">
-                  <RefreshCw className="h-14 w-14 text-cyan-400 mx-auto animate-spin" />
+                <div className="p-10 rounded-3xl bg-zinc-950/90 border-2 border-zinc-700 space-y-6 text-center animate-fade-in" id="kyc-pending-status-card">
+                  <RefreshCw className="h-14 w-14 text-cyan-400 mx-auto animate-spin stroke-[2.5]" />
                   <div className="space-y-2">
                     <h4 className="font-display text-2xl font-black text-white uppercase tracking-tight">Validating Sovereign Credentials</h4>
-                    <p className="text-sm text-zinc-300 max-w-xl mx-auto leading-relaxed font-light">
+                    <p className="text-base text-zinc-200 max-w-xl mx-auto leading-relaxed font-bold">
                       Federal compliance agencies and international underwriters are verifying your details. Encryption endpoints are active, and no manual actions are required.
                     </p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 text-xs font-mono uppercase tracking-wider text-left max-w-2xl mx-auto">
-                    <div className="p-4 bg-black/40 rounded-xl border border-white/5 flex items-center gap-3">
-                      <span className="text-cyan-400">●</span> <span>SSN Verification</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 text-xs font-mono font-black uppercase tracking-wider text-left max-w-2xl mx-auto">
+                    <div className="p-4 bg-black/60 rounded-xl border border-zinc-700 flex items-center gap-3 text-white">
+                      <span className="text-cyan-400 text-base">●</span> <span>SSN Verification</span>
                     </div>
-                    <div className="p-4 bg-black/40 rounded-xl border border-white/5 flex items-center gap-3">
-                      <span className="text-cyan-400">●</span> <span>Biometric Match</span>
+                    <div className="p-4 bg-black/60 rounded-xl border border-zinc-700 flex items-center gap-3 text-white">
+                      <span className="text-cyan-400 text-base">●</span> <span>Biometric Match</span>
                     </div>
-                    <div className="p-4 bg-black/40 rounded-xl border border-white/5 flex items-center gap-3">
-                      <span className="text-cyan-400">●</span> <span>Sovereign ID Verification</span>
+                    <div className="p-4 bg-black/60 rounded-xl border border-zinc-700 flex items-center gap-3 text-white">
+                      <span className="text-cyan-400 text-base">●</span> <span>Sovereign ID Verification</span>
                     </div>
                   </div>
                 </div>
@@ -2274,12 +2579,12 @@ export default function UserDashboard({
 
               {/* If Approved, show the highly premium Sovereign institutional clearance certificate */}
               {kycStatus?.status === 'Approved' && (
-                <div className="p-10 rounded-3xl bg-zinc-950/85 border-4 border-double border-cyan-400/40 relative overflow-hidden text-left animate-fade-in shadow-[0_0_40px_rgba(34,211,238,0.1)]" id="kyc-certificate">
+                <div className="p-10 rounded-3xl bg-zinc-950/90 border-4 border-double border-cyan-400/60 relative overflow-hidden text-left animate-fade-in shadow-[0_0_40px_rgba(34,211,238,0.15)]" id="kyc-certificate">
                   {/* Decorative corner borders */}
-                  <div className="absolute top-4 left-4 h-8 w-8 border-t-2 border-l-2 border-cyan-400/40" />
-                  <div className="absolute top-4 right-4 h-8 w-8 border-t-2 border-r-2 border-cyan-400/40" />
-                  <div className="absolute bottom-4 left-4 h-8 w-8 border-b-2 border-l-2 border-cyan-400/40" />
-                  <div className="absolute bottom-4 right-4 h-8 w-8 border-b-2 border-r-2 border-cyan-400/40" />
+                  <div className="absolute top-4 left-4 h-8 w-8 border-t-2 border-l-2 border-cyan-400/60" />
+                  <div className="absolute top-4 right-4 h-8 w-8 border-t-2 border-r-2 border-cyan-400/60" />
+                  <div className="absolute bottom-4 left-4 h-8 w-8 border-b-2 border-l-2 border-cyan-400/60" />
+                  <div className="absolute bottom-4 right-4 h-8 w-8 border-b-2 border-r-2 border-cyan-400/60" />
 
                   {/* Watermark Logo */}
                   <div className="absolute right-10 top-10 text-cyan-400/5 select-none pointer-events-none font-display font-black text-9xl">
@@ -2292,41 +2597,41 @@ export default function UserDashboard({
                         <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest font-black">Elon Capital underwriting Group</span>
                         <h4 className="text-2xl font-display font-black text-white uppercase tracking-tight mt-1">Sovereign Clearance Certificate</h4>
                       </div>
-                      <div className="text-right font-mono text-xs text-zinc-500">
-                        <div>CERTIFICATE ID: <span className="text-white font-bold font-mono">SOV-{Math.floor(100000 + Math.random() * 900000)}</span></div>
-                        <div>ISSUED ON: <span className="text-white font-bold font-mono">{new Date().toLocaleDateString()}</span></div>
+                      <div className="text-right font-mono text-xs font-black text-zinc-400">
+                        <div>CERTIFICATE ID: <span className="text-white font-black font-mono">SOV-{Math.floor(100000 + Math.random() * 900000)}</span></div>
+                        <div>ISSUED ON: <span className="text-white font-black font-mono">{new Date().toLocaleDateString()}</span></div>
                       </div>
                     </div>
 
-                    <p className="text-base text-zinc-300 leading-relaxed font-light">
-                      This certificate declares that the corporate identity and administrative parameters of <strong className="text-white font-bold">{kycFullName || user.name}</strong> have been thoroughly processed and audited through accredited sovereign identity registers, international compliance networks, and biometric liveness filters.
+                    <p className="text-base text-zinc-200 leading-relaxed font-bold">
+                      This certificate declares that the corporate identity and administrative parameters of <strong className="text-white font-black">{kycFullName || user.name}</strong> have been thoroughly processed and audited through accredited sovereign identity registers, international compliance networks, and biometric liveness filters.
                     </p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 bg-black/40 rounded-xl border border-white/5 flex items-center justify-between text-xs">
-                        <span className="font-mono text-zinc-500 uppercase">Verification Level</span>
+                      <div className="p-4 bg-black/60 rounded-xl border border-zinc-700 flex items-center justify-between text-xs font-black">
+                        <span className="font-mono text-zinc-300 uppercase">Verification Level</span>
                         <span className="font-black text-cyan-400 uppercase tracking-wider">Level 3 Clearance</span>
                       </div>
-                      <div className="p-4 bg-black/40 rounded-xl border border-white/5 flex items-center justify-between text-xs">
-                        <span className="font-mono text-zinc-500 uppercase">Drawdown Parameters</span>
+                      <div className="p-4 bg-black/60 rounded-xl border border-zinc-700 flex items-center justify-between text-xs font-black">
+                        <span className="font-mono text-zinc-300 uppercase">Drawdown Parameters</span>
                         <span className="font-black text-cyan-400 uppercase tracking-wider">Up to $500M institutionally</span>
                       </div>
-                      <div className="p-4 bg-black/40 rounded-xl border border-white/5 flex items-center justify-between text-xs">
-                        <span className="font-mono text-zinc-500 uppercase">Biometric Match</span>
+                      <div className="p-4 bg-black/60 rounded-xl border border-zinc-700 flex items-center justify-between text-xs font-black">
+                        <span className="font-mono text-zinc-300 uppercase">Biometric Match</span>
                         <span className="font-black text-cyan-400 uppercase tracking-wider">Verified 99.8% Match</span>
                       </div>
-                      <div className="p-4 bg-black/40 rounded-xl border border-white/5 flex items-center justify-between text-xs">
-                        <span className="font-mono text-zinc-500 uppercase">Country jurisdiction</span>
+                      <div className="p-4 bg-black/60 rounded-xl border border-zinc-700 flex items-center justify-between text-xs font-black">
+                        <span className="font-mono text-zinc-300 uppercase">Country jurisdiction</span>
                         <span className="font-black text-cyan-400 uppercase tracking-wider">{kycCountry || 'United States'}</span>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-6 border-t border-white/5">
+                    <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-6 border-t border-white/10">
                       <div className="space-y-1">
-                        <span className="block text-[10px] text-zinc-500 font-mono uppercase tracking-widest">Electronic Signature Verification</span>
-                        <span className="text-xl font-display text-white font-black italic">{kycSignature || user.name}</span>
+                        <span className="block text-xs text-zinc-400 font-mono font-black uppercase tracking-widest">Electronic Signature Verification</span>
+                        <span className="text-2xl font-display text-white font-black italic">{kycSignature || user.name}</span>
                       </div>
-                      <div className="p-3 bg-cyan-950/20 border border-cyan-400/20 text-[10px] font-mono text-cyan-400 rounded-lg">
+                      <div className="p-3 bg-cyan-950/40 border-2 border-cyan-400 text-xs font-mono font-black text-cyan-300 rounded-xl uppercase tracking-wider">
                         🛡️ SECURED COMPLIANCE BLOCKCHAIN ENVELOPE
                       </div>
                     </div>
@@ -2339,15 +2644,15 @@ export default function UserDashboard({
           {/* ---------------- 5. MESSAGES DESK ---------------- */}
           {activeTab === 'messages' && (
             <div className="space-y-6 flex flex-col justify-between h-[520px]" id="view-messages">
-              <div className="border-b border-white/5 pb-4">
-                <h3 className="font-display text-xl font-bold text-white mb-1">Administrative Message Desk</h3>
-                <p className="text-xs text-gray-400">Direct encrypted communications with the compliance and financial officer desks.</p>
+              <div className="border-b border-white/10 pb-4">
+                <h3 className="font-display text-2xl sm:text-3xl font-black text-white mb-1 uppercase tracking-tight">Administrative Message Desk</h3>
+                <p className="text-sm font-semibold text-zinc-300">Direct encrypted communications with the compliance and financial officer desks.</p>
               </div>
 
               {/* Chat Thread */}
               <div className="flex-1 overflow-y-auto space-y-4 pr-2 py-4 max-h-[340px]" id="chat-thread">
                 {messages.length === 0 ? (
-                  <div className="text-center py-16 text-gray-500 text-xs">
+                  <div className="text-center py-16 text-zinc-300 text-sm font-bold">
                     No active messages in thread. Start communication below.
                   </div>
                 ) : (
@@ -2359,20 +2664,20 @@ export default function UserDashboard({
                         className={`flex flex-col ${isAdmin ? 'items-start' : 'items-end'}`}
                         id={`chat-msg-${msg.id}`}
                       >
-                        <span className="font-mono text-[9px] text-gray-500 mb-1">{msg.senderName}</span>
-                        <div className={`p-4 rounded-xl text-xs max-w-sm leading-relaxed ${
+                        <span className="font-mono text-xs text-cyan-400 font-black mb-1">{msg.senderName}</span>
+                        <div className={`p-4 rounded-xl text-sm font-bold max-w-sm leading-relaxed ${
                           isAdmin 
-                            ? 'bg-white/5 border border-white/5 text-gray-200 rounded-tl-none' 
-                            : 'bg-cyan-500 text-black font-medium rounded-tr-none shadow-md'
+                            ? 'bg-zinc-900 border-2 border-zinc-700 text-white rounded-tl-none' 
+                            : 'bg-cyan-400 text-black font-black rounded-tr-none shadow-md'
                         }`}>
                           {msg.content}
                           {msg.attachment && (
-                            <div className="mt-2 pt-2 border-t border-black/10 text-[10px] font-mono flex items-center gap-1.5 opacity-80">
+                            <div className="mt-2 pt-2 border-t border-black/20 text-xs font-mono font-bold flex items-center gap-1.5 opacity-90">
                               <span>📎 Attachment: {msg.attachment.name}</span>
                             </div>
                           )}
                         </div>
-                        <span className="font-mono text-[8px] text-gray-600 mt-1">{new Date(msg.createdAt).toLocaleTimeString()}</span>
+                        <span className="font-mono text-[10px] font-bold text-zinc-400 mt-1">{new Date(msg.createdAt).toLocaleTimeString()}</span>
                       </div>
                     );
                   })
@@ -2380,18 +2685,18 @@ export default function UserDashboard({
               </div>
 
               {/* Chat Send */}
-              <form onSubmit={handleSendMessage} className="border-t border-white/5 pt-4" id="form-chat-send">
+              <form onSubmit={handleSendMessage} className="border-t border-white/10 pt-4" id="form-chat-send">
                 {msgAttachment && (
-                  <div className="mb-2 p-2 bg-white/5 rounded-lg flex items-center justify-between text-[11px] font-mono">
-                    <span className="text-gray-400">📎 Attached: {msgAttachment.name}</span>
-                    <button type="button" onClick={() => setMsgAttachment(null)} className="text-red-400 hover:underline">Remove</button>
+                  <div className="mb-2 p-2.5 bg-zinc-900 border border-zinc-700 rounded-lg flex items-center justify-between text-xs font-mono font-bold">
+                    <span className="text-cyan-300">📎 Attached: {msgAttachment.name}</span>
+                    <button type="button" onClick={() => setMsgAttachment(null)} className="text-red-400 hover:underline font-black">Remove</button>
                   </div>
                 )}
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setMsgAttachment({ name: 'treasury_balance_sheet.pdf', url: '#' })}
-                    className="px-3 bg-white/5 border border-white/5 text-xs text-gray-400 hover:text-white rounded-xl"
+                    className="px-4 bg-zinc-900 border-2 border-zinc-700 text-sm font-bold text-zinc-300 hover:text-white hover:border-cyan-400 rounded-xl cursor-pointer"
                     title="Add attachment"
                   >
                     📎
@@ -2401,14 +2706,14 @@ export default function UserDashboard({
                     required
                     value={newMsgContent}
                     onChange={(e) => setNewMsgContent(e.target.value)}
-                    className="flex-1 px-4 py-3 bg-black border border-white/5 focus:border-cyan-500/50 rounded-xl text-xs text-white focus:outline-none"
+                    className="flex-1 px-4 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-sm font-bold text-white focus:outline-none"
                     placeholder="Type encrypted message..."
                   />
                   <button
                     type="submit"
-                    className="px-5 bg-white text-black hover:bg-cyan-400 rounded-xl transition-all"
+                    className="px-6 bg-cyan-400 text-black hover:bg-cyan-300 rounded-xl transition-all cursor-pointer font-black shadow-md flex items-center justify-center"
                   >
-                    <Send className="h-4 w-4" />
+                    <Send className="h-4 w-4 stroke-[3]" />
                   </button>
                 </div>
               </form>
@@ -2418,34 +2723,34 @@ export default function UserDashboard({
           {/* ---------------- 6. SUPPORT CENTER ---------------- */}
           {activeTab === 'support' && (
             <div className="space-y-8" id="view-support">
-              <div className="border-b border-white/5 pb-4">
-                <h3 className="font-display text-xl font-bold text-white mb-1">Help Desk & Support Center</h3>
-                <p className="text-xs text-gray-400">Initiate service tickets or consult platform documentation.</p>
+              <div className="border-b border-white/10 pb-4">
+                <h3 className="font-display text-2xl sm:text-3xl font-black text-white mb-1 uppercase tracking-tight">Help Desk & Support Center</h3>
+                <p className="text-sm font-semibold text-zinc-300">Initiate service tickets or consult platform documentation.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
                 {/* Submit New Ticket */}
                 <div className="md:col-span-1 space-y-4">
-                  <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest border-b border-white/5 pb-2">Submit Ticket</h4>
+                  <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-2 font-black">Submit Ticket</h4>
                   <form onSubmit={handleCreateTicket} className="space-y-4" id="form-ticket-create">
                     <div>
-                      <label className="block text-[10px] font-mono text-gray-500 uppercase mb-2">Subject</label>
+                      <label className="block text-xs font-mono font-black text-zinc-300 uppercase mb-2">Subject</label>
                       <input 
                         type="text" 
                         required
                         value={ticketSubject}
                         onChange={(e) => setTicketSubject(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-black border border-white/5 focus:border-cyan-500/50 rounded-lg text-xs text-white focus:outline-none"
+                        className="w-full px-4 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-sm font-bold text-white focus:outline-none"
                         placeholder="e.g. Collateral collateral query"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-mono text-gray-500 uppercase mb-2">Category</label>
+                      <label className="block text-xs font-mono font-black text-zinc-300 uppercase mb-2">Category</label>
                       <select
                         value={ticketCategory}
                         onChange={(e) => setTicketCategory(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-black border border-white/5 focus:border-cyan-500/50 rounded-lg text-xs text-white focus:outline-none"
+                        className="w-full px-4 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-sm font-bold text-white focus:outline-none"
                       >
                         <option>General Inquiry</option>
                         <option>Funding Terms</option>
@@ -2454,22 +2759,22 @@ export default function UserDashboard({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-mono text-gray-500 uppercase mb-2">Message</label>
+                      <label className="block text-xs font-mono font-black text-zinc-300 uppercase mb-2">Message</label>
                       <textarea 
                         required
-                        rows={3}
+                        rows={4}
                         value={ticketMsg}
                         onChange={(e) => setTicketMsg(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-black border border-white/5 focus:border-cyan-500/50 rounded-lg text-xs text-white focus:outline-none resize-none"
+                        className="w-full px-4 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-sm font-bold text-white focus:outline-none resize-none"
                         placeholder="Describe your inquiry..."
                       />
                     </div>
                     <button
                       type="submit"
                       disabled={actionLoading}
-                      className="w-full py-2.5 text-xs font-semibold text-black bg-white hover:bg-cyan-400 rounded-lg flex items-center justify-center gap-1.5"
+                      className="w-full py-3.5 text-xs font-black uppercase tracking-widest text-black bg-cyan-400 hover:bg-cyan-300 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-md transition"
                     >
-                      <Plus className="h-3.5 w-3.5" /> Submit Support Ticket
+                      <Plus className="h-4 w-4 stroke-[3]" /> Submit Support Ticket
                     </button>
                   </form>
                 </div>
@@ -2558,27 +2863,27 @@ export default function UserDashboard({
           {/* ---------------- 7. SETTINGS AND NOTIFICATIONS ---------------- */}
           {activeTab === 'settings' && (
             <div className="space-y-8" id="view-settings">
-              <div>
-                <h3 className="font-display text-xl font-bold text-white mb-2">Account & Notification Settings</h3>
-                <p className="text-xs text-gray-400 font-light">Audit your security parameters and operational communication channels.</p>
+              <div className="border-b border-white/10 pb-4">
+                <h3 className="font-display text-2xl sm:text-3xl font-black text-white mb-2 uppercase tracking-tight">Account & Security Settings</h3>
+                <p className="text-sm font-semibold text-zinc-300">Audit your security parameters and operational communication channels.</p>
               </div>
 
               {/* Dynamic Notification log list */}
               <div>
-                <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest border-b border-white/5 pb-2 mb-4">Notification Center Logs</h4>
-                <div className="space-y-3 max-h-40 overflow-y-auto pr-2" id="notifications-list">
+                <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-2 mb-4 font-black">Notification Center Logs</h4>
+                <div className="space-y-3 max-h-48 overflow-y-auto pr-2" id="notifications-list">
                   {notifications.length === 0 ? (
-                    <p className="text-xs text-gray-500">No active notifications.</p>
+                    <p className="text-sm text-zinc-400 font-bold">No active notifications.</p>
                   ) : (
                     notifications.map((notif) => (
-                      <div key={notif.id} className="p-3 bg-white/[0.01] border border-white/5 rounded-lg flex justify-between items-start gap-4">
+                      <div key={notif.id} className="p-4 bg-zinc-950 border border-white/10 rounded-2xl flex justify-between items-start gap-4">
                         <div className="space-y-1">
-                          <span className="text-[9px] font-mono text-gray-500 block">{new Date(notif.createdAt).toLocaleString()}</span>
-                          <h5 className="text-xs font-semibold text-white">{notif.title}</h5>
-                          <p className="text-xs text-gray-400 leading-relaxed font-light">{notif.content}</p>
+                          <span className="text-xs font-mono font-bold text-cyan-400 block">{new Date(notif.createdAt).toLocaleString()}</span>
+                          <h5 className="text-base font-black text-white">{notif.title}</h5>
+                          <p className="text-sm text-zinc-300 leading-relaxed font-semibold">{notif.content}</p>
                         </div>
                         {!notif.isRead && (
-                          <span className="h-1.5 w-1.5 bg-cyan-400 rounded-full flex-shrink-0 animate-ping mt-1" />
+                          <span className="h-2.5 w-2.5 bg-cyan-400 rounded-full flex-shrink-0 animate-ping mt-1" />
                         )}
                       </div>
                     ))
@@ -2586,71 +2891,27 @@ export default function UserDashboard({
                 </div>
               </div>
 
-              <hr className="border-white/5" />
+              <hr className="border-white/10" />
 
               {/* Edit Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 
                 {/* Profile preferences */}
                 <form onSubmit={handleUpdateProfile} className="space-y-6" id="form-profile-update">
-                  <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest border-b border-white/5 pb-2">Profile Details</h4>
+                  <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest border-b border-white/10 pb-2 font-black">Profile Details</h4>
                   
-                  {/* Premium Profile Photo Selection Gallery */}
-                  <div className="space-y-3">
-                    <label className="block text-[10px] font-mono text-gray-500 uppercase tracking-wider">Select Corporate Avatar</label>
-                    <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-                      {[
-                        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=128&h=128&q=80",
-                        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=128&h=128&q=80",
-                        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=128&h=128&q=80",
-                        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=128&h=128&q=80",
-                        "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=128&h=128&q=80",
-                        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=128&h=128&q=80",
-                        "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=128&h=128&q=80",
-                        "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=128&h=128&q=80"
-                      ].map((url, idx) => {
-                        const isSelected = profilePhoto === url;
-                        return (
-                          <button
-                            key={url}
-                            type="button"
-                            onClick={() => setProfilePhoto(url)}
-                            className={`relative h-11 w-11 rounded-xl overflow-hidden border cursor-pointer transition-all duration-200 ${
-                              isSelected ? 'border-cyan-400 scale-105 ring-2 ring-cyan-400/20 shadow-[0_0_15px_rgba(34,211,238,0.4)]' : 'border-white/10 hover:border-white/30'
-                            }`}
-                            id={`profile-avatar-preset-${idx}`}
-                          >
-                            <img src={url} className="h-full w-full object-cover" alt="Preset Avatar" referrerPolicy="no-referrer" />
-                          </button>
-                        );
-                      })}
-                    </div>
-                    
-                    <div className="pt-1.5">
-                      <label className="block text-[9px] font-mono text-gray-600 uppercase mb-1.5">Or Input Custom Avatar URL</label>
-                      <input 
-                        type="url" 
-                        value={profilePhoto}
-                        onChange={(e) => setProfilePhoto(e.target.value)}
-                        placeholder="https://example.com/your-premium-portrait.png"
-                        className="w-full px-3 py-2 bg-black border border-white/5 focus:border-cyan-500/50 rounded-lg text-xs text-white focus:outline-none font-mono"
-                        id="profile-avatar-custom-url"
-                      />
-                    </div>
-                  </div>
-
                   <div>
-                    <label className="block text-[10px] font-mono text-gray-500 uppercase mb-2">Phone Number</label>
+                    <label className="block text-xs font-mono font-black text-zinc-300 uppercase mb-2">Phone Number</label>
                     <input 
                       type="text" 
                       required
                       value={profilePhone}
                       onChange={(e) => setProfilePhone(e.target.value)}
-                      className="w-full px-3 py-2 bg-black border border-white/5 focus:border-cyan-500/50 rounded-lg text-xs text-white focus:outline-none"
+                      className="w-full px-4 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-sm font-bold text-white focus:outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-mono text-gray-500 uppercase mb-2">Country Location</label>
+                    <label className="block text-xs font-mono font-black text-zinc-300 uppercase mb-2">Country Location</label>
                     <CountrySelector
                       selectedCountry={profileCountry}
                       onChange={(cName, dCode) => setProfileCountry(cName)}
@@ -2660,24 +2921,24 @@ export default function UserDashboard({
 
                   {/* Checkboxes */}
                   <div className="space-y-3 pt-2">
-                    <label className="block text-[10px] font-mono text-gray-500 uppercase">Notification Preferences</label>
+                    <label className="block text-xs font-mono font-black text-zinc-300 uppercase">Notification Preferences</label>
                     
-                    <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-400 hover:text-white select-none">
+                    <label className="flex items-center gap-3 cursor-pointer text-sm font-bold text-white hover:text-cyan-300 select-none">
                       <input 
                         type="checkbox"
                         checked={notifPref.emailUpdates}
                         onChange={(e) => setNotifPref({ ...notifPref, emailUpdates: e.target.checked })}
-                        className="rounded border-white/10 bg-black text-cyan-500 focus:ring-0 h-4 w-4"
+                        className="rounded border-zinc-600 bg-zinc-900 text-cyan-400 focus:ring-0 h-5 w-5"
                       />
                       Transmit secure email newsletters
                     </label>
 
-                    <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-400 hover:text-white select-none">
+                    <label className="flex items-center gap-3 cursor-pointer text-sm font-bold text-white hover:text-cyan-300 select-none">
                       <input 
                         type="checkbox"
                         checked={notifPref.applicationAlerts}
                         onChange={(e) => setNotifPref({ ...notifPref, applicationAlerts: e.target.checked })}
-                        className="rounded border-white/10 bg-black text-cyan-500 focus:ring-0 h-4 w-4"
+                        className="rounded border-zinc-600 bg-zinc-900 text-cyan-400 focus:ring-0 h-5 w-5"
                       />
                       Transmit credit application updates
                     </label>
@@ -2686,7 +2947,7 @@ export default function UserDashboard({
                   <button
                     type="submit"
                     disabled={actionLoading}
-                    className="px-5 py-3 bg-cyan-400 text-black text-xs font-bold uppercase tracking-wider rounded-lg hover:bg-cyan-300 transition-all cursor-pointer shadow-lg active:scale-98"
+                    className="px-6 py-3.5 bg-cyan-400 text-black text-xs font-black uppercase tracking-widest rounded-xl hover:bg-cyan-300 transition-all cursor-pointer shadow-lg active:scale-98"
                   >
                     Save Profile Preferences
                   </button>

@@ -29,7 +29,8 @@ import {
   Download, 
   Server, 
   Eye,
-  Globe
+  Globe,
+  LogOut
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -51,7 +52,7 @@ export default function AdminDashboard({
   const [demoMfaToken] = React.useState('842940');
 
   // Panel Tabs
-  const [adminTab, setAdminTab] = React.useState<'stats' | 'users' | 'kyc' | 'loans' | 'tickets' | 'announcements' | 'homepage' | 'logs'>('stats');
+  const [adminTab, setAdminTab] = React.useState<'stats' | 'users' | 'kyc' | 'loans' | 'payments' | 'tickets' | 'messages' | 'announcements' | 'homepage' | 'logs'>('stats');
 
   // Dynamic API State
   const [adminStats, setAdminStats] = React.useState<any>(null);
@@ -63,6 +64,13 @@ export default function AdminDashboard({
   const [logs, setLogs] = React.useState<SystemLog[]>([]);
   const [announcements, setAnnouncements] = React.useState<Announcement[]>([]);
   const [homePage, setHomePage] = React.useState<HomePageContent | null>(null);
+
+  // Admin Message Desk state
+  const [adminMessages, setAdminMessages] = React.useState<any[]>([]);
+  const [selectedUserForMsg, setSelectedUserForMsg] = React.useState<string | null>(null);
+  const [adminReplyContent, setAdminReplyContent] = React.useState('');
+  const [adminMsgAttachment, setAdminMsgAttachment] = React.useState<{ name: string; url: string } | null>(null);
+  const adminMsgAttachmentInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Modal Doc Viewers
   const [activeKycDoc, setActiveKycDoc] = React.useState<KYC | null>(null);
@@ -127,6 +135,9 @@ export default function AdminDashboard({
 
       const resAnn = await fetch('/api/announcements', { headers });
       if (resAnn.ok) setAnnouncements(await resAnn.json());
+
+      const resMsgs = await fetch('/api/messages', { headers });
+      if (resMsgs.ok) setAdminMessages(await resMsgs.json());
 
       const resHome = await fetch('/api/homepage', { headers });
       if (resHome.ok) {
@@ -213,6 +224,10 @@ export default function AdminDashboard({
 
   // Approve / Reject KYC
   const handleAuditKyc = async (kycId: string, status: 'Approved' | 'Rejected') => {
+    if (status === 'Rejected' && !kycRemarks.trim()) {
+      triggerAlert('error', 'Please enter a rejection reason before rejecting this KYC application.');
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch('/api/admin/kyc/update', {
@@ -300,6 +315,40 @@ export default function AdminDashboard({
       setTickets(prev => prev.map(t => t.id === activeTicketView.id ? data.ticket : t));
       setActiveTicketView(data.ticket);
       setTicketReply('');
+    } catch (err: any) {
+      triggerAlert('error', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Send message to user from Admin Message Desk
+  const handleAdminSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedUserForMsg || !adminReplyContent.trim()) return;
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          receiverId: selectedUserForMsg,
+          content: adminReplyContent,
+          attachments: adminMsgAttachment ? [adminMsgAttachment] : []
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to dispatch message.');
+
+      triggerAlert('success', 'Message dispatched to user Message Desk.');
+      setAdminReplyContent('');
+      setAdminMsgAttachment(null);
+
+      // Refresh messages
+      const resMsgs = await fetch('/api/messages', { headers });
+      if (resMsgs.ok) setAdminMessages(await resMsgs.json());
     } catch (err: any) {
       triggerAlert('error', err.message);
     } finally {
@@ -524,7 +573,63 @@ export default function AdminDashboard({
               adminTab === 'stats' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <Activity className="h-4 w-4" /> Overview
+            <Activity className="h-4 w-4" /> Dashboard
+          </button>
+
+          <button
+            onClick={() => setAdminTab('kyc')}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+              adminTab === 'kyc' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
+            }`}
+          >
+            <span className="flex items-center gap-3"><ShieldCheck className="h-4 w-4" /> KYC Applications</span>
+            {kycRequests.filter(k => k.status === 'Pending').length > 0 && (
+              <span className="bg-yellow-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full">
+                {kycRequests.filter(k => k.status === 'Pending').length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setAdminTab('loans')}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+              adminTab === 'loans' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
+            }`}
+          >
+            <span className="flex items-center gap-3"><FileText className="h-4 w-4" /> Loan Applications</span>
+            {loans.filter(l => l.status === 'Pending').length > 0 && (
+              <span className="bg-cyan-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full">
+                {loans.filter(l => l.status === 'Pending').length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setAdminTab('payments')}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+              adminTab === 'payments' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
+            }`}
+          >
+            <span className="flex items-center gap-3"><Lock className="h-4 w-4" /> Payments</span>
+            {loans.filter(l => l.collateralPaid && !l.disbursed).length > 0 && (
+              <span className="bg-green-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full">
+                {loans.filter(l => l.collateralPaid && !l.disbursed).length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setAdminTab('messages')}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+              adminTab === 'messages' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
+            }`}
+          >
+            <span className="flex items-center gap-3"><MessageSquare className="h-4 w-4" /> Messages</span>
+            {adminMessages.filter(m => !m.isRead && m.senderRole !== 'admin').length > 0 && (
+              <span className="bg-cyan-400 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full">
+                {adminMessages.filter(m => !m.isRead && m.senderRole !== 'admin').length}
+              </span>
+            )}
           </button>
 
           <button
@@ -537,52 +642,12 @@ export default function AdminDashboard({
           </button>
 
           <button
-            onClick={() => setAdminTab('loans')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
-              adminTab === 'loans' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
+            onClick={() => setAdminTab('logs')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+              adminTab === 'logs' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <span className="flex items-center gap-3"><FileText className="h-4 w-4" /> Applications</span>
-            {loans.filter(l => l.status === 'Pending').length > 0 && (
-              <span className="bg-cyan-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full">
-                {loans.filter(l => l.status === 'Pending').length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setAdminTab('kyc')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
-              adminTab === 'kyc' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
-            }`}
-          >
-            <span className="flex items-center gap-3"><ShieldCheck className="h-4 w-4" /> KYC</span>
-            {kycRequests.filter(k => k.status === 'Pending').length > 0 && (
-              <span className="bg-yellow-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full">
-                {kycRequests.filter(k => k.status === 'Pending').length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setAdminTab('tickets')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
-              adminTab === 'tickets' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
-            }`}
-          >
-            <span className="flex items-center gap-3"><FileText className="h-4 w-4" /> Documents</span>
-            {tickets.filter(t => t.status === 'Open').length > 0 && (
-              <span className="bg-white/10 text-white font-mono text-[9px] px-2 py-0.5 rounded-full">
-                {tickets.filter(t => t.status === 'Open').length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={triggerReportDownload}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest text-gray-400 hover:text-white hover:bg-white/[0.01] transition-all cursor-pointer"
-          >
-            <Download className="h-4 w-4" /> Reports
+            <Download className="h-4 w-4" /> Reports / Audit Log
           </button>
 
           <button
@@ -592,6 +657,13 @@ export default function AdminDashboard({
             }`}
           >
             <Settings className="h-4 w-4" /> Settings
+          </button>
+
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest text-red-400 hover:bg-red-950/20 transition-all cursor-pointer border border-red-500/10 mt-4"
+          >
+            <LogOut className="h-4 w-4" /> Logout
           </button>
         </div>
 
@@ -1095,6 +1167,76 @@ export default function AdminDashboard({
             </div>
           )}
 
+          {/* ---------------- E. PAYMENTS REVIEW ---------------- */}
+          {adminTab === 'payments' && (
+            <div className="space-y-6 animate-fade-in" id="admin-view-payments">
+              <div>
+                <h3 className="font-display text-xl font-bold text-white mb-1">Payments & Fee Audit Queue</h3>
+                <p className="text-xs text-gray-400">Review pending collateral payments, fee receipts, and release capital disbursements.</p>
+              </div>
+
+              {loans.filter(l => l.collateralPaid).length === 0 ? (
+                <div className="text-center py-16 border border-white/5 bg-black/20 rounded-xl space-y-2">
+                  <p className="text-xs text-gray-400">No collateral or fee payments awaiting review at this time.</p>
+                </div>
+              ) : (
+                <div className="border border-white/5 rounded-xl overflow-x-auto bg-black/30">
+                  <table className="w-full text-left text-xs text-gray-300">
+                    <thead className="bg-white/5 text-[10px] font-mono text-cyan-400 uppercase tracking-widest border-b border-white/5">
+                      <tr>
+                        <th className="p-4">Loan Ref ID</th>
+                        <th className="p-4">Applicant</th>
+                        <th className="p-4">Requested Amount</th>
+                        <th className="p-4">Collateral Status</th>
+                        <th className="p-4">Transaction Ref</th>
+                        <th className="p-4">Disbursement</th>
+                        <th className="p-4 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+                      {loans.filter(l => l.collateralPaid).map((l) => (
+                        <tr key={l.id} className="hover:bg-white/[0.02]">
+                          <td className="p-4 font-bold text-white">{l.id}</td>
+                          <td className="p-4">
+                            <div className="font-sans font-medium text-white">{l.userName}</div>
+                            <div className="text-[10px] text-gray-500">{l.userEmail}</div>
+                          </td>
+                          <td className="p-4 text-cyan-300 font-bold">${l.fundingDetails.requestedAmount.toLocaleString()}</td>
+                          <td className="p-4">
+                            <span className="px-2 py-1 bg-green-950/40 text-green-400 border border-green-500/20 text-[10px] rounded-full uppercase font-bold">
+                              Paid & Verified
+                            </span>
+                          </td>
+                          <td className="p-4 text-gray-400 font-mono">{l.collateralTxId || 'N/A'}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-0.5 text-[9px] rounded-full border font-bold uppercase ${
+                              l.disbursed ? 'bg-cyan-950/40 text-cyan-400 border-cyan-500/30' : 'bg-yellow-950/40 text-yellow-500 border-yellow-500/20'
+                            }`}>
+                              {l.disbursed ? 'Disbursed' : 'Awaiting Release'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right">
+                            {!l.disbursed ? (
+                              <button
+                                onClick={() => handleDisburseLoan(l.id)}
+                                disabled={loading}
+                                className="px-3 py-1.5 bg-cyan-400 hover:bg-cyan-300 text-black font-sans font-bold text-xs rounded transition-all"
+                              >
+                                Release Funds
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-cyan-400 font-mono">Disbursed ✓</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ---------------- E. SUPPORT TICKETS ---------------- */}
           {adminTab === 'tickets' && (
             <div className="space-y-6 animate-fade-in" id="admin-view-tickets">
@@ -1191,6 +1333,183 @@ export default function AdminDashboard({
                   )}
                 </div>
 
+              </div>
+            </div>
+          )}
+
+          {/* ---------------- E2. MESSAGE DESK ---------------- */}
+          {adminTab === 'messages' && (
+            <div className="space-y-6 animate-fade-in" id="admin-view-messages">
+              <div>
+                <h3 className="font-display text-xl font-bold text-white mb-1">Direct Borrower Communication Desk</h3>
+                <p className="text-xs text-gray-400">Two-way encrypted messaging, compliance alerts, and document dispatches.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 min-h-[460px]">
+                {/* Users List for Messaging */}
+                <div className="md:col-span-1 border border-white/5 bg-black/40 rounded-xl p-4 space-y-4">
+                  <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest border-b border-white/5 pb-2">Active Borrowers</h4>
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                    {users.length === 0 ? (
+                      <p className="text-xs text-gray-500 py-4 text-center">No borrowers registered.</p>
+                    ) : (
+                      users.map((u) => {
+                        const userMsgs = adminMessages.filter(m => m.senderId === u.id || m.receiverId === u.id);
+                        const unreadCount = adminMessages.filter(m => m.senderId === u.id && !m.isRead).length;
+                        const lastMsg = userMsgs[userMsgs.length - 1];
+
+                        return (
+                          <div
+                            key={u.id}
+                            onClick={() => setSelectedUserForMsg(u.id)}
+                            className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                              selectedUserForMsg === u.id ? 'border-cyan-400 bg-cyan-950/20' : 'border-white/5 bg-white/[0.01] hover:bg-white/[0.03]'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-bold text-xs text-white truncate max-w-[130px]">{u.name}</span>
+                              {unreadCount > 0 && (
+                                <span className="px-2 py-0.5 bg-cyan-400 text-black font-mono font-bold text-[9px] rounded-full">
+                                  {unreadCount} new
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-gray-400 font-mono truncate">{u.email}</p>
+                            {lastMsg && (
+                              <p className="text-[10px] text-gray-500 truncate mt-1 italic">
+                                {lastMsg.senderRole === 'admin' ? 'You: ' : ''}{lastMsg.content}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Conversation Window */}
+                <div className="md:col-span-2 border border-white/5 bg-black/40 rounded-xl p-4 flex flex-col justify-between">
+                  {selectedUserForMsg ? (
+                    <>
+                      {/* Header */}
+                      <div className="border-b border-white/5 pb-3 mb-3 flex items-center justify-between">
+                        <div>
+                          <h4 className="font-bold text-sm text-white">
+                            {users.find(u => u.id === selectedUserForMsg)?.name || 'Borrower'}
+                          </h4>
+                          <p className="text-[10px] font-mono text-cyan-400">
+                            ID: {selectedUserForMsg} • {users.find(u => u.id === selectedUserForMsg)?.email}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-mono px-2.5 py-1 bg-green-950/50 text-green-400 border border-green-500/20 rounded-full uppercase">
+                          Encrypted Desk Active
+                        </span>
+                      </div>
+
+                      {/* Messages Feed */}
+                      <div className="flex-1 overflow-y-auto space-y-3 pr-2 mb-4 max-h-[300px]">
+                        {adminMessages.filter(m => m.senderId === selectedUserForMsg || m.receiverId === selectedUserForMsg).length === 0 ? (
+                          <div className="text-center text-xs text-gray-500 py-12">
+                            No messages yet. Send a direct communication or alert to this borrower below.
+                          </div>
+                        ) : (
+                          adminMessages
+                            .filter(m => m.senderId === selectedUserForMsg || m.receiverId === selectedUserForMsg)
+                            .map((msg) => (
+                              <div
+                                key={msg.id}
+                                className={`flex flex-col ${msg.senderRole === 'admin' ? 'items-end' : 'items-start'}`}
+                              >
+                                <div
+                                  className={`max-w-[85%] p-3 rounded-2xl text-xs ${
+                                    msg.senderRole === 'admin'
+                                      ? 'bg-cyan-500 text-black font-medium rounded-br-none shadow-[0_0_15px_rgba(34,211,238,0.15)]'
+                                      : 'bg-zinc-800 text-white rounded-bl-none border border-white/10'
+                                  }`}
+                                >
+                                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                                  {msg.attachments && msg.attachments.length > 0 && (
+                                    <div className="mt-2 pt-2 border-t border-black/10 text-[10px] font-mono font-bold flex flex-wrap gap-2">
+                                      {msg.attachments.map((att: any, idx: number) => (
+                                        <a
+                                          key={idx}
+                                          href={att.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="px-2 py-1 bg-black/20 rounded hover:underline flex items-center gap-1"
+                                        >
+                                          📎 {att.name}
+                                        </a>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                                <span className="text-[9px] font-mono text-gray-500 mt-1 px-1">
+                                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                            ))
+                        )}
+                      </div>
+
+                      {/* Reply Box */}
+                      <form onSubmit={handleAdminSendMessage} className="space-y-2 border-t border-white/5 pt-3">
+                        {adminMsgAttachment && (
+                          <div className="flex items-center justify-between text-xs font-mono bg-cyan-950/40 border border-cyan-400/30 p-2 rounded-lg text-cyan-300">
+                            <span className="truncate">📎 {adminMsgAttachment.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => setAdminMsgAttachment(null)}
+                              className="text-red-400 font-bold hover:text-red-300 ml-2"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="file"
+                            ref={adminMsgAttachmentInputRef}
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setAdminMsgAttachment({ name: file.name, url: `/uploads/${file.name}` });
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => adminMsgAttachmentInputRef.current?.click()}
+                            className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs transition"
+                            title="Attach File"
+                          >
+                            📎
+                          </button>
+                          <input
+                            type="text"
+                            required
+                            value={adminReplyContent}
+                            onChange={(e) => setAdminReplyContent(e.target.value)}
+                            placeholder="Write administrative dispatch message..."
+                            className="flex-1 px-4 py-3 bg-zinc-900 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
+                          />
+                          <button
+                            type="submit"
+                            className="px-5 py-3 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-black uppercase tracking-wider rounded-xl transition"
+                          >
+                            Send
+                          </button>
+                        </div>
+                      </form>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center py-16 space-y-3">
+                      <MessageSquare className="h-10 w-10 text-gray-600" />
+                      <p className="text-xs text-gray-400">Select a borrower from the list on the left to start a direct message thread.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

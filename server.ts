@@ -880,7 +880,19 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
   }
 
   const db = getDB();
-  
+
+  // Enforce "one active loan application" rule
+  const existingActiveLoan = db.loans.find(l => 
+    l.userId === req.user!.id && 
+    !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled'].includes(l.status)
+  );
+
+  if (existingActiveLoan) {
+    return res.status(400).json({ 
+      error: `You already have an active loan application (${existingActiveLoan.id} - ${existingActiveLoan.status}). Please wait until your current application is completed, rejected, or fully settled before submitting a new application.` 
+    });
+  }
+
   // Set enhanced verification if funding request exceeds $5,000,000
   const requiresEnhancedVerification = amount > 5000000;
 

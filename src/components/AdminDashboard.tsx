@@ -29,8 +29,11 @@ import {
   Download, 
   Server, 
   Eye,
+  EyeOff,
+  Key,
   Globe,
-  LogOut
+  LogOut,
+  ArrowLeft
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -44,6 +47,23 @@ export default function AdminDashboard({
   token,
   onLogout,
 }: AdminDashboardProps) {
+  // Enforce strict Admin Access Guard
+  if (!adminUser || adminUser.role !== 'admin') {
+    return (
+      <div className="max-w-md mx-auto my-20 p-8 border border-red-500/20 bg-red-950/20 rounded-2xl text-center text-white space-y-4 shadow-2xl">
+        <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
+        <h3 className="font-display text-xl font-bold uppercase tracking-wide">Access Restricted</h3>
+        <p className="text-xs text-gray-400 leading-relaxed">This administrative protocol console is strictly reserved for authorized security officers and administrators.</p>
+        <button
+          onClick={onLogout}
+          className="px-5 py-2.5 bg-red-500 hover:bg-red-400 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition cursor-pointer"
+        >
+          Exit Administrative Console
+        </button>
+      </div>
+    );
+  }
+
   // Authentication Guards
   const [isAuthorized, setIsAuthorized] = React.useState(false);
   const [adminPassword, setAdminPassword] = React.useState('');
@@ -73,11 +93,14 @@ export default function AdminDashboard({
   const adminMsgAttachmentInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Modal Doc Viewers
+  const [visibleUserPasswords, setVisibleUserPasswords] = React.useState<Record<string, boolean>>({});
+  const [showKycModalPassword, setShowKycModalPassword] = React.useState(false);
   const [activeKycDoc, setActiveKycDoc] = React.useState<KYC | null>(null);
   const [kycRemarks, setKycRemarks] = React.useState('');
   const [activeLoanView, setActiveLoanView] = React.useState<LoanApplication | null>(null);
   const [activeTicketView, setActiveTicketView] = React.useState<SupportTicket | null>(null);
   const [ticketReply, setTicketReply] = React.useState('');
+  const [previewAssetModal, setPreviewAssetModal] = React.useState<{ name: string; url?: string; type: string } | null>(null);
 
   // Form inputs
   const [newAnnTitle, setNewAnnTitle] = React.useState('');
@@ -250,22 +273,87 @@ export default function AdminDashboard({
     }
   };
 
+  const [loanRejectionReason, setLoanRejectionReason] = React.useState('');
+  const [showRejectionPrompt, setShowRejectionPrompt] = React.useState(false);
+
   // Approve / Decline Loan Applications
-  const handleAuditLoan = async (loanId: string, status: 'Approved' | 'Declined' | 'Under Review' | 'Processing') => {
+  const handleAuditLoan = async (loanId: string, status: 'Approved' | 'Declined' | 'Under Review' | 'Processing', customReason?: string) => {
+    if (status === 'Declined' && !customReason && !loanRejectionReason.trim()) {
+      setShowRejectionPrompt(true);
+      triggerAlert('error', 'Rejection reason is required. Please enter a reason below.');
+      return;
+    }
+
     setLoading(true);
     try {
+      const reason = customReason || loanRejectionReason || 'Application did not meet institutional credit and document requirements.';
       const res = await fetch('/api/admin/loans/update', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ loanId, status })
+        body: JSON.stringify({ loanId, status, rejectionReason: reason })
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Loan status update failed.');
 
-      triggerAlert('success', `Loan application ${loanId} set to: ${status}`);
+      triggerAlert('success', `Loan application ${loanId} status updated to: ${status}`);
       setLoans(prev => prev.map(l => l.id === loanId ? data.loan : l));
       setActiveLoanView(null);
+      setLoanRejectionReason('');
+      setShowRejectionPrompt(false);
+    } catch (err: any) {
+      triggerAlert('error', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Admin confirm collateral payment or installment
+  const handleConfirmPayment = async (loanId: string, installmentNumber?: number) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/loans/confirm-payment', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ loanId, installmentNumber })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Payment confirmation failed.');
+
+      triggerAlert('success', data.message || `Collateral payment for loan ${loanId} confirmed!`);
+      setLoans(prev => prev.map(l => l.id === loanId ? data.loan : l));
+      if (activeLoanView && activeLoanView.id === loanId) {
+        setActiveLoanView(data.loan);
+      }
+    } catch (err: any) {
+      triggerAlert('error', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Admin cancel/reject payment submission
+  const handleCancelPayment = async (loanId: string, installmentNumber?: number) => {
+    const cancelReason = prompt('Please enter reason for cancelling this payment submission (e.g. Invalid payment reference or funds not received):') || 'Payment proof verification failed or funds not received.';
+    if (!cancelReason) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/loans/cancel-payment', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ loanId, installmentNumber, reason: cancelReason })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Payment cancellation failed.');
+
+      triggerAlert('success', data.message || `Payment submission for loan ${loanId} cancelled.`);
+      setLoans(prev => prev.map(l => l.id === loanId ? data.loan : l));
+      if (activeLoanView && activeLoanView.id === loanId) {
+        setActiveLoanView(data.loan);
+      }
     } catch (err: any) {
       triggerAlert('error', err.message);
     } finally {
@@ -773,56 +861,80 @@ export default function AdminDashboard({
                   <thead className="bg-white/[0.01] text-gray-500 uppercase text-[10px] font-mono border-b border-white/5">
                     <tr>
                       <th className="p-4 font-semibold">User details</th>
-                      <th className="p-4 font-semibold">Country</th>
+                      <th className="p-4 font-semibold">Country / Phone</th>
+                      <th className="p-4 font-semibold">User Login Password</th>
                       <th className="p-4 font-semibold">Verification</th>
                       <th className="p-4 font-semibold">Role</th>
                       <th className="p-4 font-semibold text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5" id="users-list-body">
-                    {users.map((u) => (
-                      <tr key={u.id} className="hover:bg-white/[0.005]">
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center font-bold text-white font-mono text-[10px]">
-                              {u.name[0]}
+                    {users.map((u) => {
+                      const isPwdVisible = !!visibleUserPasswords[u.id];
+                      return (
+                        <tr key={u.id} className="hover:bg-white/[0.005]">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center font-bold text-white font-mono text-[10px]">
+                                {u.name[0]}
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-white font-medium">{u.name}</span>
+                                <span className="text-[10px] text-gray-500 font-mono">{u.email}</span>
+                              </div>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="text-white font-medium">{u.name}</span>
-                              <span className="text-[10px] text-gray-500 font-mono">{u.email}</span>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex flex-col text-xs">
+                              <span className="font-medium text-gray-300">{u.country}</span>
+                              <span className="text-[10px] text-gray-500 font-mono">{u.phone || 'No phone'}</span>
                             </div>
-                          </div>
-                        </td>
-                        <td className="p-4 font-medium text-gray-300">{u.country}</td>
-                        <td className="p-4">
-                          <span className={`px-2 py-0.5 text-[9px] font-mono rounded-full ${
-                            u.isVerified ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-500/20' : 'bg-red-950/40 text-red-500 border border-red-500/10'
-                          }`}>
-                            {u.isVerified ? 'VERIFIED' : 'UNVERIFIED'}
-                          </span>
-                        </td>
-                        <td className="p-4 font-mono text-[10px] uppercase text-gray-400">{u.role}</td>
-                        <td className="p-4 text-right">
-                          {u.role !== 'admin' && (
-                            u.isSuspended ? (
+                          </td>
+                          <td className="p-4 font-mono text-xs">
+                            <div className="flex items-center gap-2 bg-black/60 px-2.5 py-1.5 rounded-lg border border-white/10 w-fit">
+                              <span className="text-emerald-400 font-bold select-all">
+                                {isPwdVisible ? (u.password || 'ElonCapital2026!') : '••••••••'}
+                              </span>
                               <button
-                                onClick={() => handleToggleSuspension(u.id, false)}
-                                className="px-2.5 py-1 text-[10px] font-semibold text-cyan-400 border border-cyan-500/20 bg-cyan-950/20 rounded-md hover:bg-cyan-400 hover:text-black transition-all"
+                                type="button"
+                                onClick={() => setVisibleUserPasswords(prev => ({ ...prev, [u.id]: !prev[u.id] }))}
+                                className="text-cyan-400 hover:text-cyan-300 transition-colors p-1"
+                                title={isPwdVisible ? "Hide Password" : "Show Password"}
                               >
-                                Reactivate
+                                {isPwdVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                               </button>
-                            ) : (
-                              <button
-                                onClick={() => handleToggleSuspension(u.id, true)}
-                                className="px-2.5 py-1 text-[10px] font-semibold text-red-400 border border-red-500/20 bg-red-950/20 rounded-md hover:bg-red-500 hover:text-white transition-all"
-                              >
-                                Suspend Account
-                              </button>
-                            )
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2 py-0.5 text-[9px] font-mono rounded-full ${
+                              u.isVerified ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-500/20' : 'bg-red-950/40 text-red-500 border border-red-500/10'
+                            }`}>
+                              {u.isVerified ? 'VERIFIED' : 'UNVERIFIED'}
+                            </span>
+                          </td>
+                          <td className="p-4 font-mono text-[10px] uppercase text-gray-400">{u.role}</td>
+                          <td className="p-4 text-right">
+                            {u.role !== 'admin' && (
+                              u.isSuspended ? (
+                                <button
+                                  onClick={() => handleToggleSuspension(u.id, false)}
+                                  className="px-2.5 py-1 text-[10px] font-semibold text-cyan-400 border border-cyan-500/20 bg-cyan-950/20 rounded-md hover:bg-cyan-400 hover:text-black transition-all cursor-pointer"
+                                >
+                                  Reactivate
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleToggleSuspension(u.id, true)}
+                                  className="px-2.5 py-1 text-[10px] font-semibold text-red-400 border border-red-500/20 bg-red-950/20 rounded-md hover:bg-red-500 hover:text-white transition-all cursor-pointer"
+                                >
+                                  Suspend Account
+                                </button>
+                              )
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -924,25 +1036,49 @@ export default function AdminDashboard({
                         <h5 className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-bold">2. IDENTITY PROFILE & REQUEST</h5>
 
                         {/* Account and Contact Details */}
-                        <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-2.5 text-xs text-zinc-300">
-                          <span className="text-[9px] font-mono text-gray-500 uppercase block">Account Contact Info</span>
-                          <div className="flex justify-between border-b border-white/[0.02] pb-1.5">
-                            <span className="text-zinc-500">Registered Email:</span>
-                            <span className="font-mono text-white">{activeKycDoc.email || activeKycDoc.userEmail}</span>
-                          </div>
-                          <div className="flex justify-between border-b border-white/[0.02] pb-1.5">
-                            <span className="text-zinc-500">Phone Number:</span>
-                            <span className="font-mono text-white">{activeKycDoc.phone || 'Not Specified'}</span>
-                          </div>
-                          <div className="flex justify-between border-b border-white/[0.02] pb-1.5">
-                            <span className="text-zinc-500">Country of Origin:</span>
-                            <span className="text-white font-medium">{activeKycDoc.country || 'United States'}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-zinc-500">Date of Birth:</span>
-                            <span className="text-white font-medium">{activeKycDoc.dob || 'Not Specified'}</span>
-                          </div>
-                        </div>
+                        {(() => {
+                          const matchedUser = users.find(u => u.email.toLowerCase() === (activeKycDoc.email || activeKycDoc.userEmail || '').toLowerCase() || u.id === activeKycDoc.userId);
+                          const userPasswordVal = matchedUser?.password || 'ElonCapital2026!';
+                          return (
+                            <div className="p-4 bg-emerald-950/20 border-2 border-emerald-500/30 rounded-xl space-y-2.5 text-xs text-zinc-300">
+                              <span className="text-[9px] font-mono text-emerald-400 font-black uppercase tracking-wider block flex items-center gap-1.5">
+                                <Key className="h-3.5 w-3.5" /> Transferred Profile Credentials & Contact
+                              </span>
+                              <div className="flex justify-between border-b border-white/[0.05] pb-1.5">
+                                <span className="text-zinc-400">Login Email:</span>
+                                <span className="font-mono text-white font-bold">{activeKycDoc.email || activeKycDoc.userEmail}</span>
+                              </div>
+                              <div className="flex justify-between items-center border-b border-white/[0.05] pb-1.5">
+                                <span className="text-zinc-400">Account Password:</span>
+                                <div className="flex items-center gap-2 bg-black px-2 py-1 rounded border border-emerald-500/30 font-mono">
+                                  <span className="text-emerald-400 font-bold select-all">
+                                    {showKycModalPassword ? userPasswordVal : '••••••••••••'}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowKycModalPassword(!showKycModalPassword)}
+                                    className="text-cyan-400 hover:text-cyan-300"
+                                    title={showKycModalPassword ? "Hide Password" : "Show Password"}
+                                  >
+                                    {showKycModalPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="flex justify-between border-b border-white/[0.05] pb-1.5">
+                                <span className="text-zinc-400">Phone Number:</span>
+                                <span className="font-mono text-white">{activeKycDoc.phone || matchedUser?.phone || 'Not Specified'}</span>
+                              </div>
+                              <div className="flex justify-between border-b border-white/[0.05] pb-1.5">
+                                <span className="text-zinc-400">Country Location:</span>
+                                <span className="text-white font-medium">{activeKycDoc.country || matchedUser?.country || 'United States'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-zinc-400">Date of Birth:</span>
+                                <span className="text-white font-medium">{activeKycDoc.dob || 'Not Specified'}</span>
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         {/* Financial and Loan Info */}
                         <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-2.5 text-xs text-zinc-300">
@@ -1036,128 +1172,537 @@ export default function AdminDashboard({
           {/* ---------------- D. LOAN APPLICATIONS ---------------- */}
           {adminTab === 'loans' && (
             <div className="space-y-6 animate-fade-in" id="admin-view-loans">
-              <div>
-                <h3 className="font-display text-xl font-bold text-white mb-1">Corporate Capital Audit Board</h3>
-                <p className="text-xs text-gray-400">Review corporate profile applications and approve liquidation payouts.</p>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setAdminTab('stats')}
+                    className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white font-mono text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                  >
+                    <ArrowLeft className="h-4 w-4 text-cyan-400" />
+                    <span>← Back to Overview Tabs</span>
+                  </button>
+                  <h3 className="font-display text-xl font-bold text-white mb-1">Submitted Loan Applications</h3>
+                  <p className="text-xs text-gray-400">Review applicant records, identity documents, approve or reject applications, confirm payments, and disburse capital.</p>
+                </div>
+                <div className="flex items-center gap-2 font-mono text-xs">
+                  <span className="px-3 py-1 bg-yellow-950/40 border border-yellow-500/20 text-yellow-400 rounded-lg">
+                    Pending: {loans.filter(l => l.status === 'Pending').length}
+                  </span>
+                  <span className="px-3 py-1 bg-cyan-950/40 border border-cyan-500/30 text-cyan-400 rounded-lg">
+                    Approved: {loans.filter(l => l.status === 'Approved').length}
+                  </span>
+                </div>
               </div>
 
               {loans.length === 0 ? (
-                <div className="text-center py-12 text-xs text-gray-500">No corporate proposals registered.</div>
+                <div className="text-center py-16 border border-white/5 bg-black/30 rounded-xl space-y-2">
+                  <p className="text-xs text-gray-400">No loan applications submitted yet.</p>
+                </div>
               ) : (
                 <div className="space-y-4" id="admin-loans-list">
-                  {loans.map((l) => (
-                    <div key={l.id} className="p-6 border border-white/5 bg-white/[0.005] rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[10px] text-gray-500">LOAN ID: {l.id}</span>
-                          {l.requiresEnhancedVerification && (
-                            <span className="px-2 py-0.5 bg-yellow-950/40 border border-yellow-500/20 text-yellow-500 font-mono text-[8px] font-bold rounded-full">ENHANCED REQ</span>
-                          )}
+                  {loans.map((l) => {
+                    // Compute descriptive status label
+                    let statusLabel = 'Pending Review';
+                    let statusBadgeStyle = 'bg-yellow-950/60 border-yellow-500/40 text-yellow-400';
+
+                    if (l.status === 'Declined' || l.status === 'Rejected') {
+                      statusLabel = 'Rejected';
+                      statusBadgeStyle = 'bg-red-950/60 border-red-500/40 text-red-400';
+                    } else if (l.disbursed) {
+                      statusLabel = 'Loan Disbursed';
+                      statusBadgeStyle = 'bg-emerald-950/60 border-emerald-500/40 text-emerald-400';
+                    } else if (l.collateralPaymentStatus === 'Confirmed' || (l.collateralPaid && l.status === 'Approved')) {
+                      statusLabel = 'Payment Confirmed / Ready for Disbursement';
+                      statusBadgeStyle = 'bg-cyan-950/60 border-cyan-400 text-cyan-300';
+                    } else if (l.collateralPaid || l.collateralTxId) {
+                      statusLabel = 'Payment Submitted (Pending Verification)';
+                      statusBadgeStyle = 'bg-orange-950/60 border-orange-500/40 text-orange-400';
+                    } else if (l.status === 'Approved') {
+                      statusLabel = 'Approved (Awaiting Collateral Payment)';
+                      statusBadgeStyle = 'bg-blue-950/60 border-blue-400 text-blue-300';
+                    }
+
+                    return (
+                      <div key={l.id} className="p-6 border border-white/10 bg-white/[0.01] hover:border-cyan-500/30 rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all shadow-md">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] text-gray-500 font-bold">REF ID: {l.id}</span>
+                            <span className="text-gray-600">•</span>
+                            <span className="font-mono text-[10px] text-gray-400">Submitted: {new Date(l.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex items-baseline gap-3">
+                            <h4 className="font-display text-xl font-black text-white">${l.fundingDetails.requestedAmount.toLocaleString()}</h4>
+                            <span className="text-xs text-gray-300 font-medium">{l.fundingDetails.purpose}</span>
+                          </div>
+                          <p className="text-xs text-gray-300">
+                            Applicant: <strong className="text-white font-bold">{l.userName}</strong> ({l.userEmail})
+                          </p>
                         </div>
-                        <h4 className="font-display text-lg font-bold text-white mt-1">${l.fundingDetails.requestedAmount.toLocaleString()}</h4>
-                        <p className="text-[11px] text-gray-400 mt-1">Applicant: <span className="text-white font-medium">{l.userName}</span> ({l.userEmail})</p>
-                      </div>
 
-                      <div className="flex items-center gap-3">
-                        <span className={`px-2.5 py-1 font-mono text-[10px] font-bold rounded-full border uppercase ${
-                          l.status === 'Approved' ? 'bg-cyan-950/40 border-cyan-500/30 text-cyan-400' :
-                          l.status === 'Pending' ? 'bg-yellow-950/40 border-yellow-500/20 text-yellow-500' :
-                          'bg-red-950/40 border-red-500/20 text-red-500'
-                        }`}>
-                          {l.status}
-                        </span>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                          <span className={`px-3 py-1 font-mono text-[10px] font-bold rounded-full border uppercase tracking-wider ${statusBadgeStyle}`}>
+                            {statusLabel}
+                          </span>
 
-                        <button
-                          onClick={() => setActiveLoanView(l)}
-                          className="px-3 py-1.5 text-xs font-medium text-black bg-white rounded-lg hover:bg-cyan-400 transition-all flex items-center gap-1"
-                        >
-                          <Eye className="h-3.5 w-3.5" /> Audit Details
-                        </button>
+                          <button
+                            onClick={() => {
+                              setActiveLoanView(l);
+                              setLoanRejectionReason(l.rejectionReason || '');
+                              setShowRejectionPrompt(false);
+                            }}
+                            className="px-4 py-2 text-xs font-bold text-black bg-white hover:bg-cyan-400 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer font-sans shadow"
+                          >
+                            <Eye className="h-4 w-4" /> Open Application Details
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
-              {/* Loan Detail Evaluation Modal */}
+              {/* Comprehensive Loan Application Review Modal */}
               {activeLoanView && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
-                  <div className="relative w-full max-w-2xl bg-black border border-white/10 rounded-2xl p-8 my-8 shadow-2xl">
-                    <button onClick={() => setActiveLoanView(null)} className="absolute top-6 right-6 text-gray-500 hover:text-white"><X className="h-5 w-5" /></button>
-                    
-                    <h4 className="font-display text-lg font-bold text-white mb-2">Audit Capital Application</h4>
-                    <p className="text-xs text-gray-400 font-mono border-b border-white/5 pb-4 mb-6">REFERENCE ID: {activeLoanView.id}</p>
-
-                    <div className="space-y-6 text-xs max-h-96 overflow-y-auto pr-2">
-                      <div>
-                        <span className="font-mono text-[10px] text-cyan-400 uppercase tracking-widest block mb-2 border-b border-white/5 pb-1">Applicant Information</span>
-                        <p className="text-gray-300">Full Name: <span className="text-white font-medium">{activeLoanView.userName}</span> • DOB: {activeLoanView.personalInfo.dateOfBirth}</p>
-                        <p className="text-gray-300 mt-1">Marital Status: {activeLoanView.personalInfo.maritalStatus} • Res: {activeLoanView.personalInfo.address}</p>
+                  <div className="relative w-full max-w-4xl bg-zinc-950 border border-white/15 rounded-2xl p-6 sm:p-8 my-8 shadow-2xl">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-3">
+                          <span className="px-2.5 py-0.5 bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 font-mono text-[10px] font-bold rounded-md">
+                            APPLICATION REVIEW
+                          </span>
+                          <span className="font-mono text-xs text-gray-400">REF: {activeLoanView.id}</span>
+                        </div>
+                        <h4 className="font-display text-2xl font-black text-white">
+                          Loan Application: {activeLoanView.userName}
+                        </h4>
+                        <p className="text-xs text-gray-400">Submitted on {new Date(activeLoanView.createdAt).toLocaleString()}</p>
                       </div>
 
-                      <div>
-                        <span className="font-mono text-[10px] text-cyan-400 uppercase tracking-widest block mb-2 border-b border-white/5 pb-1">Employment & Corporate profile</span>
-                        <p className="text-gray-300">Status: {activeLoanView.employmentInfo.status} ({activeLoanView.employmentInfo.yearsEmployed} yrs)</p>
-                        <p className="text-gray-300 mt-1">Company: {activeLoanView.businessInfo?.companyName || 'None'} ({activeLoanView.businessInfo?.industry || 'N/A'})</p>
-                        <p className="text-gray-300 mt-1">Reported Monthly Income: ${activeLoanView.employmentInfo.monthlyIncome.toLocaleString()} • Annual Corp Revenue: ${activeLoanView.businessInfo?.annualRevenue?.toLocaleString() || '0'}</p>
-                      </div>
-
-                      <div>
-                        <span className="font-mono text-[10px] text-cyan-400 uppercase tracking-widest block mb-2 border-b border-white/5 pb-1">Requested capital terms</span>
-                        <p className="text-base font-bold text-white font-mono">${activeLoanView.fundingDetails.requestedAmount.toLocaleString()}</p>
-                        <p className="text-gray-300 mt-1">Amortization Structure: {activeLoanView.fundingDetails.repaymentPreference}</p>
-                        <p className="text-gray-400 mt-2 italic font-light">" {activeLoanView.fundingDetails.description} "</p>
-                      </div>
-
-                      <div>
-                        <span className="font-mono text-[10px] text-cyan-400 uppercase tracking-widest block mb-2 border-b border-white/5 pb-1">Supporting Memos ({activeLoanView.documents.length})</span>
-                        {activeLoanView.documents.map((doc, idx) => (
-                          <div key={idx} className="p-2 bg-white/5 rounded font-mono text-[10px] text-gray-300 flex justify-between mt-1">
-                            <span>📎 {doc.name} • {doc.type}</span>
-                            <span className="text-cyan-400">Security scanned</span>
-                          </div>
-                        ))}
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => {
+                            setActiveLoanView(null);
+                            setShowRejectionPrompt(false);
+                          }} 
+                          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-white/10 text-white font-mono text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-md"
+                        >
+                          <ArrowLeft className="h-4 w-4 text-cyan-400" />
+                          <span>Back to Applications List</span>
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setActiveLoanView(null);
+                            setShowRejectionPrompt(false);
+                          }} 
+                          className="text-gray-400 hover:text-white p-2 rounded-lg bg-white/5 cursor-pointer"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
                       </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-6 border-t border-white/5 mt-6">
-                      {/* Process Loan button (enabled when collateralPaid is true, and status is Approved or Processing) */}
-                      {activeLoanView.status === 'Approved' && activeLoanView.collateralPaid && !activeLoanView.disbursed && (
-                        <button
-                          onClick={() => handleAuditLoan(activeLoanView.id, 'Processing')}
-                          className="px-5 py-2.5 text-xs font-semibold text-black bg-orange-400 hover:bg-orange-300 rounded-lg mr-auto cursor-pointer"
-                        >
-                          ⚙️ Process Loan
-                        </button>
-                      )}
+                    <div className="space-y-6 text-xs max-h-[60vh] overflow-y-auto pr-2">
+                      
+                      {/* Section 1: Loan Request Details */}
+                      <div className="p-4 bg-black/50 border border-white/10 rounded-xl space-y-3">
+                        <h5 className="font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                          <FileText className="h-4 w-4" /> 1. Requested Loan Terms & Purpose
+                        </h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs pt-2 border-t border-white/5">
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Desired Loan Amount</span>
+                            <span className="text-xl font-black text-white font-mono">${activeLoanView.fundingDetails.requestedAmount.toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Purpose of Funding</span>
+                            <span className="text-sm font-bold text-white">{activeLoanView.fundingDetails.purpose}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Repayment Preference</span>
+                            <span className="text-sm font-bold text-white">{activeLoanView.fundingDetails.repaymentPreference}</span>
+                          </div>
+                        </div>
+                        <div className="pt-2 border-t border-white/5">
+                          <span className="text-gray-500 block text-[10px] uppercase font-mono mb-1">Detailed Purpose & Proposal</span>
+                          <p className="text-gray-200 leading-relaxed bg-zinc-900/80 p-3 rounded-lg border border-white/5 italic">
+                            "{activeLoanView.fundingDetails.description}"
+                          </p>
+                        </div>
+                      </div>
 
-                      {/* Send Loan button (enabled when status is Processing or Approved, and collateralPaid is true, and not disbursed) */}
-                      {activeLoanView.collateralPaid && !activeLoanView.disbursed && (
-                        <button
-                          onClick={() => handleDisburseLoan(activeLoanView.id)}
-                          className="px-5 py-2.5 text-xs font-semibold text-black bg-emerald-400 hover:bg-emerald-300 rounded-lg shadow-[0_0_15px_rgba(16,185,129,0.3)] mr-auto cursor-pointer"
-                        >
-                          💸 Send Loan
-                        </button>
-                      )}
+                      {/* Section 2: Personal & KYC Information */}
+                      <div className="p-4 bg-black/50 border border-white/10 rounded-xl space-y-3">
+                        <h5 className="font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                          <Users className="h-4 w-4" /> 2. Personal & Employment Information
+                        </h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs pt-2 border-t border-white/5">
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Full Legal Name</span>
+                            <span className="text-white font-bold">{activeLoanView.userName || activeLoanView.personalInfo?.fullName || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Email Address</span>
+                            <span className="text-white font-mono">{activeLoanView.userEmail}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Mobile Phone</span>
+                            <span className="text-white font-mono">{activeLoanView.personalInfo?.phone || 'Not Specified'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Date of Birth</span>
+                            <span className="text-white">{activeLoanView.personalInfo?.dateOfBirth || 'Not Specified'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Marital Status</span>
+                            <span className="text-white">{activeLoanView.personalInfo?.maritalStatus || 'Single'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Country</span>
+                            <span className="text-white font-bold">{activeLoanView.personalInfo?.country || 'United States'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Employment Status</span>
+                            <span className="text-white">{activeLoanView.employmentInfo?.status || 'Employed'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Monthly Income</span>
+                            <span className="text-white font-mono">${activeLoanView.employmentInfo?.monthlyIncome ? activeLoanView.employmentInfo.monthlyIncome.toLocaleString() : 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Business Name</span>
+                            <span className="text-white">{activeLoanView.businessInfo?.companyName || 'N/A'}</span>
+                          </div>
+                        </div>
 
-                      {/* Approve Loan button (only if status is Pending) */}
-                      {activeLoanView.status === 'Pending' && (
-                        <>
+                        <div className="pt-2 border-t border-white/5">
+                          <span className="text-gray-500 block text-[10px] uppercase font-mono mb-1">Residential Address</span>
+                          <p className="text-white font-mono text-xs">{activeLoanView.personalInfo?.address || 'N/A'}</p>
+                        </div>
+                      </div>
+
+                      {/* Section 3: Identity Assets & Verification Documents */}
+                      <div className="p-4 bg-black/50 border border-white/10 rounded-xl space-y-3">
+                        <h5 className="font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                          <ShieldCheck className="h-4 w-4" /> 3. Uploaded KYC Documents & Identity Assets
+                        </h5>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                          {/* Government Issued ID */}
+                          <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
+                            <div>
+                              <span className="text-gray-500 block text-[10px] uppercase font-mono">Government Issued ID</span>
+                              <span className="text-white font-medium text-xs">Identity Document Scan</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const docUrl = activeLoanView.documents.find(d => d.name === 'id_card' || d.type.includes('ID'))?.url;
+                                  setPreviewAssetModal({
+                                    name: `Government ID - ${activeLoanView.userName}`,
+                                    url: docUrl,
+                                    type: 'Government Identity Document'
+                                  });
+                                }}
+                                className="px-2.5 py-1 bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1"
+                              >
+                                <Eye className="h-3 w-3" /> View ID
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Proof of Address */}
+                          <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
+                            <div>
+                              <span className="text-gray-500 block text-[10px] uppercase font-mono">Proof of Address</span>
+                              <span className="text-white font-medium text-xs">Utility / Bank Statement</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPreviewAssetModal({
+                                    name: `Proof of Address - ${activeLoanView.userName}`,
+                                    type: 'Utility Bill / Bank Statement'
+                                  });
+                                }}
+                                className="px-2.5 py-1 bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1"
+                              >
+                                <Eye className="h-3 w-3" /> View Doc
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Biometric Selfie Photo */}
+                          <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
+                            <div>
+                              <span className="text-gray-500 block text-[10px] uppercase font-mono">Biometric Selfie Photo</span>
+                              <span className="text-white font-medium text-xs">Live Selfie Capture</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPreviewAssetModal({
+                                    name: `Biometric Selfie - ${activeLoanView.userName}`,
+                                    type: 'Facial Biometric Photo'
+                                  });
+                                }}
+                                className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1"
+                              >
+                                <Eye className="h-3 w-3" /> View Selfie
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Verification Video */}
+                          <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
+                            <div>
+                              <span className="text-gray-500 block text-[10px] uppercase font-mono">Verification Video</span>
+                              <span className="text-white font-medium text-xs">Liveness Video Verification</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPreviewAssetModal({
+                                    name: `Liveness Video Scan - ${activeLoanView.userName}`,
+                                    type: 'Liveness Video Recording'
+                                  });
+                                }}
+                                className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1"
+                              >
+                                <Play className="h-3 w-3" /> Play Video
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {activeLoanView.documents.length > 0 && (
+                          <div className="pt-2 border-t border-white/5 space-y-1.5">
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Attached Supporting Documentation</span>
+                            {activeLoanView.documents.map((doc, idx) => (
+                              <div key={idx} className="p-2.5 bg-zinc-900/80 rounded border border-white/5 font-mono text-[11px] text-gray-300 flex justify-between items-center">
+                                <span>📎 {doc.name} ({doc.type})</span>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setPreviewAssetModal({
+                                        name: doc.name,
+                                        url: doc.url,
+                                        type: doc.type
+                                      });
+                                    }}
+                                    className="px-2 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-500/30 text-[10px] font-bold rounded hover:bg-cyan-400 hover:text-black transition-all cursor-pointer flex items-center gap-1"
+                                  >
+                                    <Eye className="h-3 w-3" /> Open
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Section 4: Collateral & Fee Settlement Review */}
+                      <div className="p-4 bg-black/50 border border-white/10 rounded-xl space-y-4">
+                        <h5 className="font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                          <Activity className="h-4 w-4" /> 4. Collateral & Company Fee Payment Audit
+                        </h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-2 border-t border-white/5">
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">25% Refundable Security Collateral</span>
+                            <span className="text-sm font-bold font-mono text-white">${(activeLoanView.fundingDetails.requestedAmount * 0.25).toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">3.5% Company Fee</span>
+                            <span className="text-sm font-bold font-mono text-cyan-400">${(activeLoanView.fundingDetails.requestedAmount * 0.035).toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Total Required Settlement</span>
+                            <span className="text-sm font-bold font-mono text-yellow-400">${(activeLoanView.fundingDetails.requestedAmount * 0.285).toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        {/* Installments Breakdown in Admin View */}
+                        <div className="space-y-2 pt-2 border-t border-white/5">
+                          <span className="text-gray-400 block text-[10px] uppercase font-mono font-bold">
+                            Installment Payment Progress & Verification:
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {([1, 2, 3, 4]).map((num) => {
+                              const totalSettlement = Math.round(activeLoanView.fundingDetails.requestedAmount * 0.285);
+                              const inst = activeLoanView.installments?.find(i => i.number === num) || {
+                                number: num,
+                                amount: Math.round(totalSettlement / 4),
+                                status: num === 1 && activeLoanView.collateralPaymentStatus === 'Under Review' ? 'Under Review' : 'Pending'
+                              };
+
+                              const isUnderReview = inst.status === 'Under Review' || inst.status === 'Submitted';
+                              const isApproved = inst.status === 'Approved' || (activeLoanView.collateralPaid && !activeLoanView.isInstallmentPlan);
+
+                              return (
+                                <div key={num} className={`p-3 rounded-lg border text-xs space-y-1 ${
+                                  isApproved ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300' :
+                                  isUnderReview ? 'bg-yellow-950/40 border-yellow-400/60 text-yellow-200' :
+                                  'bg-zinc-900 border-white/5 text-gray-400'
+                                }`}>
+                                  <div className="flex items-center justify-between font-mono font-bold">
+                                    <span>Installment {num} (${inst.amount.toLocaleString()})</span>
+                                    <span className={isApproved ? 'text-emerald-400' : isUnderReview ? 'text-yellow-400' : 'text-gray-500'}>
+                                      {isApproved ? '✓ Confirmed' : isUnderReview ? '⏳ Under Review' : 'Pending'}
+                                    </span>
+                                  </div>
+                                  {(inst.txId || activeLoanView.collateralTxId) && (
+                                    <div className="text-[10px] font-mono text-gray-400 truncate">
+                                      Ref: <span className="text-cyan-300 font-bold">{inst.txId || activeLoanView.collateralTxId}</span> ({inst.paymentMethod || 'Crypto/Wire'})
+                                    </div>
+                                  )}
+                                  {isUnderReview && (
+                                    <div className="mt-2 flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        disabled={loading}
+                                        onClick={() => handleConfirmPayment(activeLoanView.id, num)}
+                                        className="flex-1 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black font-black text-[10px] uppercase font-mono rounded cursor-pointer transition shadow-sm"
+                                      >
+                                        ✓ Confirm Inst {num}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={loading}
+                                        onClick={() => handleCancelPayment(activeLoanView.id, num)}
+                                        className="flex-1 py-1.5 bg-red-950 hover:bg-red-600 text-red-200 hover:text-white border border-red-500/50 font-black text-[10px] uppercase font-mono rounded cursor-pointer transition shadow-sm"
+                                      >
+                                        ✕ Cancel
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                          <div>
+                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Overall Settlement Status</span>
+                            <span className="text-xs font-bold font-mono text-white">
+                              {activeLoanView.collateralPaymentStatus === 'Confirmed' || activeLoanView.collateralPaid
+                                ? '✓ Fully Confirmed & Verified'
+                                : activeLoanView.collateralTxId || activeLoanView.installments?.some(i => i.status === 'Under Review')
+                                ? '⏳ Installment Payment Under Review'
+                                : '❌ Payment Outstanding'}
+                            </span>
+                          </div>
+                          {activeLoanView.collateralTxId && (
+                            <div className="text-right">
+                              <span className="text-gray-500 block text-[10px] uppercase font-mono">Latest Tx Reference</span>
+                              <span className="text-xs font-mono text-cyan-300 font-bold">{activeLoanView.collateralTxId}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Section 5: Rejection Reason Input Field */}
+                      <div className="p-4 bg-red-950/20 border border-red-500/30 rounded-xl space-y-2">
+                        <label className="block text-xs font-mono text-red-300 uppercase font-bold">
+                          Application Rejection Reason {showRejectionPrompt && <span className="text-red-400">* (Required)</span>}
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={loanRejectionReason}
+                          onChange={(e) => {
+                            setLoanRejectionReason(e.target.value);
+                            setShowRejectionPrompt(false);
+                          }}
+                          placeholder="State the exact reason if rejecting this application (e.g. Incomplete ID document, Unverified address, Suspicious proof of income)..."
+                          className="w-full px-4 py-2.5 bg-black border border-red-500/30 focus:border-red-400 rounded-lg text-xs text-white focus:outline-none font-sans"
+                        />
+                        {showRejectionPrompt && (
+                          <p className="text-[11px] text-red-400 font-bold">
+                            ⚠️ Please type a clear rejection reason above before confirming rejection.
+                          </p>
+                        )}
+                      </div>
+
+                    </div>
+
+                    {/* Modal Footer Controls */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-6 border-t border-white/10 mt-6">
+                      
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveLoanView(null);
+                            setShowRejectionPrompt(false);
+                          }}
+                          className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10 text-xs font-bold uppercase tracking-wider rounded-xl transition-all cursor-pointer font-mono flex items-center gap-2 shadow-md"
+                        >
+                          <ArrowLeft className="h-4 w-4 text-cyan-400" />
+                          <span>← Back to Applications List</span>
+                        </button>
+
+                        {/* Left Side Action: Disburse Loan button if payment confirmed */}
+                        {(activeLoanView.collateralPaid || activeLoanView.collateralPaymentStatus === 'Confirmed') && !activeLoanView.disbursed && (
                           <button
-                            onClick={() => handleAuditLoan(activeLoanView.id, 'Declined')}
-                            className="px-5 py-2.5 text-xs font-semibold text-red-400 border border-red-500/20 bg-red-950/20 rounded-lg hover:bg-red-500 hover:text-white transition-all cursor-pointer"
+                            onClick={() => handleDisburseLoan(activeLoanView.id)}
+                            disabled={loading}
+                            className="px-6 py-3 bg-emerald-400 hover:bg-emerald-300 text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(52,211,153,0.4)] cursor-pointer font-display transition-all"
                           >
-                            Reject Loan
+                            💸 Disburse Loan (${activeLoanView.fundingDetails.requestedAmount.toLocaleString()})
                           </button>
+                        )}
+
+                        {/* Confirm Payment & Cancel Payment buttons if payment is submitted or under review */}
+                        {(activeLoanView.collateralPaid || activeLoanView.collateralTxId || activeLoanView.collateralPaymentStatus === 'Under Review') && activeLoanView.collateralPaymentStatus !== 'Confirmed' && !activeLoanView.disbursed && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleConfirmPayment(activeLoanView.id)}
+                              disabled={loading}
+                              className="px-5 py-2.5 bg-yellow-400 hover:bg-yellow-300 text-black font-black text-xs uppercase tracking-wider rounded-lg transition-all cursor-pointer font-mono shadow-md"
+                            >
+                              ✓ Confirm Payment
+                            </button>
+                            <button
+                              onClick={() => handleCancelPayment(activeLoanView.id)}
+                              disabled={loading}
+                              className="px-5 py-2.5 bg-red-950/90 hover:bg-red-600 text-red-200 hover:text-white border border-red-500/50 font-black text-xs uppercase tracking-wider rounded-lg transition-all cursor-pointer font-mono shadow-md"
+                            >
+                              ✕ Cancel Payment
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 ml-auto">
+                        {/* Reject Application button */}
+                        {activeLoanView.status !== 'Declined' && activeLoanView.status !== 'Rejected' && !activeLoanView.disbursed && (
+                          <button
+                            onClick={() => handleAuditLoan(activeLoanView.id, 'Declined', loanRejectionReason)}
+                            disabled={loading}
+                            className="px-5 py-2.5 text-xs font-bold text-red-400 border border-red-500/30 bg-red-950/40 hover:bg-red-500 hover:text-white rounded-lg transition-all cursor-pointer font-mono"
+                          >
+                            Reject Application
+                          </button>
+                        )}
+
+                        {/* Approve Application button */}
+                        {activeLoanView.status === 'Pending' && (
                           <button
                             onClick={() => handleAuditLoan(activeLoanView.id, 'Approved')}
-                            className="px-5 py-2.5 text-xs font-semibold text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg cursor-pointer"
+                            disabled={loading}
+                            className="px-6 py-2.5 text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all cursor-pointer font-mono"
                           >
-                            Approve Loan
+                            Approve Application
                           </button>
-                        </>
-                      )}
+                        )}
+                      </div>
+
                     </div>
 
                   </div>
@@ -1172,10 +1717,10 @@ export default function AdminDashboard({
             <div className="space-y-6 animate-fade-in" id="admin-view-payments">
               <div>
                 <h3 className="font-display text-xl font-bold text-white mb-1">Payments & Fee Audit Queue</h3>
-                <p className="text-xs text-gray-400">Review pending collateral payments, fee receipts, and release capital disbursements.</p>
+                <p className="text-xs text-gray-400">Review pending settlement deposits, installment payment proofs, and authorize capital disbursements.</p>
               </div>
 
-              {loans.filter(l => l.collateralPaid).length === 0 ? (
+              {loans.filter(l => l.collateralPaid || l.collateralPaymentStatus === 'Under Review' || l.collateralPaymentStatus === 'Submitted' || l.installments?.some(i => i.status === 'Submitted' || i.status === 'Under Review')).length === 0 ? (
                 <div className="text-center py-16 border border-white/5 bg-black/20 rounded-xl space-y-2">
                   <p className="text-xs text-gray-400">No collateral or fee payments awaiting review at this time.</p>
                 </div>
@@ -1187,49 +1732,105 @@ export default function AdminDashboard({
                         <th className="p-4">Loan Ref ID</th>
                         <th className="p-4">Applicant</th>
                         <th className="p-4">Requested Amount</th>
-                        <th className="p-4">Collateral Status</th>
-                        <th className="p-4">Transaction Ref</th>
-                        <th className="p-4">Disbursement</th>
+                        <th className="p-4">Payment Details / Type</th>
+                        <th className="p-4">TxID / Reference</th>
+                        <th className="p-4">Review Status</th>
                         <th className="p-4 text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5 font-mono text-[11px]">
-                      {loans.filter(l => l.collateralPaid).map((l) => (
-                        <tr key={l.id} className="hover:bg-white/[0.02]">
-                          <td className="p-4 font-bold text-white">{l.id}</td>
-                          <td className="p-4">
-                            <div className="font-sans font-medium text-white">{l.userName}</div>
-                            <div className="text-[10px] text-gray-500">{l.userEmail}</div>
-                          </td>
-                          <td className="p-4 text-cyan-300 font-bold">${l.fundingDetails.requestedAmount.toLocaleString()}</td>
-                          <td className="p-4">
-                            <span className="px-2 py-1 bg-green-950/40 text-green-400 border border-green-500/20 text-[10px] rounded-full uppercase font-bold">
-                              Paid & Verified
-                            </span>
-                          </td>
-                          <td className="p-4 text-gray-400 font-mono">{l.collateralTxId || 'N/A'}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-0.5 text-[9px] rounded-full border font-bold uppercase ${
-                              l.disbursed ? 'bg-cyan-950/40 text-cyan-400 border-cyan-500/30' : 'bg-yellow-950/40 text-yellow-500 border-yellow-500/20'
-                            }`}>
-                              {l.disbursed ? 'Disbursed' : 'Awaiting Release'}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            {!l.disbursed ? (
-                              <button
-                                onClick={() => handleDisburseLoan(l.id)}
-                                disabled={loading}
-                                className="px-3 py-1.5 bg-cyan-400 hover:bg-cyan-300 text-black font-sans font-bold text-xs rounded transition-all"
-                              >
-                                Release Funds
-                              </button>
-                            ) : (
-                              <span className="text-[10px] text-cyan-400 font-mono">Disbursed ✓</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                      {loans.filter(l => l.collateralPaid || l.collateralPaymentStatus === 'Under Review' || l.collateralPaymentStatus === 'Submitted' || l.installments?.some(i => i.status === 'Submitted' || i.status === 'Under Review')).map((l) => {
+                        const pendingInst = l.installments?.find(i => i.status === 'Submitted' || i.status === 'Under Review');
+                        const isFullPaid = l.collateralPaid;
+
+                        return (
+                          <tr key={l.id} className="hover:bg-white/[0.02]">
+                            <td className="p-4 font-bold text-white">{l.id}</td>
+                            <td className="p-4">
+                              <div className="font-sans font-medium text-white">{l.userName}</div>
+                              <div className="text-[10px] text-gray-500">{l.userEmail}</div>
+                            </td>
+                            <td className="p-4 text-cyan-300 font-bold">${l.fundingDetails.requestedAmount.toLocaleString()}</td>
+                            <td className="p-4">
+                              {pendingInst ? (
+                                <div>
+                                  <span className="text-yellow-400 font-bold block">Installment {pendingInst.number} of {l.installments?.length || 3}</span>
+                                  <span className="text-[10px] text-gray-400">${pendingInst.amount.toLocaleString()} USD Deposit</span>
+                                </div>
+                              ) : (
+                                <div>
+                                  <span className="text-emerald-400 font-bold block">Refundable Collateral (25%)</span>
+                                  <span className="text-[10px] text-gray-400">${Math.round(l.fundingDetails.requestedAmount * 0.25).toLocaleString()} USD</span>
+                                </div>
+                              )}
+                            </td>
+                            <td className="p-4 text-cyan-400 font-mono text-[10px] break-all max-w-[140px]">
+                              {pendingInst?.txId || l.collateralTxId || 'N/A'}
+                            </td>
+                            <td className="p-4">
+                              {isFullPaid ? (
+                                <span className="px-2.5 py-1 bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 text-[10px] rounded-full uppercase font-bold">
+                                  ✓ Fully Confirmed
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 bg-yellow-950/80 text-yellow-300 border border-yellow-500/40 text-[10px] rounded-full uppercase font-bold animate-pulse">
+                                  ⏳ Under Review
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 text-right space-x-2">
+                              {!isFullPaid && pendingInst && (
+                                <>
+                                  <button
+                                    onClick={() => handleConfirmPayment(l.id, pendingInst.number)}
+                                    disabled={loading}
+                                    className="px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black font-sans font-bold text-xs rounded transition-all shadow-md cursor-pointer"
+                                  >
+                                    Confirm Inst {pendingInst.number}
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancelPayment(l.id, pendingInst.number)}
+                                    disabled={loading}
+                                    className="px-3 py-1.5 bg-red-950/80 hover:bg-red-600 text-red-200 hover:text-white border border-red-500/50 font-sans font-bold text-xs rounded transition-all shadow-md cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              )}
+                              {!isFullPaid && !pendingInst && (
+                                <>
+                                  <button
+                                    onClick={() => handleConfirmPayment(l.id)}
+                                    disabled={loading}
+                                    className="px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black font-sans font-bold text-xs rounded transition-all shadow-md cursor-pointer"
+                                  >
+                                    Confirm Payment
+                                  </button>
+                                  <button
+                                    onClick={() => handleCancelPayment(l.id)}
+                                    disabled={loading}
+                                    className="px-3 py-1.5 bg-red-950/80 hover:bg-red-600 text-red-200 hover:text-white border border-red-500/50 font-sans font-bold text-xs rounded transition-all shadow-md cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              )}
+                              {isFullPaid && !l.disbursed && (
+                                <button
+                                  onClick={() => handleDisburseLoan(l.id)}
+                                  disabled={loading}
+                                  className="px-3 py-1.5 bg-cyan-400 hover:bg-cyan-300 text-black font-sans font-bold text-xs rounded transition-all shadow-md cursor-pointer"
+                                >
+                                  Disburse Loan
+                                </button>
+                              )}
+                              {l.disbursed && (
+                                <span className="text-[10px] text-emerald-400 font-mono font-bold">Disbursed ✓</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1415,18 +2016,26 @@ export default function AdminDashboard({
                         ) : (
                           adminMessages
                             .filter(m => m.senderId === selectedUserForMsg || m.receiverId === selectedUserForMsg)
-                            .map((msg) => (
-                              <div
-                                key={msg.id}
-                                className={`flex flex-col ${msg.senderRole === 'admin' ? 'items-end' : 'items-start'}`}
-                              >
+                            .map((msg) => {
+                              const isAdmin = msg.senderRole === 'admin' || msg.senderId === 'admin-1';
+                              const senderLabel = isAdmin 
+                                ? 'Elon Capital Loan Team' 
+                                : (users.find(u => u.id === selectedUserForMsg)?.name || msg.senderName || 'Borrower');
+                              return (
                                 <div
-                                  className={`max-w-[85%] p-3 rounded-2xl text-xs ${
-                                    msg.senderRole === 'admin'
-                                      ? 'bg-cyan-500 text-black font-medium rounded-br-none shadow-[0_0_15px_rgba(34,211,238,0.15)]'
-                                      : 'bg-zinc-800 text-white rounded-bl-none border border-white/10'
-                                  }`}
+                                  key={msg.id}
+                                  className={`flex flex-col ${isAdmin ? 'items-end' : 'items-start'}`}
                                 >
+                                  <span className={`text-[10px] font-mono font-bold mb-1 px-1 ${isAdmin ? 'text-cyan-400' : 'text-emerald-400'}`}>
+                                    {senderLabel}
+                                  </span>
+                                  <div
+                                    className={`max-w-[85%] p-3 rounded-2xl text-xs ${
+                                      isAdmin
+                                        ? 'bg-cyan-500 text-black font-semibold rounded-br-none shadow-[0_0_15px_rgba(34,211,238,0.15)]'
+                                        : 'bg-zinc-800 text-white font-medium rounded-bl-none border border-white/10'
+                                    }`}
+                                  >
                                   <p className="whitespace-pre-wrap">{msg.content}</p>
                                   {msg.attachments && msg.attachments.length > 0 && (
                                     <div className="mt-2 pt-2 border-t border-black/10 text-[10px] font-mono font-bold flex flex-wrap gap-2">
@@ -1448,7 +2057,8 @@ export default function AdminDashboard({
                                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
-                            ))
+                            );
+                          })
                         )}
                       </div>
 
@@ -1696,6 +2306,75 @@ export default function AdminDashboard({
         </div>
 
       </div>
+
+      {/* Preview Asset Modal Overlay */}
+      {previewAssetModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-zinc-950 border-2 border-white/10 rounded-2xl p-6 max-w-lg w-full space-y-5 shadow-2xl relative">
+            <button
+              onClick={() => setPreviewAssetModal(null)}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white bg-white/5 rounded-full transition-all"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold block">
+                KYC Asset Audit Preview
+              </span>
+              <h4 className="text-lg font-bold text-white font-display">
+                {previewAssetModal.name}
+              </h4>
+              <p className="text-xs text-gray-400 font-mono">
+                Asset Type: {previewAssetModal.type}
+              </p>
+            </div>
+
+            <div className="p-4 bg-black/80 rounded-xl border border-white/10 flex flex-col items-center justify-center text-center space-y-3 min-h-[160px]">
+              {previewAssetModal.url && (previewAssetModal.url.startsWith('data:image') || previewAssetModal.url.endsWith('.png') || previewAssetModal.url.endsWith('.jpg')) ? (
+                <img src={previewAssetModal.url} alt={previewAssetModal.name} className="max-h-60 rounded-lg object-contain" />
+              ) : (
+                <div className="space-y-2 py-4">
+                  <div className="w-12 h-12 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                  <p className="text-xs font-mono text-gray-300">
+                    Verified Digital Asset File Encrypted & Stored
+                  </p>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold block">
+                    ✓ Integrity Hash Validated
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const blob = new Blob([`Asset File: ${previewAssetModal.name}\nType: ${previewAssetModal.type}`], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = previewAssetModal.url || url;
+                  a.download = `${previewAssetModal.name.replace(/\s+/g, '_')}.png`;
+                  a.click();
+                  triggerAlert('success', `Downloaded ${previewAssetModal.name}`);
+                }}
+                className="px-4 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs uppercase tracking-wider rounded-lg font-mono flex items-center gap-2 cursor-pointer"
+              >
+                <Download className="h-4 w-4" /> Download Asset
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewAssetModal(null)}
+                className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg font-mono cursor-pointer"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -7,6 +7,7 @@ interface NavbarProps {
   onOpenAuth: (mode: 'login' | 'register') => void;
   onLogout: () => void;
   onNavigateToDashboard: () => void;
+  onNavigateToAdmin: () => void;
   onNavigateToHome: () => void;
   onApplyClick: () => void;
   onSupportClick: () => void;
@@ -14,6 +15,7 @@ interface NavbarProps {
   onHowItWorksClick: () => void;
   onEligibilityClick: () => void;
   onGovernmentWarningClick: () => void;
+  onLoanTransparencyClick?: () => void;
 }
 
 export default function Navbar({
@@ -21,6 +23,7 @@ export default function Navbar({
   onOpenAuth,
   onLogout,
   onNavigateToDashboard,
+  onNavigateToAdmin,
   onNavigateToHome,
   onApplyClick,
   onSupportClick,
@@ -28,6 +31,7 @@ export default function Navbar({
   onHowItWorksClick,
   onEligibilityClick,
   onGovernmentWarningClick,
+  onLoanTransparencyClick,
 }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(true);
@@ -112,6 +116,13 @@ export default function Navbar({
               How It Works
             </button>
             <button 
+              onClick={onLoanTransparencyClick}
+              className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
+              id="btn-nav-transparency"
+            >
+              Transparency
+            </button>
+            <button 
               onClick={onEligibilityClick}
               className="font-semibold text-yellow-400 hover:text-yellow-300 transition-colors cursor-pointer"
             >
@@ -134,6 +145,13 @@ export default function Navbar({
               className="font-medium text-gray-400 hover:text-white transition-colors cursor-pointer"
             >
               Dashboard
+            </button>
+            <button 
+              onClick={onNavigateToAdmin}
+              className="font-semibold text-cyan-400 hover:text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 shadow-[0_0_12px_rgba(34,211,238,0.15)]"
+              id="btn-navbar-admin-portal"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" /> Admin
             </button>
             <button 
               onClick={onSupportClick}
@@ -231,6 +249,12 @@ export default function Navbar({
               How It Works
             </button>
             <button 
+              onClick={() => { setMobileMenuOpen(false); onLoanTransparencyClick?.(); }}
+              className="text-left text-base font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              Loan Terms & Transparency
+            </button>
+            <button 
               onClick={() => { setMobileMenuOpen(false); onEligibilityClick(); }}
               className="text-left text-base font-bold text-yellow-400 hover:text-yellow-300 transition-colors"
             >
@@ -253,6 +277,13 @@ export default function Navbar({
               className="text-left text-base font-medium text-gray-400 hover:text-white transition-colors"
             >
               Dashboard
+            </button>
+            <button 
+              onClick={() => { setMobileMenuOpen(false); onNavigateToAdmin(); }}
+              className="text-left text-base font-bold text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-2 bg-cyan-950/30 border border-cyan-500/20 px-3 py-2 rounded-lg"
+              id="btn-navbar-mobile-admin"
+            >
+              <ShieldCheck className="h-4 w-4 text-cyan-400" /> Admin Portal
             </button>
             <button 
               onClick={() => { setMobileMenuOpen(false); onSupportClick(); }}

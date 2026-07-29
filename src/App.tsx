@@ -14,6 +14,7 @@ import AdminDashboard from './components/AdminDashboard';
 import LoanCalculatorPage from './components/LoanCalculatorPage';
 import HowItWorksPage from './components/HowItWorksPage';
 import GovernmentWarningPage from './components/GovernmentWarningPage';
+import LoanTransparencyPage from './components/LoanTransparencyPage';
 import Chatbot from './components/Chatbot';
 import { Megaphone, X, ShieldAlert, Cpu, Lock, Mail, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -30,16 +31,17 @@ export default function App() {
   const [prefilledLoanTerm, setPrefilledLoanTerm] = React.useState<number | undefined>(undefined);
 
   // User Dashboard active tab state (for deep-linking and global controls)
-  const [userDashboardTab, setUserDashboardTab] = React.useState<'overview' | 'apply' | 'loans' | 'kyc' | 'messages' | 'support' | 'settings'>('overview');
+  const [userDashboardTab, setUserDashboardTab] = React.useState<'account' | 'overview' | 'apply' | 'loans' | 'kyc' | 'calculator' | 'messages' | 'support' | 'settings'>('account');
 
   // Router View toggles (Sync on startup with window.location.pathname)
-  const [dashboardView, setDashboardView] = React.useState<'landing' | 'user' | 'admin' | 'calculator' | 'how-it-works' | 'government-warning'>(() => {
+  const [dashboardView, setDashboardView] = React.useState<'landing' | 'user' | 'admin' | 'calculator' | 'how-it-works' | 'government-warning' | 'loan-transparency'>(() => {
     if (typeof window !== 'undefined') {
       if (window.location.pathname === '/admin') return 'admin';
       if (window.location.pathname === '/dashboard') return 'user';
       if (window.location.pathname === '/calculator') return 'calculator';
       if (window.location.pathname === '/how-it-works') return 'how-it-works';
       if (window.location.pathname === '/government-warning') return 'government-warning';
+      if (window.location.pathname === '/loan-transparency') return 'loan-transparency';
     }
     return 'landing';
   });
@@ -72,6 +74,8 @@ export default function App() {
         setDashboardView('calculator');
       } else if (path === '/how-it-works') {
         setDashboardView('how-it-works');
+      } else if (path === '/loan-transparency') {
+        setDashboardView('loan-transparency');
       } else if (path === '/') {
         setDashboardView('landing');
       }
@@ -218,8 +222,13 @@ export default function App() {
       window.history.pushState({}, '', '/admin');
       setDashboardView('admin');
     } else {
-      window.history.pushState({}, '', '/calculator');
-      setDashboardView('calculator');
+      if (authModalMode === 'register') {
+        setUserDashboardTab('apply');
+      } else {
+        setUserDashboardTab('account');
+      }
+      window.history.pushState({}, '', '/dashboard');
+      setDashboardView('user');
     }
   };
 
@@ -283,15 +292,25 @@ export default function App() {
       window.history.pushState({}, '', '/admin');
       setDashboardView('admin');
     } else {
-      setUserDashboardTab('overview');
+      setUserDashboardTab('account');
       window.history.pushState({}, '', '/dashboard');
       setDashboardView('user');
     }
   };
 
+  const navigateToAdmin = () => {
+    window.history.pushState({}, '', '/admin');
+    setDashboardView('admin');
+  };
+
   const navigateToHome = () => {
     window.history.pushState({}, '', '/');
     setDashboardView('landing');
+  };
+
+  const navigateToTransparency = () => {
+    window.history.pushState({}, '', '/loan-transparency');
+    setDashboardView('loan-transparency');
   };
 
   if (isInitializing) {
@@ -312,6 +331,7 @@ export default function App() {
         onOpenAuth={handleOpenAuth}
         onLogout={handleLogout}
         onNavigateToDashboard={navigateToDashboard}
+        onNavigateToAdmin={navigateToAdmin}
         onNavigateToHome={navigateToHome}
         onApplyClick={handleApplyClick}
         onSupportClick={handleSupportClick}
@@ -331,6 +351,7 @@ export default function App() {
           window.history.pushState({}, '', '/government-warning');
           setDashboardView('government-warning');
         }}
+        onLoanTransparencyClick={navigateToTransparency}
       />
 
       {/* Routing Controller */}
@@ -357,6 +378,7 @@ export default function App() {
                 window.history.pushState({}, '', '/government-warning');
                 setDashboardView('government-warning');
               }}
+              onLoanTransparencyClick={navigateToTransparency}
             />
           </div>
         )}
@@ -370,6 +392,16 @@ export default function App() {
                 window.history.pushState({}, '', '/calculator');
                 setDashboardView('calculator');
               }}
+            />
+          </div>
+        )}
+
+        {/* 1.3 DEDICATED LOAN TRANSPARENCY PAGE */}
+        {dashboardView === 'loan-transparency' && (
+          <div id="view-loan-transparency-page" className="animate-fade-in">
+            <LoanTransparencyPage 
+              onBackToHome={navigateToHome}
+              onApplyClick={handleApplyClick}
             />
           </div>
         )}
@@ -461,7 +493,15 @@ export default function App() {
       </main>
 
       {/* Global Brand Footer */}
-      <Footer onNavigateToHome={navigateToHome} />
+      <Footer 
+        onNavigateToHome={navigateToHome} 
+        onLoanTransparencyClick={navigateToTransparency}
+        onGovernmentWarningClick={() => {
+          window.history.pushState({}, '', '/government-warning');
+          setDashboardView('government-warning');
+        }}
+        onSupportClick={handleSupportClick}
+      />
 
       {/* Modular Auth Modal Overlay */}
       {authModalOpen && (
@@ -485,37 +525,78 @@ interface AdminLoginSectionProps {
 }
 
 function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
+  const [mode, setMode] = React.useState<'login' | 'register'>('login');
+  const [name, setName] = React.useState('System Administrator');
   const [email, setEmail] = React.useState('admin@spaceloan.space');
-  const [password, setPassword] = React.useState('');
+  const [password, setPassword] = React.useState('admin123');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [successMsg, setSuccessMsg] = React.useState('');
+
+  const handleInstantAdminLogin = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/register-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Master System Admin',
+          email: 'admin@spaceloan.space',
+          password: 'admin123'
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Instant access failed.');
+      onAuthSuccess(data.token, data.user);
+    } catch (err: any) {
+      setError(err.message || 'Quick login failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password) {
-      setError('Administrative password is required.');
+    if (!email || !password) {
+      setError('Email and password are required.');
       return;
     }
     setError('');
+    setSuccessMsg('');
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      if (mode === 'register') {
+        const res = await fetch('/api/auth/register-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Admin registration failed.');
+        setSuccessMsg('Administrator account registered successfully! Logging in...');
+        setTimeout(() => {
+          onAuthSuccess(data.token, data.user);
+        }, 1000);
+      } else {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Access denied.');
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Access denied.');
+        }
+
+        if (data.user?.role !== 'admin') {
+          throw new Error('This account is not designated as an administrator.');
+        }
+
+        onAuthSuccess(data.token, data.user);
       }
-
-      if (data.user?.role !== 'admin') {
-        throw new Error('This terminal is reserved exclusively for system administrators.');
-      }
-
-      onAuthSuccess(data.token, data.user);
     } catch (err: any) {
       setError(err.message || 'System verification failed.');
     } finally {
@@ -524,32 +605,105 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
   };
 
   return (
-    <div className="max-w-md mx-auto my-16 p-8 border border-cyan-500/10 bg-zinc-950/40 rounded-2xl shadow-[0_0_50px_rgba(6,182,212,0.05)] backdrop-blur-xl" id="admin-login-terminal">
-      <div className="text-center mb-8">
-        <div className="h-12 w-12 rounded-xl bg-cyan-950/50 border border-cyan-500/20 flex items-center justify-center mx-auto mb-4 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+    <div className="max-w-md mx-auto my-12 p-8 border border-cyan-500/20 bg-zinc-950/80 rounded-2xl shadow-[0_0_50px_rgba(6,182,212,0.1)] backdrop-blur-xl" id="admin-login-terminal">
+      <div className="text-center mb-6">
+        <div className="h-12 w-12 rounded-xl bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center mx-auto mb-3 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
           <ShieldAlert className="h-6 w-6 animate-pulse" />
         </div>
-        <h2 className="font-display text-lg font-bold uppercase tracking-wider text-white">Security Clearance Protocol</h2>
-        <p className="font-mono text-[10px] text-gray-500 uppercase tracking-widest mt-1">Authorized Officers Only</p>
+        <h2 className="font-display text-lg font-bold uppercase tracking-wider text-white">Security Clearance Terminal</h2>
+        <p className="font-mono text-[10px] text-gray-400 uppercase tracking-widest mt-1">Administrator Control Desk</p>
+      </div>
+
+      {/* Instant 1-Click Access Button */}
+      <div className="mb-6 p-3 bg-cyan-950/40 border border-cyan-500/30 rounded-xl text-center space-y-2">
+        <p className="text-[11px] text-cyan-300 font-sans">Need instant access to inspect the Admin Dashboard?</p>
+        <button
+          type="button"
+          onClick={handleInstantAdminLogin}
+          disabled={loading}
+          className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs uppercase tracking-wider rounded-lg transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+          id="btn-instant-admin-access"
+        >
+          <ShieldAlert className="h-4 w-4" /> ⚡ Instant 1-Click Admin Access
+        </button>
+      </div>
+
+      {/* Mode Switcher Tabs */}
+      <div className="flex border border-white/10 rounded-xl p-1 bg-black/40 mb-6 font-mono text-xs">
+        <button
+          type="button"
+          onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); }}
+          className={`flex-1 py-2 rounded-lg transition-all font-bold ${
+            mode === 'login' ? 'bg-cyan-500 text-black shadow-md' : 'text-gray-400 hover:text-white'
+          }`}
+          id="tab-admin-signin"
+        >
+          Admin Sign In
+        </button>
+        <button
+          type="button"
+          onClick={() => { setMode('register'); setError(''); setSuccessMsg(''); }}
+          className={`flex-1 py-2 rounded-lg transition-all font-bold ${
+            mode === 'register' ? 'bg-cyan-500 text-black shadow-md' : 'text-gray-400 hover:text-white'
+          }`}
+          id="tab-admin-signup"
+        >
+          Create Admin Account
+        </button>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 border border-red-500/20 bg-red-950/10 text-red-400 text-xs rounded-xl flex items-start gap-2.5 font-mono" id="admin-login-error">
-          <ShieldAlert className="h-4 w-4 flex-shrink-0 text-red-500" />
-          <span>{error}</span>
+        <div className="mb-6 p-4 border border-red-500/30 bg-red-950/30 text-red-300 text-xs rounded-xl flex items-start gap-2.5 font-sans" id="admin-login-error">
+          <ShieldAlert className="h-4 w-4 flex-shrink-0 text-red-400 mt-0.5" />
+          <div>
+            <span>{error}</span>
+            {mode === 'login' && (
+              <button
+                type="button"
+                onClick={() => setMode('register')}
+                className="block mt-2 text-cyan-400 underline font-bold text-[11px]"
+              >
+                → Click here to Register a new Admin Account instead
+              </button>
+            )}
+          </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5" id="admin-login-form">
+      {successMsg && (
+        <div className="mb-6 p-4 border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 text-xs rounded-xl font-sans" id="admin-login-success">
+          {successMsg}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4" id="admin-login-form">
+        {mode === 'register' && (
+          <div className="space-y-1.5">
+            <label className="font-mono text-[10px] text-gray-400 uppercase tracking-widest block">Administrator Full Name</label>
+            <div className="relative">
+              <input 
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:border-cyan-500/50 outline-none transition font-sans"
+                placeholder="e.g. Master Administrator"
+                required
+              />
+            </div>
+          </div>
+        )}
+
         <div className="space-y-1.5">
-          <label className="font-mono text-[10px] text-gray-400 uppercase tracking-widest block">Administrative Identifier</label>
+          <label className="font-mono text-[10px] text-gray-400 uppercase tracking-widest block">
+            {mode === 'register' ? 'Admin Email Address' : 'Administrative Identifier'}
+          </label>
           <div className="relative">
             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
             <input 
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:border-cyan-500/50 focus:bg-white/[0.07] outline-none transition font-sans"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:border-cyan-500/50 outline-none transition font-sans"
               placeholder="admin@spaceloan.space"
               required
             />
@@ -558,8 +712,10 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label className="font-mono text-[10px] text-gray-400 uppercase tracking-widest block">Security Passphrase</label>
-            <span className="text-[10px] text-cyan-400 font-mono">Demo: admin123</span>
+            <label className="font-mono text-[10px] text-gray-400 uppercase tracking-widest block">
+              {mode === 'register' ? 'Set Admin Password' : 'Security Passphrase'}
+            </label>
+            {mode === 'login' && <span className="text-[10px] text-cyan-400 font-mono">Demo Password: admin123</span>}
           </div>
           <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -567,7 +723,7 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:border-cyan-500/50 focus:bg-white/[0.07] outline-none transition font-mono tracking-widest"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:border-cyan-500/50 outline-none transition font-mono tracking-widest"
               placeholder="••••••••"
               required
             />
@@ -577,13 +733,17 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-bold uppercase tracking-widest rounded-xl transition flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.25)] hover:shadow-[0_0_30px_rgba(6,182,212,0.45)] cursor-pointer disabled:opacity-50"
+          className="w-full py-3 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-bold uppercase tracking-widest rounded-xl transition flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.25)] cursor-pointer disabled:opacity-50"
         >
           {loading ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : mode === 'register' ? (
+            <>
+              Register & Access Admin Portal <ArrowUpRight className="h-4 w-4" />
+            </>
           ) : (
             <>
-              Decrypt Node <ArrowUpRight className="h-4 w-4" />
+              Sign In to Admin Portal <ArrowUpRight className="h-4 w-4" />
             </>
           )}
         </button>
@@ -593,12 +753,11 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
             type="button"
             onClick={() => {
               window.history.pushState({}, '', '/');
-              // Trigger simple routing event
               window.dispatchEvent(new PopStateEvent('popstate'));
             }}
-            className="text-[10px] font-mono uppercase tracking-widest text-gray-500 hover:text-cyan-400 transition"
+            className="text-[10px] font-mono uppercase tracking-widest text-gray-500 hover:text-cyan-400 transition cursor-pointer"
           >
-            ← Terminate Console
+            ← Back to Main Website
           </button>
         </div>
       </form>

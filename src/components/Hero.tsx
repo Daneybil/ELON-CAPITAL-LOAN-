@@ -36,6 +36,7 @@ interface HeroProps {
   onCalculatorClick?: () => void;
   onHowItWorksClick?: () => void;
   onGovernmentWarningClick?: () => void;
+  onLoanTransparencyClick?: () => void;
 }
 
 export default function Hero({ 
@@ -46,7 +47,8 @@ export default function Hero({
   onSupportClick,
   onCalculatorClick,
   onHowItWorksClick,
-  onGovernmentWarningClick
+  onGovernmentWarningClick,
+  onLoanTransparencyClick
 }: HeroProps) {
   // Modal / Drawer states
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -119,7 +121,7 @@ export default function Hero({
 
         {/* Professional, comprehensive, targeted tagline */}
         <p className="text-base sm:text-lg text-white font-semibold leading-relaxed max-w-4xl mx-auto mb-16 tracking-wide text-center bg-white/[0.02] border border-white/5 rounded-2xl p-6 sm:p-8 shadow-[0_4px_30px_rgba(0,0,0,0.4)]" id="hero-desc">
-          Elon Capital Loan is engineered because traditional bank gatekeepers refuse to support the dreamers of tomorrow. Whether you are an ambitious builder starting with <strong className="text-cyan-400 font-extrabold">zero initial capital</strong>, a high-growth startup, an independent entrepreneur, a cryptocurrency trader seeking leverage, a Web3 developer, a Forex specialist, or an expanding small business—this platform was built for you. We eliminate archaic financial barriers to dispatch instant liquidity, transforming your vision into actionable reality.
+          Elon Capital Loan is engineered because traditional bank gatekeepers refuse to support the dreamers of tomorrow. Whether you are an ambitious builder starting with <strong className="text-cyan-400 font-extrabold">zero initial capital</strong>, a high-growth startup, an independent entrepreneur, a cryptocurrency trader seeking leverage, a Web3 developer, a Forex specialist, or an expanding small business—this platform is built for you. We eliminate archaic financial barriers to dispatch instant liquidity, transforming your vision into actionable reality.
         </p>
 
         {/* 5 PREMIUM GIANT HERO ACTIONS IN CLASSICAL 3D FORM */}
@@ -146,6 +148,19 @@ export default function Hero({
             <span className="absolute inset-0 rounded-2xl bg-blue-900 translate-y-2 block"></span>
             <span className="relative flex items-center justify-center gap-2 px-12 py-6 rounded-2xl bg-white text-black text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_20px_rgba(255,255,255,0.1)] border-2 border-blue-500 font-display">
               Get Started
+            </span>
+          </button>
+
+          {/* Button 2.5: Loan Terms & Transparency */}
+          <button
+            onClick={onLoanTransparencyClick}
+            className="relative group rounded-2xl bg-emerald-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
+            id="btn-hero-transparency"
+          >
+            <span className="absolute inset-0 rounded-2xl bg-emerald-900 translate-y-2 block"></span>
+            <span className="relative flex items-center justify-center gap-2.5 px-12 py-6 rounded-2xl bg-emerald-400 text-black text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_25px_rgba(52,211,153,0.35)] border-2 border-emerald-300 font-display">
+              <ShieldCheck className="h-4.5 w-4.5 text-black stroke-[3]" />
+              Loan Terms & Transparency
             </span>
           </button>
 
@@ -570,6 +585,12 @@ export default function Hero({
                     className="text-left text-cyan-400 hover:text-cyan-300 transition-colors py-1.5 border-b border-white/[0.02] font-semibold"
                   >
                     How It Works
+                  </button>
+                  <button 
+                    onClick={() => { setMenuOpen(false); onLoanTransparencyClick?.(); }}
+                    className="text-left text-emerald-400 hover:text-emerald-300 transition-colors py-1.5 border-b border-white/[0.02] font-semibold"
+                  >
+                    Loan Terms & Transparency
                   </button>
                   <button 
                     onClick={() => { setMenuOpen(false); onCalculatorClick?.(); }}

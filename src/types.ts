@@ -4,6 +4,7 @@ export interface User {
   email: string;
   phone: string;
   country: string;
+  password?: string;
   isVerified: boolean;
   verificationCode?: string;
   isSuspended: boolean;
@@ -16,6 +17,18 @@ export interface User {
     securityAlerts: boolean;
   };
   activityHistory?: Array<{ id: string; action: string; timestamp: string; ipAddress: string }>;
+}
+
+export interface LoanInstallment {
+  number: number;
+  amount: number;
+  status: 'Pending' | 'Submitted' | 'Under Review' | 'Approved' | 'Rejected';
+  txId?: string;
+  submittedAt?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  paymentMethod?: string;
+  proofUrl?: string;
 }
 
 export interface LoanApplication {
@@ -52,12 +65,27 @@ export interface LoanApplication {
     assetsValue?: number;
   };
   status: 'Pending' | 'Approved' | 'Declined' | 'Under Review' | 'Processing';
+  rejectionReason?: string;
   requiresEnhancedVerification: boolean;
   documents: Array<{ name: string; type: string; url: string; uploadedAt: string }>;
   collateralPaid?: boolean;
   collateralTxId?: string;
+  collateralPaymentStatus?: 'None' | 'Pending' | 'Submitted' | 'Under Review' | 'Confirmed' | 'Rejected';
+  isInstallmentPlan?: boolean;
+  installments?: LoanInstallment[];
   disbursed?: boolean;
   disbursedAt?: string;
+  withdrawn?: boolean;
+  withdrawnAt?: string;
+  withdrawalDetails?: any;
+  repaid?: boolean;
+  repaidAt?: string;
+  repaymentTxId?: string;
+  repaymentStatus?: 'None' | 'Pending' | 'Submitted' | 'Under Review' | 'Confirmed' | 'Rejected';
+  gender?: string;
+  ssnBvn?: string;
+  nationalId?: string;
+  passportNumber?: string;
   createdAt: string;
 }
 
@@ -74,16 +102,23 @@ export interface KYC {
   remarks?: string;
   updatedAt: string;
 
-  // New fields for the redesigned KYC Flow
+  // New fields for Stage 2 KYC Flow
   fullName?: string;
   dob?: string;
+  gender?: string;
+  maritalStatus?: string;
+  employmentStatus?: string;
+  employer?: string;
+  businessName?: string;
   phone?: string;
   email?: string;
   country?: string;
   residentialAddress?: string;
   proofOfAddressUrl?: string;
-  employmentStatus?: string;
-  maritalStatus?: string;
+  governmentIdUrl?: string;
+  passportNumber?: string;
+  nationalId?: string;
+  ssnBvn?: string;
   loanPurpose?: string;
   loanDescription?: string;
   socialHandles?: string;

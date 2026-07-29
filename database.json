@@ -1,0 +1,320 @@
+{
+  "users": [
+    {
+      "id": "admin-1",
+      "name": "Administrator Console",
+      "email": "admin@eloncapitalloan.com",
+      "phone": "+1 (800) 555-0199",
+      "country": "Switzerland",
+      "isVerified": true,
+      "isSuspended": false,
+      "role": "admin",
+      "createdAt": "2026-06-27T00:32:45.252Z",
+      "profilePhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+      "activityHistory": [
+        {
+          "id": "tc9qml2lx",
+          "action": "Admin system initialization",
+          "timestamp": "2026-06-27T00:32:45.253Z",
+          "ipAddress": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "admin-2",
+      "name": "SpaceLoan Administrator",
+      "email": "admin@spaceloan.space",
+      "phone": "+1 (800) 555-0199",
+      "country": "United States",
+      "isVerified": true,
+      "isSuspended": false,
+      "role": "admin",
+      "createdAt": "2026-07-07T00:32:45.253Z",
+      "profilePhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+      "activityHistory": [
+        {
+          "id": "irljgxdf0",
+          "action": "Admin system initialization",
+          "timestamp": "2026-07-07T00:32:45.253Z",
+          "ipAddress": "127.0.0.1"
+        }
+      ]
+    },
+    {
+      "id": "user-1",
+      "name": "Alex Thorne",
+      "email": "borrower@eloncapitalloan.com",
+      "phone": "+1 (415) 890-3420",
+      "country": "United States",
+      "isVerified": true,
+      "isSuspended": false,
+      "role": "user",
+      "createdAt": "2026-07-17T00:32:45.253Z",
+      "profilePhoto": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80",
+      "notificationPreferences": {
+        "emailUpdates": true,
+        "applicationAlerts": true,
+        "securityAlerts": true
+      },
+      "activityHistory": [
+        {
+          "id": "4lqs5x18h",
+          "action": "Account created",
+          "timestamp": "2026-07-17T00:32:45.253Z",
+          "ipAddress": "192.168.1.45"
+        },
+        {
+          "id": "fuoq5m3ad",
+          "action": "Verified email address",
+          "timestamp": "2026-07-17T00:32:45.253Z",
+          "ipAddress": "192.168.1.45"
+        },
+        {
+          "id": "1fj1zq10m",
+          "action": "User session login",
+          "timestamp": "2026-07-27T00:32:45.253Z",
+          "ipAddress": "192.168.1.45"
+        }
+      ]
+    },
+    {
+      "id": "sj2rh25hw",
+      "name": "Ani odinaka john ",
+      "email": "daneybil2020@gmail.com",
+      "phone": "+234 8163558895",
+      "country": "Nigeria",
+      "password": "Daneybil2020.",
+      "isVerified": true,
+      "verificationCode": "127225",
+      "isSuspended": false,
+      "role": "user",
+      "createdAt": "2026-07-27T00:35:55.744Z",
+      "notificationPreferences": {
+        "emailUpdates": true,
+        "applicationAlerts": true,
+        "securityAlerts": true
+      },
+      "activityHistory": [
+        {
+          "id": "h8utgstpw",
+          "action": "Account registration initiated",
+          "timestamp": "2026-07-27T00:35:55.744Z",
+          "ipAddress": "127.0.0.1"
+        }
+      ]
+    }
+  ],
+  "loans": [
+    {
+      "id": "loan-1",
+      "userId": "user-1",
+      "userEmail": "borrower@eloncapitalloan.com",
+      "userName": "Alex Thorne",
+      "personalInfo": {
+        "dateOfBirth": "1988-06-12",
+        "maritalStatus": "Single",
+        "address": "555 Mission St, San Francisco, CA"
+      },
+      "employmentInfo": {
+        "status": "Self-Employed",
+        "employerName": "Apex Blockchain Labs",
+        "monthlyIncome": 25000,
+        "yearsEmployed": 4
+      },
+      "businessInfo": {
+        "companyName": "Apex Blockchain Labs Inc.",
+        "registrationNumber": "US-8942-TX",
+        "industry": "Web3 Development & Infrastructure",
+        "annualRevenue": 320000
+      },
+      "fundingDetails": {
+        "purpose": "Expansion Capital",
+        "requestedAmount": 1250000,
+        "repaymentPreference": "Monthly structured / 36 months",
+        "description": "To hire 3 senior Rust engineers and scale our Layer-2 indexing infrastructure."
+      },
+      "financialInfo": {
+        "existingDebts": 50000,
+        "creditScore": 780,
+        "assetsValue": 450000
+      },
+      "status": "Approved",
+      "requiresEnhancedVerification": false,
+      "documents": [
+        {
+          "name": "incorporation_doc.pdf",
+          "type": "Business Registration",
+          "url": "#",
+          "uploadedAt": "2026-07-18T00:32:45.253Z"
+        },
+        {
+          "name": "financial_statements.pdf",
+          "type": "Financial Record",
+          "url": "#",
+          "uploadedAt": "2026-07-18T00:32:45.253Z"
+        }
+      ],
+      "createdAt": "2026-07-18T00:32:45.253Z"
+    },
+    {
+      "id": "loan-2",
+      "userId": "user-1",
+      "userEmail": "borrower@eloncapitalloan.com",
+      "userName": "Alex Thorne",
+      "personalInfo": {
+        "dateOfBirth": "1988-06-12",
+        "maritalStatus": "Single",
+        "address": "555 Mission St, San Francisco, CA"
+      },
+      "employmentInfo": {
+        "status": "Self-Employed",
+        "employerName": "Apex Blockchain Labs",
+        "monthlyIncome": 25000,
+        "yearsEmployed": 4
+      },
+      "businessInfo": {
+        "companyName": "Apex Blockchain Labs Inc.",
+        "registrationNumber": "US-8942-TX",
+        "industry": "Web3 Development & Infrastructure",
+        "annualRevenue": 320000
+      },
+      "fundingDetails": {
+        "purpose": "Web3 Liquidity Provision",
+        "requestedAmount": 15000000,
+        "repaymentPreference": "Flexible / 24 months",
+        "description": "DeFi liquidity pool facilitation and smart contract staking collateral."
+      },
+      "financialInfo": {
+        "existingDebts": 50000,
+        "creditScore": 780,
+        "assetsValue": 450000
+      },
+      "status": "Pending",
+      "requiresEnhancedVerification": true,
+      "documents": [
+        {
+          "name": "liquidity_report_q2.pdf",
+          "type": "Investment Memorandum",
+          "url": "#",
+          "uploadedAt": "2026-07-27T00:32:45.253Z"
+        }
+      ],
+      "createdAt": "2026-07-27T00:32:45.253Z"
+    }
+  ],
+  "kyc": [
+    {
+      "id": "kyc-1",
+      "userId": "user-1",
+      "userEmail": "borrower@eloncapitalloan.com",
+      "userName": "Alex Thorne",
+      "idCardUrl": "passport_alex_thorne.png",
+      "selfieUrl": "selfie_alex_thorne.png",
+      "addressProofUrl": "utility_bill_alex.pdf",
+      "businessDocUrl": "apex_business_licence.pdf",
+      "status": "Approved",
+      "remarks": "Verified against US Federal records.",
+      "updatedAt": "2026-07-19T00:32:45.253Z"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-1",
+      "senderId": "admin-1",
+      "senderName": "Elon Capital Loan Compliance",
+      "receiverId": "user-1",
+      "content": "Welcome to Elon Capital Loan, Alex. Your KYC verification has been processed and approved. You are now cleared to apply for up to $150M in liquidity.",
+      "isRead": true,
+      "createdAt": "2026-07-19T00:32:45.253Z"
+    },
+    {
+      "id": "msg-2",
+      "senderId": "user-1",
+      "senderName": "Alex Thorne",
+      "receiverId": "admin-1",
+      "content": "Thank you for the prompt review! I've submitted a second expansion loan request for our Web3 liquidity pool. Let me know if you need further bank credentials.",
+      "isRead": true,
+      "createdAt": "2026-07-26T00:32:45.253Z"
+    }
+  ],
+  "tickets": [
+    {
+      "id": "tkt-1",
+      "userId": "user-1",
+      "userName": "Alex Thorne",
+      "userEmail": "borrower@eloncapitalloan.com",
+      "subject": "Inquiry regarding Web3 project collateral options",
+      "category": "Funding Terms",
+      "status": "Open",
+      "createdAt": "2026-07-25T00:32:45.253Z",
+      "replies": [
+        {
+          "id": "ipamdfprv",
+          "senderRole": "user",
+          "senderName": "Alex Thorne",
+          "content": "We currently hold 80% of our treasury in USD and 20% in major crypto tokens. Can we stake tokens directly as repayment warranty?",
+          "createdAt": "2026-07-25T00:32:45.253Z"
+        }
+      ]
+    }
+  ],
+  "announcements": [
+    {
+      "id": "ann-1",
+      "title": "Enhanced Verification Threshold Notice",
+      "content": "Please be advised that all high-capital requests exceeding $5,000,000 are subject to automated enhanced institutional review including deep treasury audit.",
+      "category": "Update",
+      "createdAt": "2026-07-22T00:32:45.253Z"
+    },
+    {
+      "id": "ann-2",
+      "title": "Planned Platform Infrastructure Security Patch",
+      "content": "A security maintenance window is scheduled for July 18 at 02:00 UTC. System latency might rise temporarily for up to 10 minutes. No active loans will be affected.",
+      "category": "Maintenance",
+      "createdAt": "2026-07-26T00:32:45.253Z"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "not-1",
+      "userId": "user-1",
+      "title": "KYC Approved",
+      "content": "Congratulations! Your identity and business documents have been approved by compliance.",
+      "isRead": false,
+      "createdAt": "2026-07-19T00:32:45.253Z"
+    },
+    {
+      "id": "not-2",
+      "userId": "user-1",
+      "title": "First Funding Request Approved",
+      "content": "Your initial request for $1.25M Expansion Capital has been APPROVED. Funding contract has been sent to your registered email.",
+      "isRead": false,
+      "createdAt": "2026-07-18T00:32:45.253Z"
+    }
+  ],
+  "logs": [
+    {
+      "id": "u4661l2ap",
+      "action": "User Registration",
+      "details": "Account initiated for daneybil2020@gmail.com",
+      "userId": "sj2rh25hw",
+      "userEmail": "daneybil2020@gmail.com",
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-07-27T00:35:55.747Z"
+    },
+    {
+      "id": "eoxgj4myw",
+      "action": "System seeded successfully",
+      "details": "Initial SpaceLoan core platform loaded",
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-06-27T00:32:45.253Z"
+    }
+  ],
+  "homePageContent": {
+    "heroHeadline": "Financing Engineered for High-Growth Ventures",
+    "heroSubheadline": "Institutional liquidity up to $500,000,000. Fast, secure, and built for modern Web3, tech startups, SMEs, and digital enterprises.",
+    "statTotalFunded": "$1,480,240,000+",
+    "statActiveBorrowers": "14,820+",
+    "statGlobalProjects": "112"
+  }
+}

@@ -3,9 +3,54 @@ import React from 'react';
 interface FooterProps {
   onNavigateToHome: () => void;
   onOpenModal?: (type: 'privacy' | 'terms' | 'contact') => void;
+  onLoanTransparencyClick?: () => void;
+  onGovernmentWarningClick?: () => void;
+  onSupportClick?: () => void;
 }
 
-export default function Footer({ onNavigateToHome, onOpenModal }: FooterProps) {
+export default function Footer({ 
+  onNavigateToHome, 
+  onOpenModal,
+  onLoanTransparencyClick,
+  onGovernmentWarningClick,
+  onSupportClick 
+}: FooterProps) {
+  const handlePrivacy = () => {
+    if (onLoanTransparencyClick) {
+      onLoanTransparencyClick();
+    } else if (onOpenModal) {
+      onOpenModal('privacy');
+    }
+  };
+
+  const handleTerms = () => {
+    if (onGovernmentWarningClick) {
+      onGovernmentWarningClick();
+    } else if (onLoanTransparencyClick) {
+      onLoanTransparencyClick();
+    } else if (onOpenModal) {
+      onOpenModal('terms');
+    }
+  };
+
+  const handleSupport = () => {
+    if (onSupportClick) {
+      onSupportClick();
+    } else {
+      const el = document.getElementById('contact-section') || document.getElementById('footer-section');
+      el?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleContact = () => {
+    if (onSupportClick) {
+      onSupportClick();
+    } else {
+      const el = document.getElementById('contact-section') || document.getElementById('footer-section');
+      el?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <footer className="bg-black py-10 px-6 border-t border-white/5 select-none" id="footer-section">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
@@ -25,32 +70,26 @@ export default function Footer({ onNavigateToHome, onOpenModal }: FooterProps) {
         {/* Links */}
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[10px] font-mono uppercase tracking-widest text-gray-500">
           <button 
-            onClick={() => onOpenModal?.('privacy')} 
-            className="hover:text-white transition-colors cursor-pointer"
+            onClick={handlePrivacy} 
+            className="hover:text-cyan-400 transition-colors cursor-pointer"
           >
             Privacy Policy
           </button>
           <button 
-            onClick={() => onOpenModal?.('terms')} 
-            className="hover:text-white transition-colors cursor-pointer"
+            onClick={handleTerms} 
+            className="hover:text-cyan-400 transition-colors cursor-pointer"
           >
             Terms
           </button>
           <button 
-            onClick={() => {
-              const el = document.getElementById('contact-section') || document.getElementById('footer-section');
-              el?.scrollIntoView({ behavior: 'smooth' });
-            }} 
-            className="hover:text-white transition-colors cursor-pointer"
+            onClick={handleSupport} 
+            className="hover:text-cyan-400 transition-colors cursor-pointer"
           >
             Support
           </button>
           <button 
-            onClick={() => {
-              const el = document.getElementById('contact-section') || document.getElementById('footer-section');
-              el?.scrollIntoView({ behavior: 'smooth' });
-            }} 
-            className="hover:text-white transition-colors cursor-pointer"
+            onClick={handleContact} 
+            className="hover:text-cyan-400 transition-colors cursor-pointer"
           >
             Contact
           </button>

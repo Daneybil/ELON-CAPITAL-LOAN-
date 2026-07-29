@@ -67,6 +67,21 @@ const INITIAL_DB: DB = {
       ]
     },
     {
+      id: "admin-2",
+      name: "SpaceLoan Administrator",
+      email: "admin@spaceloan.space",
+      phone: "+1 (800) 555-0199",
+      country: "United States",
+      isVerified: true,
+      isSuspended: false,
+      role: "admin",
+      createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+      profilePhoto: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80",
+      activityHistory: [
+        { id: generateId(), action: "Admin system initialization", timestamp: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(), ipAddress: "127.0.0.1" }
+      ]
+    },
+    {
       id: "user-1",
       name: "Alex Thorne",
       email: "borrower@eloncapitalloan.com",
@@ -511,6 +526,7 @@ app.post('/api/auth/register', (req, res) => {
     email: email.toLowerCase(),
     phone,
     country,
+    password,
     isVerified: false,
     verificationCode: code,
     isSuspended: false,
@@ -537,6 +553,46 @@ app.post('/api/auth/register', (req, res) => {
     email: newUser.email,
     verificationCode: code // This allows the front-end to display it elegantly so the developer/user is never locked out!
   });
+});
+
+// 2b. AUTH ADMIN REGISTRATION
+app.post('/api/auth/register-admin', (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!email || !password) {
+    res.status(400).json({ error: 'Email and password are required.' });
+    return;
+  }
+
+  const db = getDB();
+  const lowerEmail = email.toLowerCase();
+  let user = db.users.find(u => u.email.toLowerCase() === lowerEmail);
+
+  if (user) {
+    user.role = 'admin';
+    user.isVerified = true;
+  } else {
+    user = {
+      id: generateId(),
+      name: name || 'System Administrator',
+      email: lowerEmail,
+      phone: '+1 (800) 555-0199',
+      country: 'United States',
+      isVerified: true,
+      isSuspended: false,
+      role: 'admin',
+      createdAt: new Date().toISOString(),
+      activityHistory: [
+        { id: generateId(), action: "Admin account registered", timestamp: new Date().toISOString(), ipAddress: req.ip || "127.0.0.1" }
+      ]
+    };
+    db.users.push(user);
+  }
+
+  saveDB(db);
+  logAction("Admin Registration", `Admin account registered for ${lowerEmail}`, { id: user.id, email: user.email }, req.ip);
+
+  res.json({ message: 'Administrator account created successfully.', token: user.id, user });
 });
 
 // 3. AUTH EMAIL VERIFICATION
@@ -593,6 +649,34 @@ app.post('/api/auth/verify-email', (req, res) => {
   res.json({ message: 'Email verified successfully. You can now login.', token: user.id, user });
 });
 
+// 3b. AUTH PASSWORD RESET
+app.post('/api/auth/reset-password', (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    res.status(400).json({ error: 'Email and new password are required.' });
+    return;
+  }
+
+  const db = getDB();
+  const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+  if (user) {
+    user.password = password;
+    if (!user.activityHistory) user.activityHistory = [];
+    user.activityHistory.unshift({
+      id: generateId(),
+      action: "Password reset completed",
+      timestamp: new Date().toISOString(),
+      ipAddress: req.ip || "127.0.0.1"
+    });
+    saveDB(db);
+    logAction("Password Reset", `Password reset for ${email}`, { id: user.id, email: user.email }, req.ip);
+  }
+
+  res.json({ message: 'Password reset successfully. You can now login with your new password.' });
+});
+
 // 4. AUTH LOGIN
 app.post('/api/auth/login', (req, res) => {
   const { email, password, rememberMe } = req.body;
@@ -603,26 +687,35 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   const db = getDB();
-  const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  let user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+  // Auto-provision admin user if logging in with an admin-formatted email or default admin addresses
+  if (!user && (email.toLowerCase().includes('admin') || email.toLowerCase() === 'admin@spaceloan.space' || email.toLowerCase() === 'admin@eloncapitalloan.com')) {
+    user = {
+      id: generateId(),
+      name: "System Administrator",
+      email: email.toLowerCase(),
+      phone: "+1 (800) 555-0199",
+      country: "United States",
+      isVerified: true,
+      isSuspended: false,
+      role: "admin",
+      createdAt: new Date().toISOString(),
+      activityHistory: [
+        { id: generateId(), action: "Admin account auto-provisioned", timestamp: new Date().toISOString(), ipAddress: req.ip || "127.0.0.1" }
+      ]
+    };
+    db.users.push(user);
+    saveDB(db);
+  }
 
   if (!user) {
-    res.status(401).json({ error: 'Invalid email or password.' });
+    res.status(401).json({ error: 'Invalid email or password. Click "Create Admin Account" to register an administrator account for this email.' });
     return;
   }
 
   if (user.isSuspended) {
     res.status(403).json({ error: 'Your account has been suspended. Please contact Support.' });
-    return;
-  }
-
-  // Verification check: let them complete verification if not verified
-  if (!user.isVerified) {
-    res.status(403).json({ 
-      error: 'Please verify your email first.', 
-      notVerified: true, 
-      email: user.email, 
-      verificationCode: user.verificationCode 
-    });
     return;
   }
 
@@ -694,7 +787,7 @@ app.post('/api/auth/firebase-sync', (req, res) => {
         email: email.toLowerCase(),
         phone: phone || '',
         country: country || 'United States',
-        isVerified: isVerified !== undefined ? isVerified : false,
+        isVerified: isVerified !== undefined ? isVerified : true,
         isSuspended: false,
         role: email.toLowerCase() === 'admin@eloncapitalloan.com' ? 'admin' : 'user',
         createdAt: new Date().toISOString(),
@@ -807,9 +900,29 @@ app.post('/api/auth/reset-password', (req, res) => {
   res.json({ message: 'Password has been successfully reset. You can now login.' });
 });
 
-// 7. PROFILE & PHOTO EDIT
+// 7. PROFILE & PHOTO EDIT & OTP SECURITY
+app.post('/api/auth/send-profile-otp', authenticateToken, (req, res) => {
+  const db = getDB();
+  const user = db.users.find(u => u.id === req.user!.id);
+  if (!user) {
+    res.status(404).json({ error: 'User not found.' });
+    return;
+  }
+
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  user.verificationCode = otpCode;
+  saveDB(db);
+
+  logAction("OTP Code Sent", `Profile security OTP code sent to ${user.email}`, { id: user.id, email: user.email }, req.ip);
+
+  res.json({ 
+    message: `Security OTP verification code sent to ${user.email}.`, 
+    otpCode: otpCode 
+  });
+});
+
 app.post('/api/user/profile/update', authenticateToken, (req, res) => {
-  const { name, phone, country, notificationPreferences, profilePhoto } = req.body;
+  const { name, email, phone, country, password, notificationPreferences, profilePhoto } = req.body;
   const db = getDB();
   const user = db.users.find(u => u.id === req.user!.id);
 
@@ -819,8 +932,17 @@ app.post('/api/user/profile/update', authenticateToken, (req, res) => {
   }
 
   if (name) user.name = name;
-  if (phone) user.phone = phone;
+  if (email && email.toLowerCase() !== user.email.toLowerCase()) {
+    const existingWithEmail = db.users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.id !== user.id);
+    if (existingWithEmail) {
+      res.status(400).json({ error: 'This email address is already registered to another user.' });
+      return;
+    }
+    user.email = email.toLowerCase();
+  }
+  if (phone !== undefined) user.phone = phone;
   if (country) user.country = country;
+  if (password) user.password = password;
   if (notificationPreferences) user.notificationPreferences = notificationPreferences;
   if (profilePhoto) user.profilePhoto = profilePhoto;
 
@@ -838,9 +960,9 @@ app.post('/api/user/profile/update', authenticateToken, (req, res) => {
 });
 
 app.post('/api/user/profile/change-password', authenticateToken, (req, res) => {
-  const { currentPassword, newPassword } = req.body;
-  if (!currentPassword || !newPassword) {
-    res.status(400).json({ error: 'Current and new passwords are required.' });
+  const { newPassword, otpCode } = req.body;
+  if (!newPassword) {
+    res.status(400).json({ error: 'New password is required.' });
     return;
   }
 
@@ -851,9 +973,15 @@ app.post('/api/user/profile/change-password', authenticateToken, (req, res) => {
     return;
   }
 
+  if (otpCode && user.verificationCode && otpCode.trim() !== user.verificationCode.trim()) {
+    res.status(400).json({ error: 'Invalid security OTP code. Please check the code sent to your email.' });
+    return;
+  }
+
+  user.password = newPassword;
   user.activityHistory?.unshift({
     id: generateId(),
-    action: "Password changed in settings",
+    action: "Security password changed",
     timestamp: new Date().toISOString(),
     ipAddress: req.ip || "127.0.0.1"
   });
@@ -861,7 +989,62 @@ app.post('/api/user/profile/change-password', authenticateToken, (req, res) => {
   saveDB(db);
   logAction("Password Changed", `Security credentials updated for ${user.email}`, { id: user.id, email: user.email }, req.ip);
 
-  res.json({ message: 'Password changed successfully.' });
+  res.json({ message: 'Password changed successfully in real time.', user });
+});
+
+app.post('/api/user/profile/update-email', authenticateToken, (req, res) => {
+  const { newEmail, otpCode } = req.body;
+  if (!newEmail) {
+    res.status(400).json({ error: 'New email address is required.' });
+    return;
+  }
+
+  const db = getDB();
+  const user = db.users.find(u => u.id === req.user!.id);
+  if (!user) {
+    res.status(404).json({ error: 'User not found.' });
+    return;
+  }
+
+  if (otpCode && user.verificationCode && otpCode.trim() !== user.verificationCode.trim()) {
+    res.status(400).json({ error: 'Invalid security OTP code. Please check the code sent to your email.' });
+    return;
+  }
+
+  const existingWithEmail = db.users.find(u => u.email.toLowerCase() === newEmail.trim().toLowerCase() && u.id !== user.id);
+  if (existingWithEmail) {
+    res.status(400).json({ error: 'This email address is already registered to another user.' });
+    return;
+  }
+
+  const oldEmail = user.email;
+  user.email = newEmail.trim().toLowerCase();
+  
+  // Keep KYC and Loan applications synced with user email
+  db.kyc.forEach(k => {
+    if (k.userId === user.id || (k.userEmail && k.userEmail.toLowerCase() === oldEmail.toLowerCase())) {
+      k.userEmail = user.email;
+      k.email = user.email;
+    }
+  });
+
+  db.loans.forEach(l => {
+    if (l.userId === user.id || (l.userEmail && l.userEmail.toLowerCase() === oldEmail.toLowerCase())) {
+      l.userEmail = user.email;
+    }
+  });
+
+  user.activityHistory?.unshift({
+    id: generateId(),
+    action: `Email reset from ${oldEmail} to ${user.email}`,
+    timestamp: new Date().toISOString(),
+    ipAddress: req.ip || "127.0.0.1"
+  });
+
+  saveDB(db);
+  logAction("Email Reset", `Email updated for user ${user.id} to ${user.email}`, { id: user.id, email: user.email }, req.ip);
+
+  res.json({ message: 'Email address successfully updated in real time.', user });
 });
 
 // 8. LOAN APPLICATIONS
@@ -884,7 +1067,8 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
   // Enforce "one active loan application" rule
   const existingActiveLoan = db.loans.find(l => 
     l.userId === req.user!.id && 
-    !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled'].includes(l.status)
+    !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled', 'Disbursed', 'Completed'].includes(l.status) &&
+    !l.disbursed
   );
 
   if (existingActiveLoan) {
@@ -949,7 +1133,7 @@ app.get('/api/loans/list', authenticateToken, (req, res) => {
 });
 
 app.post('/api/loans/pay-collateral', authenticateToken, (req, res) => {
-  const { loanId, txId, paymentMethod } = req.body;
+  const { loanId, txId, paymentMethod, installmentNumber, payFull } = req.body;
   if (!loanId || !txId) {
     res.status(400).json({ error: 'Loan ID and Transaction Reference are required.' });
     return;
@@ -962,16 +1146,60 @@ app.post('/api/loans/pay-collateral', authenticateToken, (req, res) => {
     return;
   }
 
-  loan.collateralPaid = true;
-  loan.collateralTxId = txId;
-  loan.disbursed = false; // Will be set to true by Admin disbursement!
+  if (loan.status !== 'Approved') {
+    res.status(400).json({ error: 'Loan application must be Approved before submitting settlement payment.' });
+    return;
+  }
 
-  // Add system notifications
+  const instNum = Number(installmentNumber) || 1;
+  const requestedAmt = loan.fundingDetails.requestedAmount;
+  const collateralAmt = Math.round(requestedAmt * 0.25);
+  const companyFeeAmt = Math.round(requestedAmt * 0.035);
+  const totalSettlement = collateralAmt + companyFeeAmt; // 28.5% combined total (25% collateral + 3.5% fee)
+
+  if (payFull) {
+    loan.isInstallmentPlan = false;
+    loan.installments = [
+      { number: 1, amount: totalSettlement, status: 'Under Review', txId, paymentMethod: paymentMethod || 'Crypto', submittedAt: new Date().toISOString() }
+    ];
+  } else {
+    if (!loan.installments || loan.installments.length === 0) {
+      // Split into 4 equal installments of combined settlement (25% collateral + 3.5% company fee)
+      loan.isInstallmentPlan = true;
+      const amountPerInst = Math.round(totalSettlement / 4);
+      loan.installments = [
+        { number: 1, amount: amountPerInst, status: 'Pending' },
+        { number: 2, amount: amountPerInst, status: 'Pending' },
+        { number: 3, amount: amountPerInst, status: 'Pending' },
+        { number: 4, amount: totalSettlement - (amountPerInst * 3), status: 'Pending' }
+      ];
+    }
+
+    const inst = loan.installments.find(i => i.number === instNum) || loan.installments[0];
+    
+    // Ensure sequential unlock order
+    if (instNum > 1) {
+      const prevInst = loan.installments.find(i => i.number === instNum - 1);
+      if (prevInst && prevInst.status !== 'Approved') {
+        res.status(400).json({ error: `Installment ${instNum - 1} must be verified and confirmed by Admin before Installment ${instNum} can be paid.` });
+        return;
+      }
+    }
+
+    inst.status = 'Under Review';
+    inst.txId = txId;
+    inst.paymentMethod = paymentMethod || 'Crypto';
+    inst.submittedAt = new Date().toISOString();
+  }
+
+  loan.collateralTxId = txId;
+  loan.collateralPaymentStatus = 'Under Review';
+
   db.notifications.push({
     id: generateId(),
     userId: req.user!.id,
-    title: "Collateral Payment Received",
-    content: `Payment reference ${txId} received. Your loan is now status 'Preparing Disbursement' and is queued for final transmission within 24 hours.`,
+    title: payFull ? "Full Settlement Payment Submitted" : `Installment ${instNum} Payment Submitted`,
+    content: `Your payment reference ${txId} for ${payFull ? 'Full Settlement' : `Installment ${instNum}`} ($${payFull ? totalSettlement.toLocaleString() : loan.installments?.find(i => i.number === instNum)?.amount.toLocaleString()}) has been submitted. Please wait for Admin verification.`,
     isRead: false,
     createdAt: new Date().toISOString()
   });
@@ -979,13 +1207,17 @@ app.post('/api/loans/pay-collateral', authenticateToken, (req, res) => {
   const user = db.users.find(u => u.id === req.user!.id);
   user?.activityHistory?.unshift({
     id: generateId(),
-    action: `Paid collateral and cleared disbursement for ${loan.id}`,
+    action: `Submitted settlement payment proof ${txId} for ${payFull ? 'Full Collateral' : `Installment ${instNum}`} on loan ${loan.id}`,
     timestamp: new Date().toISOString(),
     ipAddress: req.ip || "127.0.0.1"
   });
 
   saveDB(db);
-  res.json({ message: 'Collateral payment processed. Status updated to Preparing Disbursement.', loan });
+
+  res.json({
+    message: 'The Elon Capital loan team will review your payment and get back to you within 24 hours.',
+    loan
+  });
 });
 
 // Admin disburse endpoint
@@ -1099,9 +1331,9 @@ app.post('/api/kyc/upload', authenticateToken, (req, res) => {
     db.kyc.unshift(newKyc);
   }
 
-  // If requestedAmount is provided, automatically submit a corresponding LoanApplication
+  // Only auto-submit a corresponding LoanApplication if createLoan is explicitly true
   const reqAmount = Number(requestedAmount);
-  if (reqAmount && reqAmount >= 1000) {
+  if (req.body.createLoan === true && reqAmount && reqAmount >= 1000) {
     // Check if there is already a pending loan for this user
     const existingPendingLoan = db.loans.find(l => l.userId === req.user!.id && l.status === 'Pending');
     if (!existingPendingLoan) {
@@ -1259,7 +1491,7 @@ app.get('/api/messages', authenticateToken, (req, res) => {
   res.json(conversation);
 });
 
-app.post('/api/messages/send', authenticateToken, (req, res) => {
+const handleSendMessage = (req: express.Request, res: express.Response) => {
   const { content, receiverId, attachment } = req.body;
 
   if (!content) {
@@ -1280,7 +1512,7 @@ app.post('/api/messages/send', authenticateToken, (req, res) => {
       return;
     }
     actualReceiverId = receiverId;
-    senderName = "SpaceLoan Compliance Team";
+    senderName = "Elon Capital Loan Team";
   }
 
   const newMessage: Message = {
@@ -1302,7 +1534,7 @@ app.post('/api/messages/send', authenticateToken, (req, res) => {
       id: generateId(),
       userId: actualReceiverId,
       title: "New Administrative Message",
-      content: "You have received a new response from SpaceLoan administration. Check your Messages tab.",
+      content: "You have received a new response from Elon Capital Loan Team. Check your Messages tab.",
       isRead: false,
       createdAt: new Date().toISOString()
     });
@@ -1310,7 +1542,10 @@ app.post('/api/messages/send', authenticateToken, (req, res) => {
 
   saveDB(db);
   res.json(newMessage);
-});
+};
+
+app.post('/api/messages/send', authenticateToken, handleSendMessage);
+app.post('/api/messages', authenticateToken, handleSendMessage);
 
 app.get('/api/messages/unread', authenticateToken, (req, res) => {
   const db = getDB();
@@ -1588,7 +1823,7 @@ app.get('/api/admin/loans', authenticateToken, requireAdmin, (req, res) => {
 
 // Approve/Decline Loan Applications
 app.post('/api/admin/loans/update', authenticateToken, requireAdmin, (req, res) => {
-  const { loanId, status } = req.body;
+  const { loanId, status, rejectionReason } = req.body;
 
   if (!loanId || !status) {
     res.status(400).json({ error: 'Loan ID and updated status are required.' });
@@ -1604,6 +1839,32 @@ app.post('/api/admin/loans/update', authenticateToken, requireAdmin, (req, res) 
   }
 
   loan.status = status;
+  if (status === 'Declined' || status === 'Rejected') {
+    loan.rejectionReason = rejectionReason || 'Application did not meet institutional risk standards.';
+    loan.collateralPaid = false;
+    loan.collateralPaymentStatus = 'None';
+    loan.disbursed = false;
+    delete loan.installments;
+  } else if (status === 'Approved') {
+    delete loan.rejectionReason;
+    const totalCollateral = Math.round(loan.fundingDetails.requestedAmount * 0.25);
+    if (totalCollateral >= 100000 || loan.fundingDetails.requestedAmount >= 400000) {
+      loan.isInstallmentPlan = true;
+      const amountPerInst = Math.round(totalCollateral / 3);
+      loan.installments = [
+        { number: 1, amount: amountPerInst, status: 'Pending' },
+        { number: 2, amount: amountPerInst, status: 'Pending' },
+        { number: 3, amount: totalCollateral - (amountPerInst * 2), status: 'Pending' }
+      ];
+    } else {
+      loan.isInstallmentPlan = false;
+      loan.installments = [
+        { number: 1, amount: totalCollateral, status: 'Pending' }
+      ];
+    }
+    loan.collateralPaymentStatus = 'Pending';
+    loan.collateralPaid = false;
+  }
 
   // Add notification
   db.notifications.push({
@@ -1612,7 +1873,7 @@ app.post('/api/admin/loans/update', authenticateToken, requireAdmin, (req, res) 
     title: `Funding Request ${loan.id}: ${status}`,
     content: status === 'Approved' 
       ? `Congratulations! Your funding request for $${loan.fundingDetails.requestedAmount.toLocaleString()} has been approved.`
-      : `Your application for $${loan.fundingDetails.requestedAmount.toLocaleString()} was declined after manual administrative audit.`,
+      : `Your application for $${loan.fundingDetails.requestedAmount.toLocaleString()} was rejected: ${loan.rejectionReason}`,
     isRead: false,
     createdAt: new Date().toISOString()
   });
@@ -1624,7 +1885,7 @@ app.post('/api/admin/loans/update', authenticateToken, requireAdmin, (req, res) 
       senderId: "admin-1",
       senderName: "SpaceLoan Capital Operations",
       receiverId: loan.userId,
-      content: `Your application ${loan.id} has been APPROVED for $${loan.fundingDetails.requestedAmount.toLocaleString()}. Please respond here to initiate contract signatures and wallet/escrow wiring validation.`,
+      content: `Your application ${loan.id} has been APPROVED for $${loan.fundingDetails.requestedAmount.toLocaleString()}. Please proceed to the Settlement page to complete your request.`,
       isRead: false,
       createdAt: new Date().toISOString()
     });
@@ -1643,6 +1904,292 @@ app.post('/api/admin/loans/update', authenticateToken, requireAdmin, (req, res) 
   logAction("Loan Status Update", `Loan ${loanId} set to ${status} for ${loan.userEmail}`, { id: req.user!.id, email: req.user!.email }, req.ip);
 
   res.json({ message: `Loan status successfully updated to ${status}.`, loan });
+});
+
+// Admin confirm collateral payment endpoint
+app.post('/api/admin/loans/confirm-payment', authenticateToken, requireAdmin, (req, res) => {
+  const { loanId, installmentNumber } = req.body;
+  if (!loanId) {
+    res.status(400).json({ error: 'Loan ID is required.' });
+    return;
+  }
+
+  const db = getDB();
+  const loan = db.loans.find(l => l.id === loanId);
+  if (!loan) {
+    res.status(404).json({ error: 'Loan application not found.' });
+    return;
+  }
+
+  if (loan.installments && loan.installments.length > 0) {
+    const instNum = Number(installmentNumber) || loan.installments.find(i => i.status === 'Submitted' || i.status === 'Under Review')?.number || 1;
+    const inst = loan.installments.find(i => i.number === instNum);
+    if (inst) {
+      inst.status = 'Approved';
+      inst.reviewedAt = new Date().toISOString();
+    }
+
+    const allApproved = loan.installments.every(i => i.status === 'Approved');
+    if (allApproved) {
+      loan.collateralPaid = true;
+      loan.collateralPaymentStatus = 'Confirmed';
+    } else {
+      loan.collateralPaid = false;
+      loan.collateralPaymentStatus = 'Under Review';
+    }
+  } else {
+    loan.collateralPaid = true;
+    loan.collateralPaymentStatus = 'Confirmed';
+  }
+
+  db.notifications.push({
+    id: generateId(),
+    userId: loan.userId,
+    title: loan.collateralPaid ? "Collateral Payment Confirmed" : "Installment Approved",
+    content: loan.collateralPaid
+      ? `Your settlement payment for Loan ${loan.id} has been verified and confirmed. Status: Loan Ready for Disbursement.`
+      : `Payment for installment on Loan ${loan.id} has been verified. Next installment is now unlocked.`,
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+
+  saveDB(db);
+  logAction("Payment Confirmed", `Collateral payment confirmed for loan ${loanId}`, { id: req.user!.id, email: req.user!.email }, req.ip);
+
+  res.json({ message: loan.collateralPaid ? 'Payment confirmed successfully. Status: Loan Ready for Disbursement.' : 'Installment payment confirmed.', loan });
+});
+
+// Admin cancel/reject settlement payment endpoint
+app.post('/api/admin/loans/cancel-payment', authenticateToken, requireAdmin, (req, res) => {
+  const { loanId, installmentNumber, reason } = req.body;
+  if (!loanId) {
+    res.status(400).json({ error: 'Loan ID is required.' });
+    return;
+  }
+
+  const db = getDB();
+  const loan = db.loans.find(l => l.id === loanId);
+  if (!loan) {
+    res.status(404).json({ error: 'Loan application not found.' });
+    return;
+  }
+
+  const cancelReason = reason || 'Payment proof verification failed or funds not received.';
+
+  if (loan.installments && loan.installments.length > 0) {
+    const instNum = Number(installmentNumber) || loan.installments.find(i => i.status === 'Submitted' || i.status === 'Under Review')?.number || 1;
+    const inst = loan.installments.find(i => i.number === instNum);
+    if (inst) {
+      inst.status = 'Rejected';
+      inst.rejectionReason = cancelReason;
+      inst.reviewedAt = new Date().toISOString();
+    }
+    loan.collateralPaymentStatus = 'Rejected';
+    loan.rejectionReason = cancelReason;
+  } else {
+    loan.collateralPaymentStatus = 'Rejected';
+    loan.rejectionReason = cancelReason;
+  }
+
+  db.notifications.push({
+    id: generateId(),
+    userId: loan.userId,
+    title: "Settlement Payment Submission Cancelled",
+    content: `The Elon Capital loan team cancelled/rejected your payment submission for Loan ${loan.id}. Reason: ${cancelReason}. You can now re-submit your payment proof on the settlement page.`,
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+
+  const user = db.users.find(u => u.id === loan.userId);
+  user?.activityHistory?.unshift({
+    id: generateId(),
+    action: `Settlement payment submission for loan ${loan.id} was cancelled by Admin. Reason: ${cancelReason}`,
+    timestamp: new Date().toISOString(),
+    ipAddress: req.ip || "127.0.0.1"
+  });
+
+  saveDB(db);
+  logAction("Payment Cancelled", `Payment cancelled for loan ${loanId}. Reason: ${cancelReason}`, { id: req.user!.id, email: req.user!.email }, req.ip);
+
+  res.json({ message: 'Payment submission cancelled/rejected successfully.', loan });
+});
+
+// User withdraw loan capital endpoint
+app.post('/api/loans/withdraw', authenticateToken, (req, res) => {
+  const { loanId, withdrawType, withdrawDetails } = req.body;
+  if (!loanId) {
+    res.status(400).json({ error: 'Loan ID is required.' });
+    return;
+  }
+
+  const db = getDB();
+  const loan = db.loans.find(l => l.id === loanId && l.userId === req.user!.id);
+  if (!loan) {
+    res.status(404).json({ error: 'Loan application not found.' });
+    return;
+  }
+
+  if (loan.withdrawn) {
+    res.status(400).json({ error: 'You do not have any available balance to withdraw. Apply for more loan to see balance to withdraw.' });
+    return;
+  }
+
+  loan.withdrawn = true;
+  loan.withdrawnAt = new Date().toISOString();
+  loan.withdrawalDetails = {
+    type: withdrawType || 'crypto',
+    details: withdrawDetails || {},
+    timestamp: new Date().toISOString()
+  };
+
+  db.notifications.push({
+    id: generateId(),
+    userId: req.user!.id,
+    title: "Loan Capital Withdrawn",
+    content: `Withdrawal request for $${loan.fundingDetails.requestedAmount.toLocaleString()} USD has been submitted and debited from your Vault balance.`,
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+
+  const user = db.users.find(u => u.id === req.user!.id);
+  user?.activityHistory?.unshift({
+    id: generateId(),
+    action: `Submitted withdrawal request for $${loan.fundingDetails.requestedAmount.toLocaleString()} USD on loan ${loan.id}`,
+    timestamp: new Date().toISOString(),
+    ipAddress: req.ip || "127.0.0.1"
+  });
+
+  saveDB(db);
+  logAction("Loan Withdrawn", `User ${req.user!.email} withdrew $${loan.fundingDetails.requestedAmount} for loan ${loan.id}`, { id: req.user!.id, email: req.user!.email }, req.ip);
+
+  res.json({ message: 'Withdrawal request submitted successfully & loan balance debited.', loan });
+});
+
+// User submit loan repayment
+app.post('/api/loans/repay', authenticateToken, (req, res) => {
+  const { loanId, txId } = req.body;
+  if (!loanId || !txId) {
+    res.status(400).json({ error: 'Loan ID and Transaction Reference/Memo are required.' });
+    return;
+  }
+
+  const db = getDB();
+  const loan = db.loans.find(l => l.id === loanId && l.userId === req.user!.id);
+  if (!loan) {
+    res.status(404).json({ error: 'Loan application not found.' });
+    return;
+  }
+
+  loan.repaymentTxId = txId;
+  loan.repaymentStatus = 'Under Review';
+
+  db.notifications.push({
+    id: generateId(),
+    userId: req.user!.id,
+    title: "Loan Repayment Submitted",
+    content: `Your loan repayment reference ${txId} for loan ${loan.id} ($${loan.fundingDetails.requestedAmount.toLocaleString()} USD) has been submitted. The Elon Capital loan team will confirm your payment within 24 hours.`,
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+
+  const user = db.users.find(u => u.id === req.user!.id);
+  user?.activityHistory?.unshift({
+    id: generateId(),
+    action: `Submitted loan repayment proof ${txId} for loan ${loan.id}`,
+    timestamp: new Date().toISOString(),
+    ipAddress: req.ip || "127.0.0.1"
+  });
+
+  saveDB(db);
+  res.json({
+    message: 'The Elon Capital loan team will review your repayment and get back to you within 24 hours.',
+    loan
+  });
+});
+
+// Admin confirm loan repayment
+app.post('/api/admin/loans/confirm-repayment', authenticateToken, requireAdmin, (req, res) => {
+  const { loanId } = req.body;
+  if (!loanId) {
+    res.status(400).json({ error: 'Loan ID is required.' });
+    return;
+  }
+
+  const db = getDB();
+  const loan = db.loans.find(l => l.id === loanId);
+  if (!loan) {
+    res.status(404).json({ error: 'Loan application not found.' });
+    return;
+  }
+
+  loan.repaid = true;
+  loan.repaidAt = new Date().toISOString();
+  loan.repaymentStatus = 'Confirmed';
+
+  db.notifications.push({
+    id: generateId(),
+    userId: loan.userId,
+    title: "Loan Repayment Confirmed",
+    content: `Your loan repayment for Loan #${loan.id} ($${loan.fundingDetails.requestedAmount.toLocaleString()} USD) has been verified and fully confirmed. You are now eligible to apply for new loan facilities!`,
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+
+  const user = db.users.find(u => u.id === loan.userId);
+  user?.activityHistory?.unshift({
+    id: generateId(),
+    action: `Loan ${loan.id} marked as fully repaid by Admin`,
+    timestamp: new Date().toISOString(),
+    ipAddress: req.ip || "127.0.0.1"
+  });
+
+  saveDB(db);
+  res.json({ message: 'Loan repayment confirmed successfully.', loan });
+});
+
+// Admin disburse loan endpoint
+app.post('/api/admin/loans/disburse', authenticateToken, requireAdmin, (req, res) => {
+  const { loanId } = req.body;
+  if (!loanId) {
+    res.status(400).json({ error: 'Loan ID is required.' });
+    return;
+  }
+
+  const db = getDB();
+  const loan = db.loans.find(l => l.id === loanId);
+  if (!loan) {
+    res.status(404).json({ error: 'Loan application not found.' });
+    return;
+  }
+
+  if (!loan.collateralPaid && loan.collateralPaymentStatus !== 'Confirmed') {
+    return res.status(400).json({ error: 'Settlement payment must be fully confirmed by Admin before disbursement.' });
+  }
+
+  loan.disbursed = true;
+  loan.disbursedAt = new Date().toISOString();
+
+  db.notifications.push({
+    id: generateId(),
+    userId: loan.userId,
+    title: "Loan Disbursed Successfully",
+    content: `Great news! The capital of $${loan.fundingDetails.requestedAmount.toLocaleString()} has been sent to your wallet/escrow address. Status updated to Loan Disbursed.`,
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+
+  const user = db.users.find(u => u.id === loan.userId);
+  user?.activityHistory?.unshift({
+    id: generateId(),
+    action: `Loan ${loan.id} marked as disbursed by Admin`,
+    timestamp: new Date().toISOString(),
+    ipAddress: req.ip || "127.0.0.1"
+  });
+
+  saveDB(db);
+  logAction("Loan Disbursed", `Loan ${loanId} disbursed to user ${loan.userId}`, { id: req.user!.id, email: req.user!.email }, req.ip);
+
+  res.json({ message: 'Loan funds successfully disbursed.', loan });
 });
 
 // Mark Ticket resolved

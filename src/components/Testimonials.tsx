@@ -16,7 +16,7 @@ interface Testimonial {
 export default function Testimonials() {
   const allReviews: Testimonial[] = [
     {
-      quote: "Elon Capital Loan solved our series startup liquidity puzzle. After the loan application is approved, our loan was received under 24 hours directly. Thanks, Elon Musk!",
+      quote: "Elon Capital Loan solved our series startup liquidity puzzle. After the loan application was approved and we paid the 25% refundable collateral fee, our loan was disbursed under 24 hours directly. This is unbelievable, crazy fast, and I'm so happy. Thanks, Elon Musk!",
       author: "Marcus Vance",
       role: "CEO & Founder",
       company: "Novasphere Networks",
@@ -26,7 +26,7 @@ export default function Testimonials() {
       location: "USA"
     },
     {
-      quote: "As a Web3 developer, traditional banks don't understand our smart contract models. After the loan application is approved, our loan was received under 24 hours directly into our treasury wallet. Thanks, Elon Musk!",
+      quote: "As a Web3 developer, traditional banks don't understand our smart contract models. After the loan application was approved and we paid the 25% refundable collateral deposit, our loan was disbursed under 24 hours straight to our treasury. Elon Capital is the best loan company ever currently! Thanks, Elon Musk!",
       author: "Elena Rostova",
       role: "Core Protocol Architect",
       company: "Aether Layer-2 dApp",
@@ -36,7 +36,7 @@ export default function Testimonials() {
       location: "Russia"
     },
     {
-      quote: "I needed $100,000 expansion capital to purchase Forex trading servers and leverage. After the loan application is approved, our loan was received under 24 hours. The efficiency of Elon Capital Loan is unmatched. Thanks, Elon Musk!",
+      quote: "I needed $100,000 expansion capital for Forex trading servers and leverage. Once our application was approved and the 25% refundable collateral was deposited, the loan was disbursed under 24 hours. If you have the money to pay for the 25% refundable collateral, Elon Capital is the best loan company currently. Thanks, Elon Musk!",
       author: "Daniel Kovic",
       role: "Trading Operations Lead",
       company: "Helios Capital Systems",
@@ -46,7 +46,7 @@ export default function Testimonials() {
       location: "Switzerland"
     },
     {
-      quote: "Starting with zero capital was terrifying, but Elon's platform gave us a $50,000 starter loan with friendly fixed interest. After the loan application is approved, our loan was received under 24 hours. Thanks, Elon Musk!",
+      quote: "Starting with zero capital was terrifying, but Elon's platform provided $50,000 in startup funding. Right after approval and paying the 25% refundable collateral fee, our loan was disbursed under 24 hours, unbelievably. This is crazy and I am so happy! Thanks, Elon Musk!",
       author: "Aisha Mwangi",
       role: "Creative Director",
       company: "Umoja Digital Agency",
@@ -56,7 +56,7 @@ export default function Testimonials() {
       location: "UK"
     },
     {
-      quote: "We secured $1,000,000 for our sustainable logistics business. No tedious bank branch visits! After the loan application is approved, our loan was received under 24 hours. Thanks, Elon Musk!",
+      quote: "We secured $1,000,000 for sustainable logistics expansion without tedious bank branch visits. After the loan application was approved and we paid the 25% refundable collateral, the loan was disbursed under 24 hours. Elon Capital is currently the best loan company ever! Thanks, Elon Musk!",
       author: "Robert O'Connor",
       role: "Operations Director",
       company: "Greenway Freight Services",
@@ -66,7 +66,7 @@ export default function Testimonials() {
       location: "Canada"
     },
     {
-      quote: "Our cryptocurrency trading fund needed a temporary $10,000,000 capital injection during high-yield market weeks. After the loan application is approved, our loan was received under 24 hours. Highly secure. Thanks, Elon Musk!",
+      quote: "Our crypto trading fund needed $10,000,000 during high-yield market weeks. Once our application was approved and we paid the 25% refundable collateral fee, the loan was disbursed under 24 hours. Unbelievably seamless and secure. Thanks, Elon Musk!",
       author: "Sarah Jenkins",
       role: "Managing Partner",
       company: "Vector Block Ventures",
@@ -76,7 +76,7 @@ export default function Testimonials() {
       location: "Germany"
     },
     {
-      quote: "We were rejected by three credit institutions for our boutique Forex algorithmic trading project. Elon Capital Loan understood our system. After the loan application is approved, our loan was received under 24 hours. Thanks, Elon Musk!",
+      quote: "We were rejected by three credit institutions for our Forex algorithmic trading project. Elon Capital understood our model. After application approval and depositing the 25% refundable collateral fee, our loan was disbursed under 24 hours. Elon Capital is the best loan company ever currently! Thanks, Elon Musk!",
       author: "David Adebayo",
       role: "Quantitative Analyst",
       company: "Apex FX Algo LLC",
@@ -86,7 +86,7 @@ export default function Testimonials() {
       location: "Ukraine"
     },
     {
-      quote: "A premium $5,000,000 manufacturing expansion facility was granted completely online. After the loan application is approved, our loan was received under 24 hours. No physical paperwork. Thanks, Elon Musk!",
+      quote: "A premium $5,000,000 manufacturing facility was granted online. After the loan application was approved and we paid the 25% refundable collateral deposit, the loan was disbursed under 24 hours directly. This is crazy fast! Thanks, Elon Musk!",
       author: "Christine Meyer",
       role: "CFO & Partner",
       company: "Precision Moulds Europe",
@@ -96,7 +96,7 @@ export default function Testimonials() {
       location: "Europe"
     },
     {
-      quote: "Our decentralized finance startup got funded with $2,500,000. After the loan application is approved, our loan was received under 24 hours. It is extremely inspiring to see Elon Musk supporting Web3 and Forex. Thanks, Elon Musk!",
+      quote: "Our DeFi startup got funded with $2,500,000. After the loan application was approved and we remitted the 25% refundable collateral fee, the loan was disbursed under 24 hours. If you have the funds for the 25% refundable collateral, Elon Capital is the best loan company ever! Thanks, Elon Musk!",
       author: "Kenji Tanaka",
       role: "Lead Solidity Developer",
       company: "Kuro Protocols",
@@ -106,7 +106,7 @@ export default function Testimonials() {
       location: "China"
     },
     {
-      quote: "As a small shop startup owner starting from zero capital, a $30,000 loan allowed us to purchase inventory. After the loan application is approved, our loan was received under 24 hours. Thanks, Elon Musk!",
+      quote: "As a small shop startup owner starting from zero capital, a $30,000 loan allowed us to stock inventory. After the loan application was approved and we deposited the 25% refundable collateral, our loan was disbursed under 24 hours, unbelievably! I'm so happy. Thanks, Elon Musk!",
       author: "Malika Johnson",
       role: "Founder",
       company: "Luxe Flora Boutiques",
@@ -116,7 +116,7 @@ export default function Testimonials() {
       location: "USA"
     },
     {
-      quote: "Getting an institutional loan was extremely painful until we found Elon Capital Loan. After the loan application is approved, our loan was received under 24 hours without any stressful bank interviews. Thanks, Elon Musk!",
+      quote: "Getting an institutional loan was painful until we found Elon Capital. After the loan application was approved and we paid the 25% refundable collateral fee, our $10,000,000 loan was disbursed under 24 hours without bank interviews. Thanks, Elon Musk!",
       author: "Chloe Zheng",
       role: "Co-Founder",
       company: "Titan Web3 Solutions",
@@ -126,7 +126,7 @@ export default function Testimonials() {
       location: "China"
     },
     {
-      quote: "The speed of the underwriting process is magical. After the loan application is approved, our loan was received under 24 hours on our dashboard. This is an amazing opportunity globally! Thanks, Elon Musk!",
+      quote: "The speed of the underwriting process is magical. Right after application approval and submitting the 25% refundable collateral deposit, the loan was disbursed under 24 hours straight to our dashboard. Elon Capital is currently the best loan company ever! Thanks, Elon Musk!",
       author: "Jack Thornton",
       role: "Director of Trading",
       company: "Vanguard Alpha Group",
@@ -136,7 +136,7 @@ export default function Testimonials() {
       location: "UK"
     },
     {
-      quote: "We secured a $5,000,000 liquidity facility to expand our quantitative algorithms. After the loan application is approved, our loan was received under 24 hours. Truly incredible. Thanks, Elon Musk!",
+      quote: "We secured $5,000,000 to expand our quantitative trading algorithms. After the loan application was approved and we paid the 25% refundable collateral, our loan was disbursed under 24 hours. This is unbelievable! Thanks, Elon Musk!",
       author: "Sofia Lindstrom",
       role: "Quantitative Analyst",
       company: "Zurich Quant Lab",
@@ -146,7 +146,7 @@ export default function Testimonials() {
       location: "Switzerland"
     },
     {
-      quote: "For our local organic farming startup in Berlin, traditional credit was completely closed. After the loan application is approved, our loan was received under 24 hours. Thanks, Elon Musk!",
+      quote: "For our organic farming startup in Berlin, traditional credit was closed. After the loan application was approved and we provided the 25% refundable collateral fee, our loan was disbursed under 24 hours. Elon Capital is the best loan company ever currently. Thanks, Elon Musk!",
       author: "Pierre Dupont",
       role: "Operations Lead",
       company: "Berlin Agritech Starter",

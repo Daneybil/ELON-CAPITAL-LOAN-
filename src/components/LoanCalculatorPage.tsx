@@ -25,8 +25,8 @@ export default function LoanCalculatorPage({
 
   // Calculate values dynamically
   React.useEffect(() => {
-    // Interest rate is 15% if term is less than or equal to 12 months, otherwise 25%
-    const rate = term <= 12 ? 15 : 25;
+    // Interest rate is 15% if term is less than or equal to 12 months, otherwise 20%
+    const rate = term <= 12 ? 15 : 20;
     const totalInterest = amount * (rate / 100);
     const totalPayback = amount + totalInterest;
     const monthlyPayment = term > 0 ? totalPayback / term : 0;
@@ -125,35 +125,40 @@ export default function LoanCalculatorPage({
               
               {/* SECTION A: Amount Selector */}
               <div className="space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center text-xs sm:text-sm font-mono uppercase tracking-widest text-zinc-300 font-black gap-2">
-                  <span>1. Select Credit Line Capacity</span>
-                  <span className="text-cyan-400 font-black">Limits: $1,000 - $500,000,000</span>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center text-sm sm:text-base font-mono uppercase tracking-wider text-white font-black gap-2 border-b border-white/10 pb-2">
+                  <span className="text-white font-black flex items-center gap-2">
+                    <span className="px-2.5 py-1 bg-cyan-950 text-cyan-400 rounded-lg border border-cyan-500/40 text-xs font-black">1</span>
+                    SELECT CREDIT LINE CAPACITY
+                  </span>
+                  <span className="text-cyan-300 bg-cyan-950/90 px-3 py-1 rounded-lg border border-cyan-500/50 font-black text-xs sm:text-sm">
+                    CREDIT LIMITS: $1,000 – $500,000,000
+                  </span>
                 </div>
 
                 {/* Big input display with manual input capability */}
-                <div className="flex items-center gap-4 border-b-2 border-white/20 focus-within:border-cyan-400 transition-colors py-4">
-                  <span className="text-3xl sm:text-5xl text-gray-500 font-black font-display">$</span>
+                <div className="flex items-center gap-4 border-b-2 border-cyan-500/50 focus-within:border-cyan-400 transition-colors py-4 bg-black/40 px-4 rounded-2xl">
+                  <span className="text-3xl sm:text-6xl text-cyan-400 font-black font-display">$</span>
                   <input 
                     type="text"
                     value={amountInput}
                     onChange={(e) => handleAmountChangeInput(e.target.value)}
                     onBlur={handleAmountBlur}
-                    className="w-full bg-transparent text-3xl sm:text-5xl font-black text-white focus:outline-none font-display uppercase tracking-tight"
+                    className="w-full bg-transparent text-3xl sm:text-6xl font-black text-white focus:outline-none font-display uppercase tracking-tight"
                     placeholder="Enter amount (Min $1,000)"
                   />
                 </div>
 
                 {/* Presets in high contrast style */}
-                <div className="flex flex-wrap gap-2 pt-2">
+                <div className="flex flex-wrap gap-2.5 pt-2">
                   {presets.map((preset) => (
                     <button
                       key={preset.value}
                       type="button"
                       onClick={() => handlePresetSelect(preset.value)}
-                      className={`px-4 py-2 text-xs sm:text-sm font-mono font-black rounded-lg transition-all duration-200 border cursor-pointer ${
+                      className={`px-4 py-2.5 text-xs sm:text-sm font-mono font-black rounded-xl transition-all duration-200 border cursor-pointer ${
                         amount === preset.value
-                          ? 'bg-cyan-400 text-black border-cyan-400 font-bold'
-                          : 'bg-white/[0.02] border-white/10 text-gray-400 hover:text-white hover:bg-white/[0.05]'
+                          ? 'bg-cyan-400 text-black border-cyan-300 font-black shadow-[0_0_20px_rgba(34,211,238,0.4)] scale-105'
+                          : 'bg-zinc-900 border-white/20 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-cyan-400/50'
                       }`}
                     >
                       {preset.label}
@@ -170,30 +175,36 @@ export default function LoanCalculatorPage({
                     step="1000"
                     value={amount || 1000}
                     onChange={(e) => handlePresetSelect(Number(e.target.value))}
-                    className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                    className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
                   />
-                  <div className="flex justify-between text-xs font-mono font-black text-gray-500 mt-2">
-                    <span>MIN: $1,000</span>
-                    <span>MAX: $500,000,000</span>
+                  <div className="flex justify-between text-xs sm:text-sm font-mono font-black text-zinc-300 mt-2">
+                    <span>MIN: $1,000 USD</span>
+                    <span>MAX: $500,000,000 USD</span>
                   </div>
                 </div>
               </div>
 
               {/* SECTION B: Term selector */}
-              <div className="space-y-4">
-                <div className="text-xs sm:text-sm font-mono uppercase tracking-widest text-zinc-300 font-black">
-                  2. Select Amortization Payback Window
+              <div className="space-y-4 pt-2">
+                <div className="text-sm sm:text-base font-mono uppercase tracking-wider text-white font-black flex items-center justify-between border-b border-white/10 pb-2">
+                  <span className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 bg-cyan-950 text-cyan-400 rounded-lg border border-cyan-500/40 text-xs font-black">2</span>
+                    SELECT AMORTIZATION PAYBACK WINDOW
+                  </span>
+                  <span className="text-emerald-400 font-mono font-black text-xs sm:text-sm bg-emerald-950/80 px-3 py-1 rounded-lg border border-emerald-500/40">
+                    SELECTED: {term} MONTHS
+                  </span>
                 </div>
-                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2.5">
                   {terms.map((m) => (
                     <button
                       key={m}
                       type="button"
                       onClick={() => setTerm(m)}
-                      className={`py-3 text-xs sm:text-sm font-mono rounded-lg transition-all border cursor-pointer text-center font-black ${
+                      className={`py-3.5 text-xs sm:text-base font-mono rounded-xl transition-all border-2 cursor-pointer text-center font-black ${
                         term === m
-                          ? 'bg-cyan-400 text-black border-cyan-400'
-                          : 'bg-white/[0.02] border-white/10 text-gray-400 hover:text-white hover:bg-white/[0.05]'
+                          ? 'bg-cyan-400 text-black border-cyan-300 shadow-[0_0_20px_rgba(34,211,238,0.4)] scale-105'
+                          : 'bg-zinc-900 border-white/20 text-zinc-200 hover:text-white hover:bg-zinc-800 hover:border-cyan-400/50'
                       }`}
                     >
                       {m} Mo
@@ -202,72 +213,119 @@ export default function LoanCalculatorPage({
                 </div>
               </div>
 
+              {/* LOAN INTEREST POLICY DISPLAY CARD */}
+              <div className="p-6 bg-gradient-to-r from-cyan-950/90 via-zinc-950 to-cyan-950/90 border-2 border-cyan-400/70 rounded-2xl space-y-4 shadow-xl">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-cyan-500/30 pb-3 gap-2">
+                  <span className="text-sm sm:text-base font-mono font-black text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+                    <Percent className="h-5 w-5 text-cyan-400" /> OFFICIAL LOAN INTEREST RATE POLICY
+                  </span>
+                  <span className="text-xs font-mono font-black text-emerald-300 bg-emerald-950/90 px-3 py-1 rounded-lg border border-emerald-500/50 uppercase">
+                    FIXED NON-COMPOUNDING
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm font-mono font-bold">
+                  <div className={`p-4 rounded-xl border-2 transition-all ${
+                    term <= 12 ? 'bg-cyan-950 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)]' : 'bg-black/80 border-white/20 text-zinc-300'
+                  }`}>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="uppercase text-xs font-black tracking-wider text-cyan-300">1 Month – 12 Months Term</span>
+                      {term <= 12 && <span className="text-xs bg-cyan-400 text-black px-2.5 py-0.5 rounded-md font-black">APPLIED (15%)</span>}
+                    </div>
+                    <div className="text-2xl font-black text-white">15% Fixed Interest</div>
+                    <p className="text-xs text-zinc-200 font-extrabold mt-1.5 leading-relaxed">Applies to short-term financing facilities up to 12 months.</p>
+                  </div>
+                  <div className={`p-4 rounded-xl border-2 transition-all ${
+                    term > 12 ? 'bg-cyan-950 border-cyan-400 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)]' : 'bg-black/80 border-white/20 text-zinc-300'
+                  }`}>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="uppercase text-xs font-black tracking-wider text-cyan-300">&gt;12 Months – 60 Months (5 Yrs)</span>
+                      {term > 12 && <span className="text-xs bg-cyan-400 text-black px-2.5 py-0.5 rounded-md font-black">APPLIED (20%)</span>}
+                    </div>
+                    <div className="text-2xl font-black text-white">20% Fixed Interest</div>
+                    <p className="text-xs text-zinc-200 font-extrabold mt-1.5 leading-relaxed">Applies to long-term amortization facilities exceeding 12 months up to 5 years.</p>
+                  </div>
+                </div>
+              </div>
+
               {/* SECTION C: Capital Ledger */}
-              <div className="space-y-4 p-6 bg-white/[0.01] border-2 border-white/10 rounded-2xl text-left">
-                <div className="flex items-center gap-2 mb-2">
-                  <ShieldCheck className="h-4 w-4 text-cyan-400" />
-                  <span className="text-xs font-mono uppercase tracking-widest text-cyan-400 font-black">
-                    Secure Loan Ledger Summary
+              <div className="space-y-5 p-6 sm:p-8 bg-zinc-950/90 border-2 border-white/20 rounded-2xl text-left shadow-2xl">
+                <div className="flex items-center justify-between border-b-2 border-cyan-500/40 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <ShieldCheck className="h-6 w-6 text-cyan-400 stroke-[2.5]" />
+                    <span className="text-base sm:text-xl font-mono uppercase tracking-wider text-white font-black">
+                      SECURE LOAN LEDGER SUMMARY
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono font-black text-emerald-300 bg-emerald-950/90 px-3 py-1 rounded-lg border border-emerald-500/50 uppercase">
+                    AUDITED LEDGER
                   </span>
                 </div>
 
-                <div className="space-y-3.5 divide-y divide-white/5 text-xs sm:text-sm font-mono font-black">
-                  <div className="flex justify-between items-center py-2 text-zinc-300">
-                    <span>1. Principal Amount Transmitted:</span>
-                    <span className="text-white font-black text-sm sm:text-base">${amount.toLocaleString()}</span>
+                <div className="space-y-4 divide-y divide-white/10 text-sm sm:text-base font-mono font-black">
+                  <div className="flex justify-between items-center py-3 text-zinc-100">
+                    <span className="text-sm sm:text-base font-black text-white">1. Principal Amount Transmitted:</span>
+                    <span className="text-white font-black text-base sm:text-xl bg-black/80 px-4 py-1.5 rounded-xl border border-white/20">${amount.toLocaleString()} USD</span>
                   </div>
 
-                  <div className="flex justify-between items-start py-2.5">
-                    <span className="text-zinc-300">2. Refundable Collateral (25%):</span>
-                    <div className="text-right">
-                      <span className="text-cyan-400 font-black text-sm sm:text-base block">
-                        ${(amount * 0.25).toLocaleString()}
+                  <div className="flex justify-between items-start py-3.5">
+                    <div className="space-y-1">
+                      <span className="text-sm sm:text-base font-black text-white block">2. Refundable Collateral (25%):</span>
+                      <span className="text-xs sm:text-sm text-emerald-300 font-extrabold block">
+                        🛡️ 100% Refunded back to your dashboard on final repayment
                       </span>
-                      <span className="text-[10px] text-zinc-400 font-bold block mt-0.5">
-                        100% Refunded back to your dashboard on final repayment
+                    </div>
+                    <div className="text-right shrink-0 ml-4">
+                      <span className="text-emerald-400 font-black text-base sm:text-xl block bg-emerald-950/90 px-4 py-1.5 rounded-xl border border-emerald-500/50">
+                        ${(amount * 0.25).toLocaleString()} USD
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-start py-2.5">
-                    <span className="text-zinc-300">3. One-Time Setup Fee (3.5%):</span>
-                    <div className="text-right">
-                      <span className="text-white font-black text-sm sm:text-base block">
-                        ${(amount * 0.035).toLocaleString()}
+                  <div className="flex justify-between items-start py-3.5">
+                    <div className="space-y-1">
+                      <span className="text-sm sm:text-base font-black text-white block">3. One-Time Setup Fee (3.5%):</span>
+                      <span className="text-xs sm:text-sm text-cyan-300 font-extrabold block">
+                        ⚙️ One-time company setup and compliance set off charge
                       </span>
-                      <span className="text-[10px] text-zinc-400 font-bold block mt-0.5">
-                        One-time company setup and compliance charge
+                    </div>
+                    <div className="text-right shrink-0 ml-4">
+                      <span className="text-white font-black text-base sm:text-xl block bg-black/80 px-4 py-1.5 rounded-xl border border-white/20">
+                        ${(amount * 0.035).toLocaleString()} USD
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center py-2 text-zinc-300">
-                    <span>4. Amortization Rate Applied:</span>
-                    <span className="text-white font-black text-sm sm:text-base">{calculatedResult.rate}% Non-Compounding</span>
+                  <div className="flex justify-between items-center py-3 text-zinc-100">
+                    <span className="text-sm sm:text-base font-black text-white">4. Amortization Rate Applied:</span>
+                    <span className="text-yellow-300 font-black text-base sm:text-lg bg-yellow-950/80 px-4 py-1.5 rounded-xl border border-yellow-500/40">{calculatedResult.rate}% Non-Compounding</span>
                   </div>
 
-                  <div className="flex justify-between items-center py-2 text-zinc-300">
-                    <span>5. Fixed Monthly Repayment:</span>
-                    <span className="text-cyan-400 font-black text-sm sm:text-base">${calculatedResult.monthly.toLocaleString()} / month</span>
+                  <div className="flex justify-between items-center py-3 text-zinc-100">
+                    <span className="text-sm sm:text-base font-black text-white">5. Fixed Monthly Repayment:</span>
+                    <span className="text-cyan-300 font-black text-base sm:text-xl bg-cyan-950/80 px-4 py-1.5 rounded-xl border border-cyan-500/50">${calculatedResult.monthly.toLocaleString()} USD / month</span>
                   </div>
 
-                  <div className="flex justify-between items-center py-2.5 pt-3 border-t border-white/20">
-                    <span className="text-zinc-200 font-black uppercase text-xs tracking-wider">
+                  <div className="flex justify-between items-center py-4 pt-4 border-t-2 border-white/20">
+                    <span className="text-white font-black uppercase text-sm sm:text-base tracking-wider">
                       6. Total Repayment Commitment:
                     </span>
-                    <span className="text-cyan-400 font-black text-lg sm:text-xl">${calculatedResult.total.toLocaleString()}</span>
+                    <span className="text-cyan-400 font-black text-xl sm:text-3xl bg-black px-5 py-2 rounded-2xl border-2 border-cyan-400 shadow-[0_0_25px_rgba(34,211,238,0.3)]">${calculatedResult.total.toLocaleString()} USD</span>
                   </div>
                 </div>
 
-                {/* Important disclosures in a high contrast text-block */}
-                <div className="bg-cyan-950/20 border border-cyan-500/20 rounded-xl p-5 text-xs sm:text-sm font-mono text-zinc-100 leading-relaxed space-y-3 mt-4">
-                  <p>
-                    <strong className="text-white font-black">Structured Breakdown:</strong> You are configuring a capital injection of <strong className="text-cyan-400 font-black">${amount.toLocaleString()}</strong>. Over your chosen <strong className="text-white font-black">{term}-month</strong> payback timeframe, you will commit to a fixed monthly repayment installment of <strong className="text-cyan-400 font-black">${calculatedResult.monthly.toLocaleString()}</strong>. The total interest is <strong className="text-white font-black">${(calculatedResult.total - amount).toLocaleString()}</strong>.
+                {/* Prominent High-Contrast Key Notice Banner */}
+                <div className="bg-gradient-to-r from-emerald-950/90 via-black to-cyan-950/90 border-2 border-emerald-400/80 rounded-2xl p-6 text-sm sm:text-base font-mono text-white leading-relaxed space-y-4 mt-6 shadow-[0_0_30px_rgba(52,211,153,0.15)]">
+                  <p className="text-white font-black text-sm sm:text-base leading-relaxed">
+                    <strong className="text-cyan-300 font-black uppercase">Structured Breakdown:</strong> You are configuring a capital injection of <strong className="text-cyan-300 font-black text-base sm:text-lg">${amount.toLocaleString()} USD</strong>. Over your chosen <strong className="text-white font-black text-base sm:text-lg">{term}-month</strong> payback timeframe, you will commit to a fixed monthly repayment installment of <strong className="text-cyan-300 font-black text-base sm:text-lg">${calculatedResult.monthly.toLocaleString()} USD</strong>. The total interest is <strong className="text-yellow-300 font-black text-base sm:text-lg">${(calculatedResult.total - amount).toLocaleString()} USD</strong>.
                   </p>
-                  <p className="border-t border-cyan-500/20 pt-3 text-xs text-cyan-400 flex items-center gap-2 font-black">
-                    <AlertTriangle className="h-4 w-4 text-cyan-400 shrink-0" />
-                    <span>A 25% Refundable Collateral and 3.5% Company Setup Fee are required to unlock escrow disbursement.</span>
-                  </p>
+                  
+                  <div className="p-4 bg-emerald-950/90 border-2 border-emerald-400 rounded-xl text-xs sm:text-sm font-mono font-black text-emerald-100 leading-relaxed flex items-start gap-3 shadow-[0_0_20px_rgba(52,211,153,0.25)]">
+                    <AlertTriangle className="h-6 w-6 text-emerald-400 shrink-0 stroke-[2.5] mt-0.5" />
+                    <div>
+                      <span className="text-emerald-300 font-black uppercase block tracking-wider mb-1 text-xs">DISBURSEMENT ESCROW REQUIREMENT</span>
+                      <span>From <strong>$1,000 – $500,000,000</strong> credit line limits: a <strong>25% refundable collateral deposit</strong> and <strong>3.5% company set off fee</strong> are required to unlock escrow disbursement.</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 

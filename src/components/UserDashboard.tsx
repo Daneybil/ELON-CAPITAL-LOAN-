@@ -36,6 +36,7 @@ import SearchableSelect from './SearchableSelect';
 import LoanCalculatorPage from './LoanCalculatorPage';
 import { auth } from '../firebase';
 import { updatePassword, verifyBeforeUpdateEmail } from 'firebase/auth';
+import { getApiUrl } from '../utils/api';
 
 const getInterestRateFromPreference = (prefStr?: string): number => {
   if (!prefStr) return 15;
@@ -370,7 +371,7 @@ export default function UserDashboard({
       const headers = { 'Authorization': `Bearer ${token}` };
       
       // Fetch loans
-      const resLoans = await fetch('/api/loans/list', { headers });
+      const resLoans = await fetch(getApiUrl('/api/loans/list'), { headers });
       if (resLoans.ok) {
         const fetchedLoans: LoanApplication[] = await resLoans.json();
         setLoans(fetchedLoans);
@@ -381,26 +382,26 @@ export default function UserDashboard({
       }
 
       // Fetch kyc
-      const resKyc = await fetch('/api/kyc/status', { headers });
+      const resKyc = await fetch(getApiUrl('/api/kyc/status'), { headers });
       if (resKyc.ok) setKycStatus(await resKyc.json());
 
       // Fetch messages
-      const resMsg = await fetch('/api/messages', { headers });
+      const resMsg = await fetch(getApiUrl('/api/messages'), { headers });
       if (resMsg.ok) setMessages(await resMsg.json());
 
       // Fetch unread messages
-      const resUnread = await fetch('/api/messages/unread', { headers });
+      const resUnread = await fetch(getApiUrl('/api/messages/unread'), { headers });
       if (resUnread.ok) {
         const d = await resUnread.json();
         setUnreadMsgCount(d.unreadCount);
       }
 
       // Fetch tickets
-      const resTkt = await fetch('/api/support/tickets', { headers });
+      const resTkt = await fetch(getApiUrl('/api/support/tickets'), { headers });
       if (resTkt.ok) setTickets(await resTkt.json());
 
       // Fetch notifications
-      const resNotif = await fetch('/api/notifications', { headers });
+      const resNotif = await fetch(getApiUrl('/api/notifications'), { headers });
       if (resNotif.ok) setNotifications(await resNotif.json());
 
     } catch (err) {
@@ -506,7 +507,7 @@ export default function UserDashboard({
     setActionLoading(true);
 
     try {
-      const res = await fetch('/api/kyc/upload', {
+      const res = await fetch(getApiUrl('/api/kyc/upload'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -543,7 +544,7 @@ export default function UserDashboard({
       setKycStatus(data.kyc);
       
       // Also fetch loans list so that newly created/updated loans are synced!
-      const loansRes = await fetch('/api/loans/list', {
+      const loansRes = await fetch(getApiUrl('/api/loans/list'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (loansRes.ok) {
@@ -563,7 +564,7 @@ export default function UserDashboard({
     if (!newMsgContent.trim()) return;
 
     try {
-      const res = await fetch('/api/messages/send', {
+      const res = await fetch(getApiUrl('/api/messages/send'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -593,7 +594,7 @@ export default function UserDashboard({
     setActionLoading(true);
 
     try {
-      const res = await fetch('/api/support/tickets/create', {
+      const res = await fetch(getApiUrl('/api/support/tickets/create'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -627,7 +628,7 @@ export default function UserDashboard({
     setActionLoading(true);
 
     try {
-      const res = await fetch('/api/support/tickets/reply', {
+      const res = await fetch(getApiUrl('/api/support/tickets/reply'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -676,7 +677,7 @@ export default function UserDashboard({
     setActionLoading(true);
 
     try {
-      const res = await fetch('/api/user/profile/update', {
+      const res = await fetch(getApiUrl('/api/user/profile/update'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -707,7 +708,7 @@ export default function UserDashboard({
   const handleSendOtp = async () => {
     setIsSendingOtp(true);
     try {
-      const res = await fetch('/api/auth/send-profile-otp', {
+      const res = await fetch(getApiUrl('/api/auth/send-profile-otp'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -729,7 +730,7 @@ export default function UserDashboard({
   const handleSendEmailOtp = async () => {
     setIsSendingEmailOtp(true);
     try {
-      const res = await fetch('/api/auth/send-profile-otp', {
+      const res = await fetch(getApiUrl('/api/auth/send-profile-otp'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -768,7 +769,7 @@ export default function UserDashboard({
         }
       }
 
-      const res = await fetch('/api/user/profile/update-email', {
+      const res = await fetch(getApiUrl('/api/user/profile/update-email'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -820,7 +821,7 @@ export default function UserDashboard({
         }
       }
 
-      const res = await fetch('/api/user/profile/change-password', {
+      const res = await fetch(getApiUrl('/api/user/profile/change-password'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -857,7 +858,7 @@ export default function UserDashboard({
     }
     setActionLoading(true);
     try {
-      const res = await fetch('/api/loans/pay-collateral', {
+      const res = await fetch(getApiUrl('/api/loans/pay-collateral'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -889,7 +890,7 @@ export default function UserDashboard({
   // Read notifications helper
   const markNotificationsRead = async () => {
     try {
-      await fetch('/api/notifications/read', {
+      await fetch(getApiUrl('/api/notifications/read'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -962,7 +963,7 @@ export default function UserDashboard({
         videoUrl: kycVideoUrl || 'liveness_video_proof.mp4'
       };
 
-      const kycRes = await fetch('/api/kyc/upload', {
+      const kycRes = await fetch(getApiUrl('/api/kyc/upload'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1012,7 +1013,7 @@ export default function UserDashboard({
         documents: uploadedLoanDocs.length > 0 ? uploadedLoanDocs : (kycBusiness ? [{ name: 'business_incorporation_compliance.pdf', type: 'Sovereign Document', url: '#' }] : [])
       };
 
-      const loanRes = await fetch('/api/loans/apply', {
+      const loanRes = await fetch(getApiUrl('/api/loans/apply'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

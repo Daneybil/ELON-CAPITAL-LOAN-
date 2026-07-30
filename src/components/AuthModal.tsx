@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import CountrySelector from './CountrySelector';
+import { getApiUrl } from '../utils/api';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -159,7 +160,7 @@ export default function AuthModal({
 
       // 2. Sync user profile on backend with isVerified: false
       const fullPhone = `${regDialCode} ${regPhone}`.trim();
-      const syncRes = await fetch('/api/auth/firebase-sync', {
+      const syncRes = await fetch(getApiUrl('/api/auth/firebase-sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -250,7 +251,7 @@ export default function AuthModal({
       } catch (fbErr: any) {
         console.warn('Firebase Auth client signIn failed, falling back to server login endpoint:', fbErr);
         if (fbErr.code === 'auth/operation-not-allowed' || fbErr.code === 'auth/configuration-not-found' || fbErr.code === 'auth/network-request-failed') {
-          const serverLoginRes = await fetch('/api/auth/login', {
+          const serverLoginRes = await fetch(getApiUrl('/api/auth/login'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: loginEmail, password: loginPassword, rememberMe })
@@ -279,7 +280,7 @@ export default function AuthModal({
       }
 
       // 3. Synchronize with local server database
-      const syncRes = await fetch('/api/auth/firebase-sync', {
+      const syncRes = await fetch(getApiUrl('/api/auth/firebase-sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -323,7 +324,7 @@ export default function AuthModal({
       const firebaseUser = userCredential.user;
 
       // Google emails are automatically verified
-      const syncRes = await fetch('/api/auth/firebase-sync', {
+      const syncRes = await fetch(getApiUrl('/api/auth/firebase-sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -386,7 +387,7 @@ export default function AuthModal({
     try {
       const fullPhone = `${completeDialCode} ${completePhone}`.trim();
       
-      const res = await fetch('/api/user/profile/update', {
+      const res = await fetch(getApiUrl('/api/user/profile/update'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -474,7 +475,7 @@ export default function AuthModal({
 
     try {
       const emailToReset = forgotEmail || loginEmail;
-      const res = await fetch('/api/auth/reset-password', {
+      const res = await fetch(getApiUrl('/api/auth/reset-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailToReset, password: newPassword })

@@ -19,6 +19,7 @@ import Chatbot from './components/Chatbot';
 import { Megaphone, X, ShieldAlert, Cpu, Lock, Mail, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
+import { getApiUrl } from './utils/api';
 
 export default function App() {
   // Authentication & Session State
@@ -123,7 +124,7 @@ export default function App() {
 
         // If mismatch or missing local session, synchronize with local database
         try {
-          const syncRes = await fetch('/api/auth/firebase-sync', {
+          const syncRes = await fetch(getApiUrl('/api/auth/firebase-sync'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -187,13 +188,13 @@ export default function App() {
   // Fetch announcements & active homepage elements
   const fetchGlobalData = React.useCallback(async () => {
     try {
-      const resHome = await fetch('/api/homepage');
+      const resHome = await fetch(getApiUrl('/api/homepage'));
       if (resHome.ok) {
         const hData = await resHome.json();
         setHomePage(hData);
       }
 
-      const resAnn = await fetch('/api/announcements');
+      const resAnn = await fetch(getApiUrl('/api/announcements'));
       if (resAnn.ok) {
         const aData = await resAnn.json();
         setAnnouncements(aData);

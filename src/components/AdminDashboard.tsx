@@ -35,6 +35,7 @@ import {
   LogOut,
   ArrowLeft
 } from 'lucide-react';
+import { getApiUrl } from '../utils/api';
 
 interface AdminDashboardProps {
   adminUser: User;
@@ -138,31 +139,31 @@ export default function AdminDashboard({
   const fetchAdminData = React.useCallback(async () => {
     if (!isAuthorized) return;
     try {
-      const resStats = await fetch('/api/admin/stats', { headers });
+      const resStats = await fetch(getApiUrl('/api/admin/stats'), { headers });
       if (resStats.ok) setAdminStats(await resStats.ok ? await resStats.json() : null);
 
-      const resUsers = await fetch(`/api/admin/users?search=${searchUser}`, { headers });
+      const resUsers = await fetch(getApiUrl(`/api/admin/users?search=${searchUser}`), { headers });
       if (resUsers.ok) setUsers(await resUsers.json());
 
-      const resKyc = await fetch('/api/admin/kyc', { headers });
+      const resKyc = await fetch(getApiUrl('/api/admin/kyc'), { headers });
       if (resKyc.ok) setKycRequests(await resKyc.json());
 
-      const resLoans = await fetch('/api/admin/loans', { headers });
+      const resLoans = await fetch(getApiUrl('/api/admin/loans'), { headers });
       if (resLoans.ok) setLoans(await resLoans.json());
 
-      const resTkts = await fetch('/api/admin/tickets', { headers });
+      const resTkts = await fetch(getApiUrl('/api/admin/tickets'), { headers });
       if (resTkts.ok) setTickets(await resTkts.json());
 
-      const resLogs = await fetch('/api/admin/logs', { headers });
+      const resLogs = await fetch(getApiUrl('/api/admin/logs'), { headers });
       if (resLogs.ok) setLogs(await resLogs.json());
 
-      const resAnn = await fetch('/api/announcements', { headers });
+      const resAnn = await fetch(getApiUrl('/api/announcements'), { headers });
       if (resAnn.ok) setAnnouncements(await resAnn.json());
 
-      const resMsgs = await fetch('/api/messages', { headers });
+      const resMsgs = await fetch(getApiUrl('/api/messages'), { headers });
       if (resMsgs.ok) setAdminMessages(await resMsgs.json());
 
-      const resHome = await fetch('/api/homepage', { headers });
+      const resHome = await fetch(getApiUrl('/api/homepage'), { headers });
       if (resHome.ok) {
         const hData = await resHome.json();
         setHomePage(hData);
@@ -205,7 +206,7 @@ export default function AdminDashboard({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/admin/verify-2fa', {
+      const res = await fetch(getApiUrl('/api/admin/verify-2fa'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ code: mfaCode })
@@ -227,7 +228,7 @@ export default function AdminDashboard({
   const handleToggleSuspension = async (userId: string, suspend: boolean) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/users/suspend', {
+      const res = await fetch(getApiUrl('/api/admin/users/suspend'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ userId, suspend })
@@ -253,7 +254,7 @@ export default function AdminDashboard({
     }
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/kyc/update', {
+      const res = await fetch(getApiUrl('/api/admin/kyc/update'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ kycId, status, remarks: kycRemarks })
@@ -287,7 +288,7 @@ export default function AdminDashboard({
     setLoading(true);
     try {
       const reason = customReason || loanRejectionReason || 'Application did not meet institutional credit and document requirements.';
-      const res = await fetch('/api/admin/loans/update', {
+      const res = await fetch(getApiUrl('/api/admin/loans/update'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ loanId, status, rejectionReason: reason })
@@ -312,7 +313,7 @@ export default function AdminDashboard({
   const handleConfirmPayment = async (loanId: string, installmentNumber?: number) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/loans/confirm-payment', {
+      const res = await fetch(getApiUrl('/api/admin/loans/confirm-payment'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ loanId, installmentNumber })
@@ -340,7 +341,7 @@ export default function AdminDashboard({
 
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/loans/cancel-payment', {
+      const res = await fetch(getApiUrl('/api/admin/loans/cancel-payment'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ loanId, installmentNumber, reason: cancelReason })
@@ -365,7 +366,7 @@ export default function AdminDashboard({
   const handleDisburseLoan = async (loanId: string) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/loans/disburse', {
+      const res = await fetch(getApiUrl('/api/admin/loans/disburse'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ loanId })
@@ -391,7 +392,7 @@ export default function AdminDashboard({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/support/tickets/reply', {
+      const res = await fetch(getApiUrl('/api/support/tickets/reply'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ ticketId: activeTicketView.id, content: ticketReply })
@@ -417,7 +418,7 @@ export default function AdminDashboard({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/messages', {
+      const res = await fetch(getApiUrl('/api/messages'), {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -435,7 +436,7 @@ export default function AdminDashboard({
       setAdminMsgAttachment(null);
 
       // Refresh messages
-      const resMsgs = await fetch('/api/messages', { headers });
+      const resMsgs = await fetch(getApiUrl('/api/messages'), { headers });
       if (resMsgs.ok) setAdminMessages(await resMsgs.json());
     } catch (err: any) {
       triggerAlert('error', err.message);
@@ -447,7 +448,7 @@ export default function AdminDashboard({
   const handleResolveTicket = async (ticketId: string) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/tickets/resolve', {
+      const res = await fetch(getApiUrl('/api/admin/tickets/resolve'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ ticketId })
@@ -473,7 +474,7 @@ export default function AdminDashboard({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/admin/announcements/create', {
+      const res = await fetch(getApiUrl('/api/admin/announcements/create'), {
         method: 'POST',
         headers,
         body: JSON.stringify({ title: newAnnTitle, content: newAnnContent, category: newAnnCat })
@@ -499,7 +500,7 @@ export default function AdminDashboard({
     setLoading(true);
 
     try {
-      const res = await fetch('/api/admin/homepage/update', {
+      const res = await fetch(getApiUrl('/api/admin/homepage/update'), {
         method: 'POST',
         headers,
         body: JSON.stringify({

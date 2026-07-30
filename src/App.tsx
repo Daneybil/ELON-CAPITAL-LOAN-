@@ -212,7 +212,7 @@ export default function App() {
   }, [fetchGlobalData]);
 
   // Auth Callbacks
-  const handleAuthSuccess = (authToken: string, authUser: User) => {
+  const handleAuthSuccess = (authToken: string, authUser: User, isRegistering?: boolean) => {
     setUser(authUser);
     setToken(authToken);
     localStorage.setItem('spaceloan_token', authToken);
@@ -223,13 +223,14 @@ export default function App() {
       window.history.pushState({}, '', '/admin');
       setDashboardView('admin');
     } else {
-      if (authModalMode === 'register') {
-        setUserDashboardTab('apply');
+      if (isRegistering === true) {
+        window.history.pushState({}, '', '/calculator');
+        setDashboardView('calculator');
       } else {
         setUserDashboardTab('account');
+        window.history.pushState({}, '', '/dashboard');
+        setDashboardView('user');
       }
-      window.history.pushState({}, '', '/dashboard');
-      setDashboardView('user');
     }
   };
 

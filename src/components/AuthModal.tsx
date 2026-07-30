@@ -18,7 +18,7 @@ interface AuthModalProps {
   isOpen: boolean;
   initialMode: 'login' | 'register';
   onClose: () => void;
-  onAuthSuccess: (token: string, user: User) => void;
+  onAuthSuccess: (token: string, user: User, isRegistering?: boolean) => void;
 }
 
 export default function AuthModal({
@@ -262,7 +262,7 @@ export default function AuthModal({
           }
           setSuccess('Access authorized.');
           setTimeout(() => {
-            onAuthSuccess(serverData.token, serverData.user);
+            onAuthSuccess(serverData.token, serverData.user, false);
             onClose();
           }, 1000);
           return;
@@ -298,7 +298,7 @@ export default function AuthModal({
 
       setSuccess('Access authorized.');
       setTimeout(() => {
-        onAuthSuccess(data.token, data.user);
+        onAuthSuccess(data.token, data.user, false);
         onClose();
       }, 1000);
     } catch (err: any) {
@@ -358,7 +358,7 @@ export default function AuthModal({
       } else {
         setSuccess('Google credentials verified. Access authorized.');
         setTimeout(() => {
-          onAuthSuccess(data.token, data.user);
+          onAuthSuccess(data.token, data.user, false);
           onClose();
         }, 1000);
       }
@@ -405,7 +405,7 @@ export default function AuthModal({
 
       setSuccess('Profile updated successfully. Access authorized.');
       setTimeout(() => {
-        onAuthSuccess(tempToken, data.user);
+        onAuthSuccess(tempToken, data.user, true);
         onClose();
       }, 1000);
     } catch (err: any) {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageSquare, X, Send, Bot, User, ArrowRight, ShieldAlert, Sparkles, Maximize2, Minimize2, LifeBuoy, AlertCircle, RefreshCw } from 'lucide-react';
 import { User as UserType } from '../types';
+import { getApiUrl } from '../utils/api';
 
 interface Message {
   id: string;
@@ -76,7 +77,7 @@ export default function Chatbot({ user, token }: ChatbotProps) {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('/api/support/tickets', {
+        const res = await fetch(getApiUrl('/api/support/tickets'), {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -126,7 +127,7 @@ export default function Chatbot({ user, token }: ChatbotProps) {
     if (isLiveMode && activeTicketId && token) {
       // Send the reply to the actual backend Support Ticket replies DB!
       try {
-        await fetch('/api/support/tickets/reply', {
+        await fetch(getApiUrl('/api/support/tickets/reply'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -189,7 +190,7 @@ export default function Chatbot({ user, token }: ChatbotProps) {
     setIsConnecting(true);
 
     try {
-      const res = await fetch('/api/support/tickets/create', {
+      const res = await fetch(getApiUrl('/api/support/tickets/create'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

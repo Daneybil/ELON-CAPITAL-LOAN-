@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ShieldCheck, Mail, Lock, User as UserIcon, Phone, Globe, ArrowRight, RefreshCw, Key, ArrowLeft } from 'lucide-react';
+import { X, ShieldCheck, Mail, Lock, User as UserIcon, Phone, Globe, ArrowRight, RefreshCw, Key, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { User } from '../types';
 import { 
   createUserWithEmailAndPassword, 
@@ -8,7 +8,10 @@ import {
   sendPasswordResetEmail,
   signInWithPopup, 
   GoogleAuthProvider,
-  signOut
+  signOut,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import CountrySelector from './CountrySelector';
@@ -18,7 +21,7 @@ interface AuthModalProps {
   isOpen: boolean;
   initialMode: 'login' | 'register';
   onClose: () => void;
-  onAuthSuccess: (token: string, user: User, isRegistering?: boolean) => void;
+  onAuthSuccess: (token: string, user: User, isRegistering?: boolean, rememberMe?: boolean) => void;
 }
 
 export default function AuthModal({
@@ -37,6 +40,8 @@ export default function AuthModal({
   const [regDialCode, setRegDialCode] = React.useState('+1');
   const [regPassword, setRegPassword] = React.useState('');
   const [regConfirmPassword, setRegConfirmPassword] = React.useState('');
+  const [showRegPassword, setShowRegPassword] = React.useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = React.useState(false);
 
   // Complete Profile States (for Google first-time login)
   const [tempToken, setTempToken] = React.useState('');
@@ -50,6 +55,7 @@ export default function AuthModal({
   // Login States
   const [loginEmail, setLoginEmail] = React.useState('');
   const [loginPassword, setLoginPassword] = React.useState('');
+  const [showLoginPassword, setShowLoginPassword] = React.useState(false);
   const [rememberMe, setRememberMe] = React.useState(false);
 
   // Verification State
@@ -243,6 +249,14 @@ export default function AuthModal({
     setLoading(true);
 
     try {
+      // Apply Firebase session persistence depending on Remember Me checkbox
+      const persistenceType = rememberMe ? browserLocalPersistence : browserSessionPersistence;
+      try {
+        await setPersistence(auth, persistenceType);
+      } catch (pErr) {
+        console.warn('Firebase setPersistence warning:', pErr);
+      }
+
       // 1. Authenticate with Firebase Auth (or fallback to server auth if operation-not-allowed)
       let firebaseUser: any = null;
       try {
@@ -262,7 +276,7 @@ export default function AuthModal({
           }
           setSuccess('Access authorized.');
           setTimeout(() => {
-            onAuthSuccess(serverData.token, serverData.user, false);
+            onAuthSuccess(serverData.token, serverData.user, false, rememberMe);
             onClose();
           }, 1000);
           return;
@@ -298,7 +312,7 @@ export default function AuthModal({
 
       setSuccess('Access authorized.');
       setTimeout(() => {
-        onAuthSuccess(data.token, data.user, false);
+        onAuthSuccess(data.token, data.user, false, rememberMe);
         onClose();
       }, 1000);
     } catch (err: any) {
@@ -422,78 +436,29 @@ export default function AuthModal({
     setSuccess('');
     setLoading(true);
 
-    if (!forgotEmail || !forgotEmail.trim()) {
-      setError('Please specify your registered email address.');
+    const cleanEmail = forgotEmail ? forgotEmail.trim() : '';
+    if (!cleanEmail) {
+      setError('Please enter the email address associated with your account.');
       setLoading(false);
       return;
     }
 
     try {
-      // 1. Dispatch Firebase Password Reset email
-      try {
-        await sendPasswordResetEmail(auth, forgotEmail);
-      } catch (fbErr: any) {
-        console.warn('Firebase sendPasswordResetEmail fallback note:', fbErr);
-      }
-
-      // 2. Generate instant 6-digit security reset code
-      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      setResetOtpCode(generatedOtp);
-      setEnteredResetOtp(generatedOtp);
-
-      setSuccess('Reset instructions and Security OTP dispatched.');
-      setMode('reset');
+      await sendPasswordResetEmail(auth, cleanEmail);
+      setSuccess('Password reset link sent successfully. Please check your email inbox and follow the instructions to create a new password.');
     } catch (err: any) {
       console.error('Password reset failed:', err);
       let errMsg = err.message;
       if (err.code === 'auth/user-not-found') {
-        errMsg = 'No registered record located for this email address.';
+        errMsg = 'No registered account was found with this email address. Please check your email or create a new account.';
+      } else if (err.code === 'auth/invalid-email') {
+        errMsg = 'Please enter a valid email address.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errMsg = 'Too many requests. Please wait a moment before requesting another reset email.';
+      } else if (err.code === 'auth/network-request-failed') {
+        errMsg = 'Network connection failed. Please check your internet connection and try again.';
       }
-      setError(errMsg || 'Password reset request failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
-
-    if (resetOtpCode && enteredResetOtp !== resetOtpCode) {
-      setError('Incorrect 6-digit security code. Please check the code provided.');
-      setLoading(false);
-      return;
-    }
-
-    if (!newPassword || newPassword.length < 6) {
-      setError('Security protocols require a new password of at least 6 characters.');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const emailToReset = forgotEmail || loginEmail;
-      const res = await fetch(getApiUrl('/api/auth/reset-password'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailToReset, password: newPassword })
-      });
-
-      const data = await parseJsonResponse(res);
-      if (!res.ok) throw new Error(data.error || 'Failed to update password.');
-
-      setSuccess('Password updated successfully! Redirecting to login...');
-      setLoginEmail(emailToReset);
-      setLoginPassword(newPassword);
-      setTimeout(() => {
-        setMode('login');
-        setSuccess('');
-      }, 1500);
-    } catch (err: any) {
-      console.error('Password reset failed:', err);
-      setError(err.message || 'Failed to update password.');
+      setError(errMsg || 'Failed to send password reset email. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -590,13 +555,22 @@ export default function AuthModal({
                 </div>
                 <div className="relative bg-black/90 border-2 border-cyan-500/40 focus-within:border-cyan-400 rounded-2xl transition-all shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
                   <input 
-                    type="password" 
+                    type={showLoginPassword ? "text" : "password"} 
                     required
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full px-4 py-4 bg-transparent border-0 focus:ring-0 focus:outline-none text-base text-white font-black tracking-wide placeholder-gray-500"
+                    className="w-full pl-4 pr-12 py-4 bg-transparent border-0 focus:ring-0 focus:outline-none text-base text-white font-black tracking-wide placeholder-gray-500"
                     placeholder="••••••••••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-300 transition-colors p-1 cursor-pointer focus:outline-none"
+                    title={showLoginPassword ? "Hide password" : "Show password"}
+                    aria-label={showLoginPassword ? "Hide password" : "Show password"}
+                  >
+                    {showLoginPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
             </div>
@@ -746,13 +720,22 @@ export default function AuthModal({
                 </label>
                 <div className="relative bg-black/90 border-2 border-cyan-500/40 focus-within:border-cyan-400 rounded-2xl transition-all shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
                   <input 
-                    type="password" 
+                    type={showRegPassword ? "text" : "password"} 
                     required
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
-                    className="w-full px-4 py-4 bg-transparent border-0 focus:ring-0 focus:outline-none text-base text-white font-black tracking-wide placeholder-gray-500"
+                    className="w-full pl-4 pr-12 py-4 bg-transparent border-0 focus:ring-0 focus:outline-none text-base text-white font-black tracking-wide placeholder-gray-500"
                     placeholder="••••••••••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-300 transition-colors p-1 cursor-pointer focus:outline-none"
+                    title={showRegPassword ? "Hide password" : "Show password"}
+                    aria-label={showRegPassword ? "Hide password" : "Show password"}
+                  >
+                    {showRegPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
 
@@ -763,13 +746,22 @@ export default function AuthModal({
                 </label>
                 <div className="relative bg-black/90 border-2 border-cyan-500/40 focus-within:border-cyan-400 rounded-2xl transition-all shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
                   <input 
-                    type="password" 
+                    type={showRegConfirmPassword ? "text" : "password"} 
                     required
                     value={regConfirmPassword}
                     onChange={(e) => setRegConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-4 bg-transparent border-0 focus:ring-0 focus:outline-none text-base text-white font-black tracking-wide placeholder-gray-500"
+                    className="w-full pl-4 pr-12 py-4 bg-transparent border-0 focus:ring-0 focus:outline-none text-base text-white font-black tracking-wide placeholder-gray-500"
                     placeholder="••••••••••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-300 transition-colors p-1 cursor-pointer focus:outline-none"
+                    title={showRegConfirmPassword ? "Hide password" : "Show password"}
+                    aria-label={showRegConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    {showRegConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
             </div>
@@ -887,19 +879,25 @@ export default function AuthModal({
         {mode === 'forgot' && (
           <form onSubmit={handleForgot} className="space-y-6 relative z-10" id="form-forgot">
             <div>
-              <h3 className="font-display text-2xl font-black text-white mb-2 uppercase tracking-wide">Reset Key</h3>
-              <p className="text-xs sm:text-sm text-gray-300 font-bold">Specify your registered email address to locate your security records.</p>
+              <h3 className="font-display text-2xl font-black text-white mb-2 uppercase tracking-wide">
+                RESET YOUR PASSWORD
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-300 font-bold leading-relaxed">
+                Enter the email address associated with your account. We will send you a secure password reset link.
+              </p>
             </div>
 
             <div>
-              <label className="block text-sm font-black text-white uppercase tracking-wider mb-2 text-left">Secure Email</label>
-              <div className="relative bg-black/90 border-2 border-cyan-500/40 focus-within:border-cyan-400 rounded-2xl transition-all shadow-inner">
+              <label className="block text-sm font-black text-white uppercase tracking-wider mb-2 text-left flex items-center gap-2">
+                <Mail className="h-4 w-4 text-cyan-400" /> Secure Email Address
+              </label>
+              <div className="relative bg-black/90 border-2 border-cyan-500/40 focus-within:border-cyan-400 rounded-2xl transition-all shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
                 <input 
                   type="email" 
                   required
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
-                  className="w-full px-4 py-4 bg-transparent border-0 focus:ring-0 focus:outline-none text-base text-white font-black"
+                  className="w-full px-4 py-4 bg-transparent border-0 focus:ring-0 focus:outline-none text-base text-white font-black tracking-wide placeholder-gray-500"
                   placeholder="name@company.com"
                 />
               </div>
@@ -908,93 +906,22 @@ export default function AuthModal({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4.5 bg-gradient-to-r from-cyan-400 to-emerald-400 text-black font-black text-base uppercase tracking-widest rounded-2xl shadow-lg cursor-pointer disabled:opacity-50 mt-6"
+              className="w-full py-4.5 bg-gradient-to-r from-cyan-400 via-cyan-300 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 active:translate-y-0.5 text-black font-black text-base sm:text-lg tracking-widest uppercase rounded-2xl shadow-[0_6px_25px_rgba(34,211,238,0.4)] border-2 border-cyan-200 transition-all cursor-pointer flex items-center justify-center gap-3 font-display mt-6 disabled:opacity-50"
               id="btn-forgot-submit"
             >
-              {loading ? <RefreshCw className="h-5 w-5 animate-spin mx-auto" /> : "Retrieve Account Key"}
-            </button>
-
-            <button 
-              type="button"
-              onClick={() => { setMode('login'); setError(''); }}
-              className="w-full text-center text-sm text-cyan-300 hover:text-white font-black uppercase transition-colors"
-            >
-              Return to Login
-            </button>
-          </form>
-        )}
-
-        {/* ---------------- RESET PASSWORD MODE ---------------- */}
-        {mode === 'reset' && (
-          <form onSubmit={handleReset} className="space-y-6 relative z-10" id="form-reset">
-            <div>
-              <h3 className="font-display text-2xl font-black text-white mb-2 uppercase tracking-wide">Establish New Password</h3>
-              <p className="text-xs sm:text-sm text-gray-300 font-bold">Input your 6-digit security reset code and set your new account password.</p>
-            </div>
-
-            {/* Instant Reset OTP Code Display */}
-            {resetOtpCode && (
-              <div className="p-5 bg-cyan-950/90 border-2 border-cyan-400/80 rounded-2xl text-center space-y-2 shadow-[0_0_30px_rgba(6,182,212,0.3)]">
-                <span className="text-xs font-mono font-black text-cyan-300 uppercase tracking-widest block">
-                  ✨ INSTANT SECURITY RESET CODE (SENT TO {forgotEmail})
+              {loading ? (
+                <RefreshCw className="h-5 w-5 animate-spin" />
+              ) : (
+                <span className="flex items-center gap-2 justify-center">
+                  SEND RESET LINK <ArrowRight className="h-5 w-5 stroke-[3]" />
                 </span>
-                <div className="text-3xl font-mono font-black text-white tracking-[0.2em] select-all py-1 font-display">
-                  {resetOtpCode}
-                </div>
-                <p className="text-xs font-bold text-cyan-100">
-                  If your email provider filters automated emails, use your 6-digit reset code above to update your credentials immediately below!
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-black text-white uppercase tracking-wider mb-2 text-left flex items-center gap-2">
-                  <Key className="h-4 w-4 text-cyan-400" /> 6-Digit Reset Code
-                </label>
-                <div className="relative bg-black/90 border-2 border-cyan-500/40 focus-within:border-cyan-400 rounded-2xl transition-all shadow-inner">
-                  <input 
-                    type="text" 
-                    required
-                    maxLength={6}
-                    value={enteredResetOtp}
-                    onChange={(e) => setEnteredResetOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                    className="w-full px-4 py-4 bg-transparent border-0 focus:ring-0 focus:outline-none text-base text-cyan-300 font-mono font-black tracking-widest"
-                    placeholder="123456"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-black text-white uppercase tracking-wider mb-2 text-left flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-cyan-400" /> Establish New Password
-                </label>
-                <div className="relative bg-black/90 border-2 border-cyan-500/40 focus-within:border-cyan-400 rounded-2xl transition-all shadow-inner">
-                  <input 
-                    type="password" 
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-4 py-4 bg-transparent border-0 focus:ring-0 focus:outline-none text-base text-white font-black"
-                    placeholder="••••••••••••"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4.5 bg-gradient-to-r from-cyan-400 to-emerald-400 text-black font-black text-base uppercase tracking-widest rounded-2xl shadow-lg cursor-pointer disabled:opacity-50 mt-6"
-              id="btn-reset-submit"
-            >
-              {loading ? <RefreshCw className="h-5 w-5 animate-spin mx-auto" /> : "Confirm Security Overhaul"}
+              )}
             </button>
 
             <button 
               type="button"
-              onClick={() => { setMode('login'); setError(''); }}
-              className="w-full text-center text-sm text-cyan-300 hover:text-white font-black uppercase transition-colors cursor-pointer"
+              onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+              className="w-full text-center text-sm text-cyan-300 hover:text-white font-black uppercase tracking-wider transition-colors cursor-pointer py-2"
             >
               Return to Login
             </button>

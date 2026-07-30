@@ -37,7 +37,7 @@ export default function App() {
   // Router View toggles (Sync on startup with window.location.pathname)
   const [dashboardView, setDashboardView] = React.useState<'landing' | 'user' | 'admin' | 'calculator' | 'how-it-works' | 'government-warning' | 'loan-transparency'>(() => {
     if (typeof window !== 'undefined') {
-      if (window.location.pathname === '/admin') return 'admin';
+      if (window.location.pathname === '/2020loan') return 'admin';
       if (window.location.pathname === '/dashboard') return 'user';
       if (window.location.pathname === '/calculator') return 'calculator';
       if (window.location.pathname === '/how-it-works') return 'how-it-works';
@@ -67,7 +67,7 @@ export default function App() {
   React.useEffect(() => {
     const handleLocationChange = () => {
       const path = window.location.pathname;
-      if (path === '/admin') {
+      if (path === '/2020loan') {
         setDashboardView('admin');
       } else if (path === '/dashboard') {
         setDashboardView('user');
@@ -92,8 +92,8 @@ export default function App() {
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const storedToken = localStorage.getItem('spaceloan_token');
-        const storedUser = localStorage.getItem('spaceloan_user');
+        const storedToken = localStorage.getItem('spaceloan_token') || sessionStorage.getItem('spaceloan_token');
+        const storedUser = localStorage.getItem('spaceloan_user') || sessionStorage.getItem('spaceloan_user');
 
         if (storedToken && storedUser) {
           try {
@@ -104,11 +104,11 @@ export default function App() {
               
               // Sync dashboard view state with current URL pathname
               const path = window.location.pathname;
-              if (path === '/admin') {
+              if (path === '/2020loan') {
                 setDashboardView('admin');
               } else if (path === '/dashboard') {
                 if (parsedUser.role === 'admin') {
-                  window.history.replaceState({}, '', '/admin');
+                  window.history.replaceState({}, '', '/2020loan');
                   setDashboardView('admin');
                 } else {
                   setDashboardView('user');
@@ -143,11 +143,11 @@ export default function App() {
             localStorage.setItem('spaceloan_user', JSON.stringify(data.user));
 
             const path = window.location.pathname;
-            if (path === '/admin') {
+            if (path === '/2020loan') {
               setDashboardView('admin');
             } else if (path === '/dashboard') {
               if (data.user.role === 'admin') {
-                window.history.replaceState({}, '', '/admin');
+                window.history.replaceState({}, '', '/2020loan');
                 setDashboardView('admin');
               } else {
                 setDashboardView('user');
@@ -159,6 +159,8 @@ export default function App() {
             setToken(null);
             localStorage.removeItem('spaceloan_token');
             localStorage.removeItem('spaceloan_user');
+            sessionStorage.removeItem('spaceloan_token');
+            sessionStorage.removeItem('spaceloan_user');
           }
         } catch (err) {
           console.error('Firebase auto-sync failed:', err);
@@ -168,6 +170,8 @@ export default function App() {
         setToken(null);
         localStorage.removeItem('spaceloan_token');
         localStorage.removeItem('spaceloan_user');
+        sessionStorage.removeItem('spaceloan_token');
+        sessionStorage.removeItem('spaceloan_user');
       }
       setIsInitializing(false);
     });
@@ -212,15 +216,24 @@ export default function App() {
   }, [fetchGlobalData]);
 
   // Auth Callbacks
-  const handleAuthSuccess = (authToken: string, authUser: User, isRegistering?: boolean) => {
+  const handleAuthSuccess = (authToken: string, authUser: User, isRegistering?: boolean, rememberMe: boolean = true) => {
     setUser(authUser);
     setToken(authToken);
-    localStorage.setItem('spaceloan_token', authToken);
-    localStorage.setItem('spaceloan_user', JSON.stringify(authUser));
+    if (rememberMe) {
+      localStorage.setItem('spaceloan_token', authToken);
+      localStorage.setItem('spaceloan_user', JSON.stringify(authUser));
+      sessionStorage.removeItem('spaceloan_token');
+      sessionStorage.removeItem('spaceloan_user');
+    } else {
+      sessionStorage.setItem('spaceloan_token', authToken);
+      sessionStorage.setItem('spaceloan_user', JSON.stringify(authUser));
+      localStorage.removeItem('spaceloan_token');
+      localStorage.removeItem('spaceloan_user');
+    }
     setAuthModalOpen(false);
 
     if (authUser.role === 'admin') {
-      window.history.pushState({}, '', '/admin');
+      window.history.pushState({}, '', '/2020loan');
       setDashboardView('admin');
     } else {
       if (isRegistering === true) {
@@ -244,6 +257,8 @@ export default function App() {
     setToken(null);
     localStorage.removeItem('spaceloan_token');
     localStorage.removeItem('spaceloan_user');
+    sessionStorage.removeItem('spaceloan_token');
+    sessionStorage.removeItem('spaceloan_user');
     window.history.pushState({}, '', '/');
     setDashboardView('landing');
   };
@@ -291,7 +306,7 @@ export default function App() {
       return;
     }
     if (user.role === 'admin') {
-      window.history.pushState({}, '', '/admin');
+      window.history.pushState({}, '', '/2020loan');
       setDashboardView('admin');
     } else {
       setUserDashboardTab('account');
@@ -301,7 +316,7 @@ export default function App() {
   };
 
   const navigateToAdmin = () => {
-    window.history.pushState({}, '', '/admin');
+    window.history.pushState({}, '', '/2020loan');
     setDashboardView('admin');
   };
 

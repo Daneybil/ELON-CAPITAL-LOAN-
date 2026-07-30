@@ -75,6 +75,7 @@ const INITIAL_DB: DB = {
       id: "admin-1",
       name: "Administrator Console",
       email: "admin@eloncapitalloan.com",
+      password: "admin123",
       phone: "+1 (800) 555-0199",
       country: "Switzerland",
       isVerified: true,
@@ -90,6 +91,7 @@ const INITIAL_DB: DB = {
       id: "admin-2",
       name: "SpaceLoan Administrator",
       email: "admin@spaceloan.space",
+      password: "admin123",
       phone: "+1 (800) 555-0199",
       country: "United States",
       isVerified: true,
@@ -105,6 +107,7 @@ const INITIAL_DB: DB = {
       id: "user-1",
       name: "Alex Thorne",
       email: "borrower@eloncapitalloan.com",
+      password: "password123",
       phone: "+1 (415) 890-3420",
       country: "United States",
       isVerified: true,
@@ -717,6 +720,7 @@ app.post('/api/auth/login', (req, res) => {
       email: email.toLowerCase(),
       phone: "+1 (800) 555-0199",
       country: "United States",
+      password: password,
       isVerified: true,
       isSuspended: false,
       role: "admin",
@@ -730,8 +734,19 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   if (!user) {
-    res.status(401).json({ error: 'Invalid email or password. Click "Create Admin Account" to register an administrator account for this email.' });
+    res.status(401).json({ error: 'Invalid email or password.' });
     return;
+  }
+
+  // Enforce password verification
+  if (user.password) {
+    if (user.password !== password) {
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
+    }
+  } else {
+    // Save password for legacy record on first authentication
+    user.password = password;
   }
 
   if (user.isSuspended) {

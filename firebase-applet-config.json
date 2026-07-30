@@ -1,12 +1,9 @@
 {
-  "projectId": "enduring-tomorrow-3sjh2",
-  "appId": "1:1077558186767:web:1006a3b0025b9d2d3b247a",
-  "apiKey": "AIzaSyBkOaEGRXt14icGjF5Ai2hGiuDlRFkqrok",
-  "authDomain": "enduring-tomorrow-3sjh2.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-spaceloan-0cf3f9e3-ed71-4a48-99eb-4807f2e85ddd",
-  "storageBucket": "enduring-tomorrow-3sjh2.firebasestorage.app",
-  "messagingSenderId": "1077558186767",
-  "measurementId": "",
-  "oAuthClientId": "1077558186767-1o1akbtq5imoesl9f6sh1mfeh9qqh6vs.apps.googleusercontent.com",
-  "recaptchaSiteKey": ""
+  "projectId": "elon-capital",
+  "appId": "1:363773895492:web:e7f82be91aaa07a2276d11",
+  "apiKey": "AIzaSyBsmHhRmjT9FRytyD6GY8tm57p8X9PQ8TU",
+  "authDomain": "elon-capital.firebaseapp.com",
+  "storageBucket": "elon-capital.firebasestorage.app",
+  "messagingSenderId": "363773895492",
+  "measurementId": "G-ELN9828WNR"
 }

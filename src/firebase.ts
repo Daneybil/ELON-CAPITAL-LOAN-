@@ -10,13 +10,10 @@ export const firebaseConfig = {
   storageBucket: appletConfig?.storageBucket || "elon-capital.firebasestorage.app",
   messagingSenderId: appletConfig?.messagingSenderId || "363773895492",
   appId: appletConfig?.appId || "1:363773895492:web:e7f82be91aaa07a2276d11",
-  measurementId: appletConfig?.measurementId || "G-ELN9828WNR",
-  firestoreDatabaseId: appletConfig?.firestoreDatabaseId
+  measurementId: appletConfig?.measurementId || "G-ELN9828WNR"
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
-export const db = firebaseConfig.firestoreDatabaseId 
-  ? getFirestore(app, firebaseConfig.firestoreDatabaseId) 
-  : getFirestore(app);
+export const db = getFirestore(app);
 

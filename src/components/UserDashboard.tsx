@@ -1230,7 +1230,7 @@ export default function UserDashboard({
 
                     {/* Total Account Balance Card */}
                     <div className="w-full lg:w-auto">
-                      <div className="p-6 bg-black/90 border-2 border-emerald-400/80 rounded-2xl shrink-0 text-center space-y-1 shadow-[0_0_35px_rgba(52,211,153,0.35)] min-w-[280px]">
+                      <div className="p-6 bg-black/90 border-2 border-emerald-400/80 rounded-2xl shrink-0 text-center space-y-1 shadow-[0_0_35px_rgba(52,211,153,0.35)] min-w-0 sm:min-w-[280px] w-full sm:w-auto">
                         <span className="text-xs font-mono font-black text-emerald-400 uppercase tracking-wider block">TOTAL ACCOUNT BALANCE</span>
                         <div className="text-3xl sm:text-4xl lg:text-5xl font-black font-mono text-emerald-300 tracking-tight">
                           ${totalAccountBalance.toLocaleString()} USD
@@ -1262,7 +1262,7 @@ export default function UserDashboard({
                       </div>
                     </div>
 
-                    <div className="p-5 bg-black/90 border-2 border-emerald-500/50 rounded-2xl shrink-0 text-center space-y-1 min-w-[240px]">
+                    <div className="p-5 bg-black/90 border-2 border-emerald-500/50 rounded-2xl shrink-0 text-center space-y-1 min-w-0 sm:min-w-[240px] w-full sm:w-auto">
                       <span className="text-xs font-mono font-black text-emerald-400 uppercase tracking-wider block">LOAN BALANCE AMOUNT</span>
                       <div className="text-3xl sm:text-4xl font-black font-mono text-white">
                         ${withdrawableBalance.toLocaleString()} USD
@@ -1330,7 +1330,7 @@ export default function UserDashboard({
                       </p>
                     </div>
 
-                    <div className="p-4 bg-black/90 border-2 border-yellow-400/50 rounded-2xl shrink-0 text-center space-y-1 min-w-[240px]">
+                    <div className="p-4 bg-black/90 border-2 border-yellow-400/50 rounded-2xl shrink-0 text-center space-y-1 min-w-0 sm:min-w-[240px] w-full sm:w-auto">
                       <span className="text-xs font-mono font-black text-yellow-400 uppercase tracking-wider block">ESCROW COLLATERAL VALUE</span>
                       <div className="text-3xl sm:text-4xl font-black font-mono text-yellow-300">
                         ${collateralAmount.toLocaleString()} USD

@@ -16,7 +16,7 @@ import HowItWorksPage from './components/HowItWorksPage';
 import GovernmentWarningPage from './components/GovernmentWarningPage';
 import LoanTransparencyPage from './components/LoanTransparencyPage';
 import Chatbot from './components/Chatbot';
-import { Megaphone, X, ShieldAlert, Cpu, Lock, Mail, ArrowUpRight, RefreshCw } from 'lucide-react';
+import { Megaphone, X, ShieldAlert, Lock, Mail, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import { getApiUrl } from './utils/api';
@@ -329,15 +329,6 @@ export default function App() {
     window.history.pushState({}, '', '/loan-transparency');
     setDashboardView('loan-transparency');
   };
-
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white" id="app-loading-screen">
-        <Cpu className="h-10 w-10 text-cyan-400 animate-spin mb-4" />
-        <span className="font-mono text-xs text-gray-500 uppercase tracking-widest">Decrypting System Parameters...</span>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-black text-white flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200" id="spaceloan-root-layout">

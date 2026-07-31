@@ -468,7 +468,7 @@ export default function AuthModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/95 backdrop-blur-2xl overflow-y-auto animate-fade-in" id="auth-modal-root">
       {/* Modal Frame with Premium Bright 3D Look and Full Vertical Scrollability */}
       <div 
-        className="relative w-full max-w-2xl bg-gradient-to-b from-zinc-900 via-zinc-950 to-black border-2 border-cyan-400/60 rounded-[2.5rem] p-6 sm:p-10 my-auto transform transition-all duration-300 shadow-[0_20px_60px_rgba(6,182,212,0.35),0_0_100px_rgba(0,0,0,0.95)] max-h-[92vh] overflow-y-auto"
+        className="relative w-full max-w-2xl bg-gradient-to-b from-zinc-900 via-zinc-950 to-black border-2 border-cyan-400/60 rounded-[2.5rem] p-4 sm:p-8 lg:p-10 my-auto transform transition-all duration-300 shadow-[0_20px_60px_rgba(6,182,212,0.35),0_0_100px_rgba(0,0,0,0.95)] max-h-[92vh] overflow-y-auto"
         id="auth-modal-frame"
       >
         {/* Top Header Bar: Back to Homepage + Close Button */}
@@ -838,7 +838,7 @@ export default function AuthModal({
                 <span className="text-cyan-300 font-mono font-black text-base select-all">{verifyEmail}</span>
               </div>
               <p className="text-xs sm:text-sm text-gray-300 font-bold leading-relaxed max-w-md mx-auto mt-2">
-                Please open your email client, open the message from <span className="text-white font-black">Elon Musk Capital Loan</span>, and click the confirmation link to activate your security credentials.
+                Please open your email, dear user, then open the verification message from <span className="text-white font-black">Elon Musk Capital Loan</span> and click the confirmation link to activate your account.
               </p>
             </div>
 

@@ -280,7 +280,7 @@ export default function Chatbot({ user, token }: ChatbotProps) {
           className={`bg-zinc-950 border-2 border-yellow-500/50 shadow-[0_20px_60px_rgba(0,0,0,0.95)] flex flex-col overflow-hidden transition-all duration-300 ${
             isExpanded 
               ? 'w-full h-full rounded-none' 
-              : 'w-[350px] sm:w-[420px] h-[580px] rounded-3xl'
+              : 'w-[calc(100vw-2rem)] sm:w-[420px] max-w-[420px] h-[540px] sm:h-[580px] max-h-[calc(100vh-6rem)] rounded-3xl'
           }`}
           id="chatbot-window"
         >

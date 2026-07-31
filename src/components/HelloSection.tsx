@@ -55,6 +55,11 @@ export default function HelloSection({ onApplyClick }: HelloSectionProps) {
               src="https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=1200&q=80" 
               alt="Falcon Rocket Thrust Propulsion"
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                target.onerror = null;
+                target.src = '/image.jpg';
+              }}
               className="w-full h-[450px] sm:h-[520px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-102"
             />
             {/* Absolute overlay badge inside image */}

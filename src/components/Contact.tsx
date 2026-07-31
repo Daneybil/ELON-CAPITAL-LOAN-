@@ -78,7 +78,7 @@ export default function Contact() {
           </div>
 
           {/* Form Block */}
-          <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-8 backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.5)]" id="contact-form-container">
+          <div className="bg-white/[0.01] border border-white/5 rounded-2xl p-5 sm:p-8 backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.5)]" id="contact-form-container">
             {submitted ? (
               <div className="text-center py-12" id="contact-success-state">
                 <div className="h-12 w-12 rounded-full bg-cyan-950/40 border border-cyan-500/20 text-cyan-400 flex items-center justify-center mx-auto mb-4 animate-bounce">

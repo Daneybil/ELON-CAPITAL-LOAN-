@@ -49,7 +49,7 @@ export default function FAQ({ isOpen = false, onClose }: FAQProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md animate-fade-in" id="modal-faq-overlay">
-      <div className="relative w-full max-w-3xl bg-zinc-950 border border-white/5 rounded-2xl p-8 sm:p-12 animate-zoom-in text-left shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-y-auto max-h-[90vh]">
+      <div className="relative w-full max-w-3xl bg-zinc-950 border border-white/5 rounded-2xl p-5 sm:p-8 lg:p-12 animate-zoom-in text-left shadow-[0_30px_80px_rgba(0,0,0,0.8)] overflow-y-auto max-h-[90vh]">
         
         {/* Close Button */}
         {onClose && (

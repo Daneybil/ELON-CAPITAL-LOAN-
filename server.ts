@@ -2315,31 +2315,10 @@ const startServer = async () => {
       appType: 'spa',
     });
     app.use(vite.middlewares);
-    // Serve static assets from public folder to guarantee image loading on local development
-    app.use(express.static(path.join(process.cwd(), 'public')));
-    
-    // Custom index.html handler to apply Vite HTML transforms (injects React Refresh, HMR, etc.)
-    app.get('*', async (req, res, next) => {
-      if (req.path.startsWith('/api') || req.path.includes('.')) {
-        return next();
-      }
-      try {
-        const url = req.originalUrl;
-        const htmlPath = path.join(process.cwd(), 'index.html');
-        let template = fs.readFileSync(htmlPath, 'utf-8');
-        template = await vite.transformIndexHtml(url, template);
-        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
-      } catch (e) {
-        vite.ssrFixStacktrace(e as Error);
-        next(e);
-      }
-    });
   } else {
-    // Serve static assets from all possible folders to guarantee image loading on all deployment environments (e.g. Vercel, Vessel, etc.)
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.use(express.static(path.join(process.cwd(), 'public')));
-    app.use(express.static(process.cwd()));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });

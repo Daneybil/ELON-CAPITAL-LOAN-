@@ -47,7 +47,7 @@ export default function GovernmentWarningPage({ onBackToHome }: GovernmentWarnin
         </div>
 
         {/* The Warning Panel Content with Super Bold and Thick texts */}
-        <div className="relative rounded-3xl border-2 border-red-500/60 bg-gradient-to-b from-red-950/30 via-black to-black p-8 sm:p-14 shadow-[0_25px_80px_rgba(239,68,68,0.2)] overflow-hidden">
+        <div className="relative rounded-3xl border-2 border-red-500/60 bg-gradient-to-b from-red-950/30 via-black to-black p-5 sm:p-10 lg:p-14 shadow-[0_25px_80px_rgba(239,68,68,0.2)] overflow-hidden">
           
           {/* Subtle Ambient Red Glow */}
           <div className="absolute -inset-10 bg-red-500/[0.04] rounded-2xl blur-3xl opacity-50 pointer-events-none" />

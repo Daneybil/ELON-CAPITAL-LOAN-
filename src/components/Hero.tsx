@@ -22,10 +22,10 @@ import HelloSection from './HelloSection';
 import GovernmentWarning from './GovernmentWarning';
 
 // Import local images from assets to allow Vite to bundle them as assets and guarantee production/dev delivery
-import astronautImage from '../assets/Advancing_Human_Spaceflight_Mobile_af242fde31.jpg';
-import alwaysSunnyBackground from '../assets/Always_Sunny_v4_d8b76550ae.jpg';
-import spaceTechBackground from '../assets/Revolutionizing_Space_Tech_Mobile_45093b17b7.jpg';
-import spaceXExploration from '../assets/image.jpg';
+import astronautImage from '../assets/Advancing_Human_Spaceflight_Mobile_af242fde31-1.jpg';
+import alwaysSunnyBackground from '../assets/Always_Sunny_v4_d8b76550ae-1.jpg';
+import spaceTechBackground from '../assets/Revolutionizing_Space_Tech_Mobile_45093b17b7-1.jpg';
+import spaceXExploration from '../assets/image-1.jpg';
 
 interface HeroProps {
   content: HomePageContent;
@@ -104,7 +104,7 @@ export default function Hero({
 
           {/* Right Column: Astronaut Image facing right */}
           <div className="lg:col-span-6 relative w-full flex justify-center lg:justify-end">
-            <div className="relative w-full rounded-2xl border border-white/20 overflow-hidden bg-zinc-950 p-2 shadow-[0_30px_80px_rgba(0,0,0,0.95)] group hover:border-cyan-400/40 transition-all duration-500 w-full">
+            <div className="relative w-full rounded-2xl border border-white/20 overflow-hidden bg-zinc-950 p-2 shadow-[0_30px_80px_rgba(0,0,0,0.95)] group hover:border-cyan-400/40 transition-all duration-500">
               {/* Ambient cyan backdrop shadow */}
               <div className="absolute -inset-3 bg-gradient-to-r from-cyan-500/15 to-transparent rounded-2xl blur-2xl opacity-75 pointer-events-none" />
               
@@ -112,7 +112,12 @@ export default function Hero({
                 src={astronautImage} 
                 alt="Astronaut Exploration facing right"
                 referrerPolicy="no-referrer"
-                className="w-full h-[550px] sm:h-[750px] lg:h-[900px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.015]"
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = '/Advancing_Human_Spaceflight_Mobile_af242fde31-1.jpg';
+                }}
+                className="w-full h-[320px] sm:h-[650px] lg:h-[900px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.015]"
               />
             </div>
           </div>
@@ -125,15 +130,15 @@ export default function Hero({
         </p>
 
         {/* 5 PREMIUM GIANT HERO ACTIONS IN CLASSICAL 3D FORM */}
-        <div className="flex flex-wrap items-center justify-center gap-6 max-w-5xl mx-auto mb-16" id="hero-buttons">
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 max-w-5xl mx-auto mb-16" id="hero-buttons">
           {/* Button 1: Apply for Funding */}
           <button
             onClick={onApplyClick}
-            className="relative group rounded-2xl bg-cyan-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
+            className="relative group rounded-2xl bg-cyan-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer max-w-full"
             id="btn-hero-apply"
           >
             <span className="absolute inset-0 rounded-2xl bg-cyan-900/90 translate-y-2 block"></span>
-            <span className="relative flex items-center justify-center gap-2.5 px-12 py-6 rounded-2xl bg-cyan-400 text-black text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_20px_rgba(34,211,238,0.25)] border border-cyan-500/35 font-display">
+            <span className="relative flex items-center justify-center gap-2.5 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-cyan-400 text-black text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_20px_rgba(34,211,238,0.25)] border border-cyan-500/35 font-display">
               Apply for Funding
               <ArrowRight className="h-4.5 w-4.5 text-black stroke-[3]" />
             </span>
@@ -142,11 +147,11 @@ export default function Hero({
           {/* Button 2: Get Started */}
           <button
             onClick={() => onOpenAuth?.('register')}
-            className="relative group rounded-2xl bg-blue-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
+            className="relative group rounded-2xl bg-blue-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer max-w-full"
             id="btn-hero-start"
           >
             <span className="absolute inset-0 rounded-2xl bg-blue-900 translate-y-2 block"></span>
-            <span className="relative flex items-center justify-center gap-2 px-12 py-6 rounded-2xl bg-white text-black text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_20px_rgba(255,255,255,0.1)] border-2 border-blue-500 font-display">
+            <span className="relative flex items-center justify-center gap-2 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-white text-black text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_20px_rgba(255,255,255,0.1)] border-2 border-blue-500 font-display">
               Get Started
             </span>
           </button>
@@ -154,11 +159,11 @@ export default function Hero({
           {/* Button 2.5: Loan Terms & Transparency */}
           <button
             onClick={onLoanTransparencyClick}
-            className="relative group rounded-2xl bg-emerald-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
+            className="relative group rounded-2xl bg-emerald-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer max-w-full"
             id="btn-hero-transparency"
           >
             <span className="absolute inset-0 rounded-2xl bg-emerald-900 translate-y-2 block"></span>
-            <span className="relative flex items-center justify-center gap-2.5 px-12 py-6 rounded-2xl bg-emerald-400 text-black text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_25px_rgba(52,211,153,0.35)] border-2 border-emerald-300 font-display">
+            <span className="relative flex items-center justify-center gap-2.5 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-emerald-400 text-black text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_25px_rgba(52,211,153,0.35)] border-2 border-emerald-300 font-display">
               <ShieldCheck className="h-4.5 w-4.5 text-black stroke-[3]" />
               Loan Terms & Transparency
             </span>
@@ -167,11 +172,11 @@ export default function Hero({
           {/* Button 3: How It Works */}
           <button
             onClick={onHowItWorksClick || (() => scrollToSection('how-it-works-section'))}
-            className="relative group rounded-2xl bg-blue-900 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
+            className="relative group rounded-2xl bg-blue-900 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer max-w-full"
             id="btn-hero-how"
           >
             <span className="absolute inset-0 rounded-2xl bg-blue-950 translate-y-2 block"></span>
-            <span className="relative flex items-center justify-center gap-2 px-12 py-6 rounded-2xl bg-blue-600 text-white text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 border-2 border-blue-400 font-display">
+            <span className="relative flex items-center justify-center gap-2 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-blue-600 text-white text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 border-2 border-blue-400 font-display">
               How It Works
             </span>
           </button>
@@ -179,11 +184,11 @@ export default function Hero({
           {/* Button 4: FAQ */}
           <button
             onClick={() => setFaqOpen(true)}
-            className="relative group rounded-2xl bg-blue-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
+            className="relative group rounded-2xl bg-blue-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer max-w-full"
             id="btn-hero-faq"
           >
             <span className="absolute inset-0 rounded-2xl bg-blue-900 translate-y-2 block"></span>
-            <span className="relative flex items-center justify-center gap-2 px-12 py-6 rounded-2xl bg-white text-black hover:text-cyan-400 text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_20px_rgba(255,255,255,0.05)] border-2 border-blue-500 font-display">
+            <span className="relative flex items-center justify-center gap-2 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-white text-black hover:text-cyan-400 text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_20px_rgba(255,255,255,0.05)] border-2 border-blue-500 font-display">
               FAQ
             </span>
           </button>
@@ -191,11 +196,11 @@ export default function Hero({
           {/* Button 4.5: Global Government Warning */}
           <button
             onClick={onGovernmentWarningClick}
-            className="relative group rounded-2xl bg-red-900 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
+            className="relative group rounded-2xl bg-red-900 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer max-w-full"
             id="btn-hero-gov-warning"
           >
             <span className="absolute inset-0 rounded-2xl bg-red-950 translate-y-2 block"></span>
-            <span className="relative flex items-center justify-center gap-2 px-12 py-6 rounded-2xl bg-red-600 text-white hover:text-red-300 text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_30px_rgba(239,68,68,0.35)] border border-red-500 font-display">
+            <span className="relative flex items-center justify-center gap-2 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-red-600 text-white hover:text-red-300 text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_30px_rgba(239,68,68,0.35)] border border-red-500 font-display">
               ⚠️ Global Warning
             </span>
           </button>
@@ -203,11 +208,11 @@ export default function Hero({
           {/* Button 5: Menu */}
           <button
             onClick={() => setMenuOpen(true)}
-            className="relative group rounded-2xl bg-blue-950 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer"
+            className="relative group rounded-2xl bg-blue-950 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer max-w-full"
             id="btn-hero-menu"
           >
             <span className="absolute inset-0 rounded-2xl bg-black translate-y-2 block"></span>
-            <span className="relative flex items-center justify-center gap-2.5 px-12 py-6 rounded-2xl bg-blue-700 text-white text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 border-2 border-blue-400 font-display">
+            <span className="relative flex items-center justify-center gap-2.5 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-blue-700 text-white text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 border-2 border-blue-400 font-display">
               <Menu className="h-4.5 w-4.5 text-cyan-300 stroke-[3]" />
               Menu
             </span>
@@ -276,6 +281,11 @@ export default function Hero({
               src={spaceXExploration} 
               alt="SpaceX Exploration"
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                target.onerror = null;
+                target.src = '/image-1.jpg';
+              }}
               className="w-full h-[500px] sm:h-[750px] lg:h-[950px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.01]"
             />
             {/* Absolute overlay badge inside image */}
@@ -293,16 +303,21 @@ export default function Hero({
         {/* ----------------- 3. HOW IT WORKS SECTION (REPLACED PREMIUM SECTION) ----------------- */}
         <div className="relative w-full bg-black py-24 sm:py-32 border-t border-b border-white/5 overflow-hidden mb-16 sm:mb-24" id="how-it-works-section">
           {/* Animated Background Layer 1: Always Sunny */}
-          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none bg-black">
-            {/* Soft, extremely minimal vignetting to protect text legibility while keeping the image incredibly bright and clear */}
-            <div className="absolute inset-0 bg-black/5 z-10" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/20 z-10" />
+          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
             <img 
               src={alwaysSunnyBackground} 
               alt="Always Sunny Background" 
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                target.onerror = null;
+                target.src = '/Always_Sunny_v4_d8b76550ae-1.jpg';
+              }}
               className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-100 z-0"
             />
+            {/* Soft, extremely minimal vignetting to protect text legibility while keeping the image incredibly bright and clear */}
+            <div className="absolute inset-0 bg-black/5 z-[1]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/20 z-[1]" />
           </div>
 
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
@@ -510,11 +525,11 @@ export default function Hero({
             <div className="flex justify-center mt-20">
               <button
                 onClick={onCalculatorClick}
-                className="relative group rounded-2xl bg-blue-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer block"
+                className="relative group rounded-2xl bg-blue-800 p-[1.5px] transition-transform duration-200 active:scale-95 cursor-pointer block max-w-full"
                 id="btn-howitworks-eligibility"
               >
                 <span className="absolute inset-0 rounded-2xl bg-blue-900 translate-y-2 block"></span>
-                <span className="relative flex items-center justify-center gap-3 px-16 py-5 rounded-2xl bg-blue-600 text-white text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_30px_rgba(59,130,246,0.35)] border border-blue-400 font-display">
+                <span className="relative flex items-center justify-center gap-3 px-6 sm:px-12 lg:px-16 py-4 sm:py-5 rounded-2xl bg-blue-600 text-white text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_30px_rgba(59,130,246,0.35)] border border-blue-400 font-display">
                   Check Your Eligibility
                   <ArrowRight className="h-5 w-5 text-white stroke-[2.5]" />
                 </span>
@@ -528,15 +543,20 @@ export default function Hero({
         <div className="relative w-full mb-10 overflow-hidden rounded-3xl border border-white/10 py-16 px-4 sm:px-6 lg:px-8 bg-black" id="testimonials-section-anchor">
           {/* Animated Background Layer 2: Revolutionizing Space Tech */}
           <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden select-none">
-            {/* Soft, extremely minimal vignetting to protect text legibility while keeping the image incredibly bright and clear */}
-            <div className="absolute inset-0 bg-black/5 z-10" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/20 z-10" />
             <img 
               src={spaceTechBackground} 
               alt="Space Tech Background" 
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                target.onerror = null;
+                target.src = '/Revolutionizing_Space_Tech_Mobile_45093b17b7-1.jpg';
+              }}
               className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-100 z-0"
             />
+            {/* Soft, extremely minimal vignetting to protect text legibility while keeping the image incredibly bright and clear */}
+            <div className="absolute inset-0 bg-black/5 z-[1]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/20 z-[1]" />
           </div>
 
           <div className="relative z-10">
@@ -556,7 +576,7 @@ export default function Hero({
           />
           
           <div className="absolute inset-y-0 right-0 max-w-full flex">
-            <div className="w-screen max-w-sm bg-zinc-950 border-l border-white/5 p-8 flex flex-col justify-between animate-slide-left">
+            <div className="w-screen max-w-sm bg-zinc-950 border-l border-white/5 p-5 sm:p-8 flex flex-col justify-between animate-slide-left">
               
               <div className="space-y-12">
                 {/* Header */}

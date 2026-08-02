@@ -1,6 +1,7 @@
 import React from 'react';
-import { Menu, X, ArrowUpRight, ShieldCheck, Cpu, User as UserIcon, LogOut } from 'lucide-react';
+import { Menu, X, ArrowUpRight, ShieldCheck, User as UserIcon, LogOut } from 'lucide-react';
 import { User } from '../types';
+import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
 
 interface NavbarProps {
   user: User | null;
@@ -78,14 +79,23 @@ export default function Navbar({
           {/* Logo */}
           <div 
             onClick={onNavigateToHome} 
-            className="flex items-center gap-2 cursor-pointer group" 
+            className="flex items-center gap-2.5 cursor-pointer group" 
             id="nav-logo"
           >
-            <div className="h-7 w-7 rounded-md bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-cyan-400/30 transition-all duration-300">
-              <Cpu className="h-3.5 w-3.5 text-white group-hover:text-cyan-400 transition-colors" />
+            <div className="h-9 w-9 rounded-lg bg-black border-2 border-cyan-400/50 overflow-hidden flex items-center justify-center shrink-0 group-hover:border-cyan-400 transition-all duration-300 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+              <img 
+                src={logoImg} 
+                alt="Elon Capital Logo" 
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = '/elon_capital_logo.jpg';
+                }}
+                className="h-full w-full object-cover" 
+              />
             </div>
             <div className="flex flex-col text-left">
-              <span className="font-display text-xs font-extrabold tracking-[0.15em] text-white uppercase">
+              <span className="font-display text-xs sm:text-sm font-extrabold tracking-[0.15em] text-white uppercase">
                 Elon <span className="text-cyan-400 font-light">Capital Loan</span>
               </span>
               <span className="text-[7px] text-gray-500 font-mono uppercase tracking-[0.15em] -mt-0.5">

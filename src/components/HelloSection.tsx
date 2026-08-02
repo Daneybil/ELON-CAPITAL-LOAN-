@@ -8,7 +8,7 @@ interface HelloSectionProps {
 export default function HelloSection({ onApplyClick }: HelloSectionProps) {
   return (
     <div className="w-full max-w-5xl mx-auto px-4 mb-28" id="hello-image-section">
-      <div className="relative min-h-[480px] w-full rounded-2xl border border-white/5 bg-zinc-950/40 p-8 sm:p-12 shadow-[0_30px_70px_rgba(0,0,0,0.9)] group hover:border-cyan-500/20 transition-all duration-500 overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-12">
+      <div className="relative min-h-[480px] w-full rounded-2xl border-2 border-white/10 bg-black/95 p-8 sm:p-12 shadow-[0_30px_70px_rgba(0,0,0,0.95)] group hover:border-cyan-500/30 transition-all duration-500 overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-12">
         
         {/* Background glow effects and ambient space grid */}
         <div className="absolute inset-0 bg-gradient-to-tr from-black via-transparent to-cyan-500/[0.02] pointer-events-none" />
@@ -58,7 +58,7 @@ export default function HelloSection({ onApplyClick }: HelloSectionProps) {
               onError={(e) => {
                 const target = e.currentTarget as HTMLImageElement;
                 target.onerror = null;
-                target.src = '/image.jpg';
+                target.src = 'https://images.unsplash.com/photo-1517976487492-5750f3195933?auto=format&fit=crop&w=1200&q=80';
               }}
               className="w-full h-[450px] sm:h-[520px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-102"
             />

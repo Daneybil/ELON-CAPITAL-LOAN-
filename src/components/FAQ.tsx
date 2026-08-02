@@ -17,27 +17,31 @@ export default function FAQ({ isOpen = false, onClose }: FAQProps) {
   const faqItems: FAQItem[] = [
     {
       question: "Who owns and operates Elon Capital Loan?",
-      answer: "Elon Capital Loan is owned, founded, and backed by Elon Musk. It was established as a private institutional liquidity platform to disrupt traditional banking gatekeeping and empower ambitious humanity-first builders—from sole entrepreneurs starting with zero, to Web3/Forex traders, to scaling aerospace and artificial intelligence companies."
+      answer: "Elon Capital Loan is owned, founded, and backed by Elon Musk. It was established as a private institutional liquidity platform operating in alignment with SpaceX, Tesla, and Neuralink to empower global builders, aerospace developers, Web3/Forex traders, and ambitious small businesses."
     },
     {
-      question: "What is the primary mission of the Elon Capital Loan platform?",
-      answer: "Traditional commercial banks fail to support builders who are starting from nothing or operating in advanced fields like decentralized finance (DeFi), algorithmic Forex trading, or Web3. Our mission is to democratize capital allocation, dispatching quick, low-interest, and non-dilutive liquidity directly to tomorrow's visionary leaders."
+      question: "How much can I borrow?",
+      answer: "Qualified borrowers can secure funding allocations starting from a minimum of $1,000 up to a maximum capital pool of $500,000,000 (500 Million USD). Underwriting is evaluated based on project viability, enterprise scale, trading history, and portfolio strength."
     },
     {
-      question: "What are the fees, rates, and terms involved?",
-      answer: "We offer completely transparent, fixed pricing with zero compounding traps: (1) Collateral Fee: A refundable 25% collateral fee is required, which is fully returned back to you as soon as the loan is successfully repaid. (2) Company Fee: A simple 3.5% company service fee is charged for processing. (3) Annual Interest Rate: If you borrow for a duration of under 1 year (12 months or less), your interest rate is a fixed 15%. For any duration greater than 1 year (up to 4 years / 48 months or more), the interest rate is a fixed 25%."
+      question: "How much is the refundable collateral / charter / curator fee?",
+      answer: "The refundable collateral fee (also referenced on our platform as the refundable charter or curator fee) is fixed at exactly 25% of any amount you are borrowing. This security deposit is held safely in escrow by Elon Capital Loan for the entire duration of your loan and is 100% fully refundable back to you upon loan maturity and complete repayment. You can review full comprehensive details, terms, and guidelines directly under the 'Loan Terms and Transparency' section of our platform."
     },
     {
-      question: "How does the platform cater to Forex and Cryptocurrency traders?",
-      answer: "Unlike standard credit institutions that view digital assets with suspicion, Elon Capital Loan has integrated native Web3 wallets and Forex portfolio auditing tools. We evaluate trading history, smart contract code, or quantitative yield metrics to underwrite custom liquidity lines instantly."
+      question: "How much is the company setup fee?",
+      answer: "The company setup fee is fixed at 3.5% of any amount you are borrowing. This organizational processing fee covers administrative onboarding, sovereign legal compliance auditing, institutional credit allocation setup, and smart ledger integration. Full information and documentation explaining everything in detail can be accessed directly under the 'Loan Terms and Transparency' section on our platform."
     },
     {
-      question: "How does the 'Enhanced Verification' process work?",
-      answer: "Allocations exceeding $5,000,000 are subject to automated Enhanced Verification. This process does not involve tedious manual bank bureaucracy; instead, our high-performance ledger validates portfolio coordinates or corporate revenue in minutes, backed by Elon Musk's private capital treasury."
+      question: "What are the interest rates for borrowing?",
+      answer: "Our interest rates are transparently structured based on your selected loan repayment duration:\n• For loan terms from 1 month up to 12 months: A flat 15% interest rate applies to the total principal borrowed.\n• For loan terms from 13 months up to 60 months (up to 5 years): A 20% interest rate applies.\nFull interest rate schedules can be reviewed under 'Loan Terms and Transparency'."
+    },
+    {
+      question: "What happens if someone does not pay or attempts to default?",
+      answer: "⚠️ LEGAL WARNING: Full legal provisions are established under the 'Loan Terms and Transparency' section. Elon Capital Loan operates in direct coordination with global law enforcement agencies, international tribunals, Interpol, federal recovery courts, and national tax authorities. Any attempt to borrow and default or evade repayment is treated as a high-tier financial felony. We offer a maximum 1-month (30-day) grace window. If payment is not settled within 30 days past the due date, we initiate immediate sovereign asset seizure (covering all linked bank accounts, physical properties, corporate entities, and cryptocurrency wallets) followed by criminal prosecution and mandatory prison sentences. We enforce 100% asset recovery."
     },
     {
       question: "Are there any hidden fees or pre-payment penalties?",
-      answer: "Absolutely not. Transparency is our highest priority. All agreements utilize a plain-English single-sheet contract. What you calculate is exactly what you pay back. You are free to repay your allocation early at any time with a 100% interest waiver on the remaining months."
+      answer: "Absolutely not. Transparency is our highest priority. All agreements utilize single-sheet contracts detailed under 'Loan Terms and Transparency'. What you calculate is exactly what you pay back. You are free to repay your allocation early at any time with a 100% interest waiver on remaining months."
     }
   ];
 

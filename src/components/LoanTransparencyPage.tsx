@@ -1,4 +1,5 @@
 import React from 'react';
+import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
 import { 
   ArrowLeft, 
   ShieldCheck, 
@@ -56,6 +57,20 @@ export default function LoanTransparencyPage({ onBackToHome, onApplyClick }: Loa
 
         {/* Hero Title Section */}
         <div className="text-center max-w-4xl mx-auto mb-16 sm:mb-20 space-y-6">
+          {/* Official 3D Logo Emblem */}
+          <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl bg-black border-2 border-emerald-400/80 overflow-hidden flex items-center justify-center mx-auto mb-4 relative z-10 shadow-[0_0_40px_rgba(52,211,153,0.5)] transform hover:scale-105 transition-transform duration-300">
+            <img 
+              src={logoImg} 
+              alt="Elon Capital Official 3D Logo" 
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                target.onerror = null;
+                target.src = '/elon_capital_logo.jpg';
+              }}
+              className="h-full w-full object-cover" 
+            />
+          </div>
+
           <div className="inline-flex items-center gap-2.5 px-5 py-2 rounded-full bg-emerald-950/90 border-2 border-emerald-500/60 text-emerald-300 font-mono text-xs sm:text-sm font-black uppercase tracking-widest shadow-[0_0_30px_rgba(52,211,153,0.3)]">
             <ShieldCheck className="h-5 w-5 text-emerald-400 stroke-[2.5]" />
             <span>INSTITUTIONAL LENDING STANDARD</span>

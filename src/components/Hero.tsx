@@ -1,4 +1,5 @@
 import React from 'react';
+import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
 import { 
   ArrowRight, 
   ChevronRight, 
@@ -21,11 +22,11 @@ import FAQ from './FAQ';
 import HelloSection from './HelloSection';
 import GovernmentWarning from './GovernmentWarning';
 
-// Import local images from assets to allow Vite to bundle them as assets and guarantee production/dev delivery
-import astronautImage from '../assets/Advancing_Human_Spaceflight_Mobile_af242fde31-1.jpg';
-import alwaysSunnyBackground from '../assets/Always_Sunny_v4_d8b76550ae-1.jpg';
-import spaceTechBackground from '../assets/Revolutionizing_Space_Tech_Mobile_45093b17b7-1.jpg';
-import spaceXExploration from '../assets/image-1.jpg';
+// Reliable high-quality online image URLs for permanent visibility across all dev and production environments (Vercel, Webflow, etc.)
+const astronautImage = 'https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?auto=format&fit=crop&w=1200&q=80';
+const spaceXExploration = 'https://images.unsplash.com/photo-1517976487492-5750f3195933?auto=format&fit=crop&w=1600&q=80';
+const alwaysSunnyBackground = 'https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?auto=format&fit=crop&w=2000&q=80';
+const spaceTechBackground = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=2000&q=80';
 
 interface HeroProps {
   content: HomePageContent;
@@ -115,9 +116,9 @@ export default function Hero({
                 onError={(e) => {
                   const target = e.currentTarget as HTMLImageElement;
                   target.onerror = null;
-                  target.src = '/Advancing_Human_Spaceflight_Mobile_af242fde31-1.jpg';
+                  target.src = 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1200&q=80';
                 }}
-                className="w-full h-[320px] sm:h-[650px] lg:h-[900px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.015]"
+                className="w-full h-[320px] sm:h-[650px] lg:h-[900px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.015] animate-space-moon-rotate"
               />
             </div>
           </div>
@@ -125,7 +126,7 @@ export default function Hero({
         </div>
 
         {/* Professional, comprehensive, targeted tagline */}
-        <p className="text-base sm:text-lg text-white font-semibold leading-relaxed max-w-4xl mx-auto mb-16 tracking-wide text-center bg-white/[0.02] border border-white/5 rounded-2xl p-6 sm:p-8 shadow-[0_4px_30px_rgba(0,0,0,0.4)]" id="hero-desc">
+        <p className="text-base sm:text-lg text-white font-semibold leading-relaxed max-w-4xl mx-auto mb-16 tracking-wide text-center bg-black/95 border-2 border-white/15 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.9)]" id="hero-desc">
           Elon Capital Loan is engineered because traditional bank gatekeepers refuse to support the dreamers of tomorrow. Whether you are an ambitious builder starting with <strong className="text-cyan-400 font-extrabold">zero initial capital</strong>, a high-growth startup, an independent entrepreneur, a cryptocurrency trader seeking leverage, a Web3 developer, a Forex specialist, or an expanding small business—this platform is built for you. We eliminate archaic financial barriers to dispatch instant liquidity, transforming your vision into actionable reality.
         </p>
 
@@ -284,7 +285,7 @@ export default function Hero({
               onError={(e) => {
                 const target = e.currentTarget as HTMLImageElement;
                 target.onerror = null;
-                target.src = '/image-1.jpg';
+                target.src = 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=1600&q=80';
               }}
               className="w-full h-[500px] sm:h-[750px] lg:h-[950px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.01]"
             />
@@ -311,7 +312,7 @@ export default function Hero({
               onError={(e) => {
                 const target = e.currentTarget as HTMLImageElement;
                 target.onerror = null;
-                target.src = '/Always_Sunny_v4_d8b76550ae-1.jpg';
+                target.src = 'https://images.unsplash.com/photo-1517976487492-5750f3195933?auto=format&fit=crop&w=2000&q=80';
               }}
               className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-100 z-0"
             />
@@ -339,154 +340,190 @@ export default function Hero({
             <div className="relative border-l border-zinc-800 ml-4 sm:ml-12 pl-8 sm:pl-16 space-y-8 max-w-4xl mx-auto text-left">
               
               {/* Step 1 */}
-              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
+              <div className="relative group/step bg-black/95 border-2 border-white/15 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.95)] transition-all duration-300 hover:border-blue-500/50">
                 {/* Timeline Dot with Glow */}
                 <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
                   <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
-                    01
-                  </span>
-                  <div className="space-y-1.5">
-                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
-                      Create Your Account
-                    </h3>
-                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
-                      Register using your email address and complete your personal or business profile.
-                    </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+                    <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                      01
+                    </span>
+                    <div className="space-y-1.5">
+                      <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                        Create Your Account
+                      </h3>
+                      <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
+                        Register using your email address and complete your personal or business profile.
+                      </p>
+                    </div>
+                  </div>
+                  {/* 3D Logo Emblem */}
+                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-black border border-cyan-400/60 overflow-hidden shrink-0 shadow-[0_0_20px_rgba(6,182,212,0.4)] self-end sm:self-center">
+                    <img src={logoImg} alt="Elon Capital 3D Logo" className="h-full w-full object-cover" />
                   </div>
                 </div>
               </div>
 
               {/* Step 2 */}
-              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
+              <div className="relative group/step bg-black/95 border-2 border-white/15 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.95)] transition-all duration-300 hover:border-blue-500/50">
                 {/* Timeline Dot with Glow */}
                 <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
                   <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
-                    02
-                  </span>
-                  <div className="space-y-1.5">
-                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
-                      Complete Identity Verification
-                    </h3>
-                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
-                      Upload the required identification documents for review.
-                    </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+                    <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                      02
+                    </span>
+                    <div className="space-y-1.5">
+                      <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                        Complete Identity Verification
+                      </h3>
+                      <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
+                        Upload the required identification documents for review.
+                      </p>
+                    </div>
+                  </div>
+                  {/* 3D Logo Emblem */}
+                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-black border border-cyan-400/60 overflow-hidden shrink-0 shadow-[0_0_20px_rgba(6,182,212,0.4)] self-end sm:self-center">
+                    <img src={logoImg} alt="Elon Capital 3D Logo" className="h-full w-full object-cover" />
                   </div>
                 </div>
               </div>
 
               {/* Step 3 */}
-              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
+              <div className="relative group/step bg-black/95 border-2 border-white/15 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.95)] transition-all duration-300 hover:border-blue-500/50">
                 {/* Timeline Dot with Glow */}
                 <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
                   <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
-                    03
-                  </span>
-                  <div className="space-y-1.5">
-                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
-                      Submit Your Funding Request
-                    </h3>
-                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
-                      Choose the amount you need and provide details about your business, project, or funding purpose.
-                    </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+                    <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                      03
+                    </span>
+                    <div className="space-y-1.5">
+                      <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                        Submit Your Funding Request
+                      </h3>
+                      <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
+                        Choose the amount you need and provide details about your business, project, or funding purpose.
+                      </p>
+                    </div>
+                  </div>
+                  {/* 3D Logo Emblem */}
+                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-black border border-cyan-400/60 overflow-hidden shrink-0 shadow-[0_0_20px_rgba(6,182,212,0.4)] self-end sm:self-center">
+                    <img src={logoImg} alt="Elon Capital 3D Logo" className="h-full w-full object-cover" />
                   </div>
                 </div>
               </div>
 
               {/* Step 4 */}
-              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
+              <div className="relative group/step bg-black/95 border-2 border-white/15 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.95)] transition-all duration-300 hover:border-blue-500/50">
                 {/* Timeline Dot with Glow */}
                 <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
                   <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
-                    04
-                  </span>
-                  <div className="space-y-1.5">
-                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
-                      Application Review
-                    </h3>
-                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
-                      Our team reviews the application and may request additional supporting documents when necessary.
-                    </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+                    <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                      04
+                    </span>
+                    <div className="space-y-1.5">
+                      <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                        Application Review
+                      </h3>
+                      <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
+                        Our team reviews the application and may request additional supporting documents when necessary.
+                      </p>
+                    </div>
+                  </div>
+                  {/* 3D Logo Emblem */}
+                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-black border border-cyan-400/60 overflow-hidden shrink-0 shadow-[0_0_20px_rgba(6,182,212,0.4)] self-end sm:self-center">
+                    <img src={logoImg} alt="Elon Capital 3D Logo" className="h-full w-full object-cover" />
                   </div>
                 </div>
               </div>
 
               {/* Step 5 */}
-              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
+              <div className="relative group/step bg-black/95 border-2 border-white/15 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.95)] transition-all duration-300 hover:border-blue-500/50">
                 {/* Timeline Dot with Glow */}
                 <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
                   <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
-                    05
-                  </span>
-                  <div className="space-y-1.5">
-                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
-                      Funding Decision
-                    </h3>
-                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
-                      Once approved, you will receive a notification in your dashboard with the next steps.
-                    </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+                    <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                      05
+                    </span>
+                    <div className="space-y-1.5">
+                      <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                        Funding Decision
+                      </h3>
+                      <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
+                        Once approved, you will receive a notification in your dashboard with the next steps.
+                      </p>
+                    </div>
+                  </div>
+                  {/* 3D Logo Emblem */}
+                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-black border border-cyan-400/60 overflow-hidden shrink-0 shadow-[0_0_20px_rgba(6,182,212,0.4)] self-end sm:self-center">
+                    <img src={logoImg} alt="Elon Capital 3D Logo" className="h-full w-full object-cover" />
                   </div>
                 </div>
               </div>
 
               {/* Step 6 */}
-              <div className="relative group/step bg-black border border-white/10 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.85)] transition-all duration-300 hover:border-blue-500/30">
+              <div className="relative group/step bg-black/95 border-2 border-white/15 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.95)] transition-all duration-300 hover:border-blue-500/50">
                 {/* Timeline Dot with Glow */}
                 <div className="absolute -left-[41px] sm:-left-[73px] top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-black border-2 border-blue-500 flex items-center justify-center z-10 transition-all duration-300 group-hover/step:border-blue-400 group-hover/step:shadow-[0_0_15px_rgba(59,130,246,0.8)]">
                   <div className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                 </div>
                 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
-                  <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
-                    06
-                  </span>
-                  <div className="space-y-1.5">
-                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
-                      Receive Your Funds
-                    </h3>
-                    <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
-                      After all required verification and agreement steps are completed, approved funds become available through your account.
-                    </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+                    <span className="font-sans font-black text-5xl sm:text-6xl text-blue-500 tracking-tighter leading-none shrink-0 select-none">
+                      06
+                    </span>
+                    <div className="space-y-1.5">
+                      <h3 className="text-xl sm:text-2xl font-black text-white tracking-wide uppercase font-display">
+                        Receive Your Funds
+                      </h3>
+                      <p className="text-base sm:text-lg text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
+                        After all required verification and agreement steps are completed, approved funds become available through your account.
+                      </p>
+                    </div>
+                  </div>
+                  {/* 3D Logo Emblem */}
+                  <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-black border border-cyan-400/60 overflow-hidden shrink-0 shadow-[0_0_20px_rgba(6,182,212,0.4)] self-end sm:self-center">
+                    <img src={logoImg} alt="Elon Capital 3D Logo" className="h-full w-full object-cover" />
                   </div>
                 </div>
               </div>
 
             </div>
 
-            {/* Separate Premium Information Card */}
-            <div className="max-w-4xl mx-auto mt-24 px-4">
-              <div className="relative rounded-2xl border border-blue-500/30 bg-zinc-950/60 p-8 sm:p-10 shadow-[0_25px_60px_rgba(0,0,0,0.85)] overflow-hidden group hover:border-blue-500/50 transition-all duration-500">
+            {/* Separate Premium Information Card: Placed directly under Receive Your Funds */}
+            <div className="max-w-4xl mx-auto mt-12 px-4">
+              <div className="relative rounded-2xl border-2 border-blue-500/40 bg-black/95 p-8 sm:p-10 shadow-[0_25px_60px_rgba(0,0,0,0.95)] overflow-hidden group hover:border-blue-500/60 transition-all duration-500">
                 {/* Soft background blue glow */}
-                <div className="absolute -inset-10 bg-gradient-to-r from-blue-500/5 to-transparent rounded-2xl blur-3xl opacity-50 pointer-events-none" />
+                <div className="absolute -inset-10 bg-gradient-to-r from-blue-500/10 to-transparent rounded-2xl blur-3xl opacity-50 pointer-events-none" />
                 
                 <div className="relative flex flex-col md:flex-row items-start gap-6 z-10">
-                  <div className="h-12 w-12 rounded-xl bg-blue-950/40 border border-blue-500/40 flex items-center justify-center shrink-0 mt-1">
-                    <Info className="h-6 w-6 text-blue-500" />
+                  <div className="h-12 w-12 rounded-xl bg-blue-950/80 border border-blue-500/50 flex items-center justify-center shrink-0 mt-1 shadow-lg">
+                    <Info className="h-6 w-6 text-blue-400" />
                   </div>
                   <div className="text-left space-y-3">
                     <h4 className="font-display text-xl sm:text-2xl font-black text-white uppercase tracking-wide">
                       Need Larger Funding?
                     </h4>
-                    <p className="text-sm sm:text-base text-zinc-100 font-bold leading-relaxed">
+                    <p className="text-sm sm:text-base text-zinc-100 font-bold sm:font-extrabold leading-relaxed">
                       Funding requests above the standard limit may require enhanced verification. Depending on the application, this may include additional business documents, corporate records, financial statements, legal documentation, and other supporting information.
                     </p>
                   </div>
@@ -495,8 +532,8 @@ export default function Hero({
             </div>
 
             {/* Why Businesses Choose ELON CAPITAL LOAN */}
-            <div className="max-w-5xl mx-auto mt-28 px-4">
-              <h3 className="font-display text-2xl sm:text-3xl font-black text-white text-center uppercase tracking-wider mb-12">
+            <div className="max-w-5xl mx-auto mt-24 px-4">
+              <h3 className="font-display text-2xl sm:text-3xl font-black text-white text-center uppercase tracking-wider mb-12 drop-shadow-md">
                 Why Businesses Choose ELON CAPITAL LOAN
               </h3>
               
@@ -509,9 +546,9 @@ export default function Hero({
                   "Transparent application process",
                   "Dedicated support throughout your application"
                 ].map((benefit, idx) => (
-                  <div key={idx} className="flex items-start gap-4 bg-zinc-950/40 border border-white/5 rounded-xl p-5 hover:border-blue-500/20 hover:bg-zinc-950/80 transition-all duration-300 text-left">
-                    <div className="h-6 w-6 rounded-full bg-blue-950/30 border border-blue-500/30 flex items-center justify-center shrink-0 mt-0.5">
-                      <Check className="h-3.5 w-3.5 text-blue-500 stroke-[3]" />
+                  <div key={idx} className="flex items-start gap-4 bg-black/95 border-2 border-white/15 rounded-xl p-5 hover:border-blue-500/50 hover:bg-black transition-all duration-300 text-left shadow-xl">
+                    <div className="h-6 w-6 rounded-full bg-blue-950/80 border border-blue-500/50 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="h-3.5 w-3.5 text-blue-400 stroke-[3]" />
                     </div>
                     <span className="text-sm sm:text-base font-black text-white tracking-wide uppercase">
                       {benefit}
@@ -550,7 +587,7 @@ export default function Hero({
               onError={(e) => {
                 const target = e.currentTarget as HTMLImageElement;
                 target.onerror = null;
-                target.src = '/Revolutionizing_Space_Tech_Mobile_45093b17b7-1.jpg';
+                target.src = 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&w=2000&q=80';
               }}
               className="absolute inset-0 w-full h-full object-cover animate-ken-burns opacity-100 z-0"
             />

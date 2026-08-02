@@ -522,7 +522,7 @@ export default function App() {
       )}
 
       {/* Globally Floating Interactive Chatbot */}
-      <Chatbot user={user} token={token} />
+      <Chatbot user={user} token={token} onOpenAuth={handleOpenAuth} />
 
     </div>
   );

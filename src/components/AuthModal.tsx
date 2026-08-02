@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, ShieldCheck, Mail, Lock, User as UserIcon, Phone, Globe, ArrowRight, RefreshCw, Key, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { User } from '../types';
+import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -495,9 +496,18 @@ export default function AuthModal({
 
         {/* Brand Header */}
         <div className="text-center mb-8 relative z-10" id="auth-modal-header">
-          {/* Glowing Blue 3D Badge */}
-          <div className="h-16 w-16 glowing-shield-badge flex items-center justify-center mx-auto mb-4 relative z-10 shadow-[0_0_30px_rgba(6,182,212,0.6)]">
-            <ShieldCheck className="h-9 w-9 text-white filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+          {/* Glowing 3D Company Logo */}
+          <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-2xl bg-black border-2 border-cyan-400/80 overflow-hidden flex items-center justify-center mx-auto mb-4 relative z-10 shadow-[0_0_35px_rgba(6,182,212,0.6)] group hover:scale-105 transition-transform duration-300">
+            <img 
+              src={logoImg} 
+              alt="Elon Capital Official Logo" 
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                target.onerror = null;
+                target.src = '/elon_capital_logo.jpg';
+              }}
+              className="h-full w-full object-cover" 
+            />
           </div>
           <h2 className="text-base sm:text-lg font-black text-cyan-400 tracking-widest uppercase font-mono">
             Elon Musk Capital Loan

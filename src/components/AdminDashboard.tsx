@@ -652,6 +652,52 @@ export default function AdminDashboard({
         </div>
       </div>
 
+      {/* Admin Unreplied Notification Banner */}
+      {(() => {
+        const openT = tickets.filter(t => t.status === 'Open' || (t.replies && t.replies.length > 0 && t.replies[t.replies.length - 1].senderRole === 'user')).length;
+        const unreadM = adminMessages.filter(m => !m.isRead && m.senderRole !== 'admin').length;
+        const totalPending = openT + unreadM;
+        if (totalPending === 0) return null;
+
+        return (
+          <div className="mb-8 p-4 bg-gradient-to-r from-red-950/60 via-amber-950/40 to-zinc-950 border-2 border-red-500/50 rounded-2xl text-xs font-sans text-amber-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-[0_0_25px_rgba(239,68,68,0.25)] animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl shrink-0">
+                <Bell className="h-6 w-6 animate-bounce" />
+              </div>
+              <div>
+                <span className="font-extrabold text-white text-sm uppercase tracking-wider block font-display">
+                  🚨 ATTENTION: UNANSWERED USER MESSAGES ({totalPending} PENDING)
+                </span>
+                <span className="text-gray-300 text-xs">
+                  {openT > 0 ? `${openT} support ticket(s) awaiting reply` : ''} 
+                  {openT > 0 && unreadM > 0 ? ' & ' : ''} 
+                  {unreadM > 0 ? `${unreadM} unread direct message(s)` : ''}. This notification remains active until all messages are answered.
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {openT > 0 && (
+                <button
+                  onClick={() => setAdminTab('tickets')}
+                  className="px-4 py-2 bg-red-500 hover:bg-red-400 text-black font-mono font-black text-xs uppercase rounded-xl transition shadow-lg cursor-pointer"
+                >
+                  Reply to Tickets ({openT}) →
+                </button>
+              )}
+              {unreadM > 0 && (
+                <button
+                  onClick={() => setAdminTab('messages')}
+                  className="px-4 py-2 bg-cyan-400 hover:bg-cyan-300 text-black font-mono font-black text-xs uppercase rounded-xl transition shadow-lg cursor-pointer"
+                >
+                  View Messages ({unreadM}) →
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         
         {/* Navigation Sidebar */}
@@ -713,10 +759,24 @@ export default function AdminDashboard({
               adminTab === 'messages' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <span className="flex items-center gap-3"><MessageSquare className="h-4 w-4" /> Messages</span>
+            <span className="flex items-center gap-3"><MessageSquare className="h-4 w-4" /> Direct Messages</span>
             {adminMessages.filter(m => !m.isRead && m.senderRole !== 'admin').length > 0 && (
               <span className="bg-cyan-400 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full">
                 {adminMessages.filter(m => !m.isRead && m.senderRole !== 'admin').length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setAdminTab('tickets')}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+              adminTab === 'tickets' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
+            }`}
+          >
+            <span className="flex items-center gap-3"><HelpCircle className="h-4 w-4" /> Support Tickets</span>
+            {tickets.filter(t => t.status === 'Open' || (t.replies && t.replies.length > 0 && t.replies[t.replies.length - 1].senderRole === 'user')).length > 0 && (
+              <span className="bg-red-500 text-white font-mono font-bold text-[9px] px-2.5 py-0.5 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+                {tickets.filter(t => t.status === 'Open' || (t.replies && t.replies.length > 0 && t.replies[t.replies.length - 1].senderRole === 'user')).length} NEW
               </span>
             )}
           </button>

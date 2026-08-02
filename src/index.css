@@ -74,15 +74,30 @@ body {
   animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Ken Burns animation for slow, smooth image scanning motion (cinematic video zoom) */
+/* Noticeable, fluid Ken Burns animation for background scanning motion */
 @keyframes ken-burns {
-  0% { transform: scale(1.02) translate(0px, 0px); }
-  50% { transform: scale(1.07) translate(-6px, -3px); }
-  100% { transform: scale(1.02) translate(0px, 0px); }
+  0% { transform: scale(1.04) translate(0px, 0px); }
+  25% { transform: scale(1.12) translate(-22px, -14px); }
+  50% { transform: scale(1.08) translate(18px, 14px); }
+  75% { transform: scale(1.15) translate(-14px, 18px); }
+  100% { transform: scale(1.04) translate(0px, 0px); }
 }
 
 .animate-ken-burns {
-  animation: ken-burns 36s ease-in-out infinite;
+  animation: ken-burns 24s ease-in-out infinite;
+}
+
+/* Dynamic rotating, in-and-out depth motion for space/moon image */
+@keyframes space-moon-rotate {
+  0% { transform: scale(1) rotate(0deg) translate(0px, 0px); }
+  25% { transform: scale(1.05) rotate(2.5deg) translate(-10px, 8px); }
+  50% { transform: scale(1.02) rotate(0deg) translate(8px, -10px); }
+  75% { transform: scale(1.06) rotate(-2.5deg) translate(-6px, -4px); }
+  100% { transform: scale(1) rotate(0deg) translate(0px, 0px); }
+}
+
+.animate-space-moon-rotate {
+  animation: space-moon-rotate 18s ease-in-out infinite;
 }
 
 /* Premium 3D Glassmorphic styles for auth form and inputs matching image */

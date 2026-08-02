@@ -1,4 +1,5 @@
 import React from 'react';
+import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
 
 interface FooterProps {
   onNavigateToHome: () => void;
@@ -54,7 +55,19 @@ export default function Footer({
   return (
     <footer className="bg-black py-10 px-6 border-t border-white/5 select-none" id="footer-section">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-black border border-cyan-400/40 overflow-hidden flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+            <img 
+              src={logoImg} 
+              alt="Elon Capital Logo" 
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                target.onerror = null;
+                target.src = '/elon_capital_logo.jpg';
+              }}
+              className="h-full w-full object-cover" 
+            />
+          </div>
           <span 
             onClick={onNavigateToHome}
             className="font-display text-xs font-extrabold tracking-[0.2em] text-white cursor-pointer uppercase hover:text-cyan-400 transition-colors"

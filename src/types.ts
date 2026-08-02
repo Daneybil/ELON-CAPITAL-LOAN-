@@ -130,11 +130,14 @@ export interface KYC {
 
 export interface Message {
   id: string;
-  senderId: string; // 'admin' or user.id
+  senderId: string; // 'admin-1' or user.id
   senderName: string;
-  receiverId: string; // 'admin' or user.id
+  senderRole?: 'user' | 'admin';
+  receiverId: string; // 'admin-1' or user.id
   content: string;
   attachment?: { name: string; url: string };
+  attachments?: Array<{ name: string; url: string }>;
+  imageUrl?: string;
   isRead: boolean;
   createdAt: string;
 }

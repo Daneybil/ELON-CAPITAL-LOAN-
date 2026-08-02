@@ -204,6 +204,7 @@ export default function UserDashboard({
   // Messaging States
   const [newMsgContent, setNewMsgContent] = React.useState('');
   const [msgAttachment, setMsgAttachment] = React.useState<{ name: string; url: string } | null>(null);
+  const userMsgImageInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Ticket Form States
   const [ticketSubject, setTicketSubject] = React.useState('');
@@ -3537,8 +3538,9 @@ export default function UserDashboard({
                   </div>
                 ) : (
                   messages.map((msg) => {
-                    const isAdmin = msg.senderId === 'admin-1';
+                    const isAdmin = msg.senderId === 'admin-1' || msg.senderRole === 'admin';
                     const senderLabel = isAdmin ? 'Elon Capital Loan Team' : (msg.senderName || user.name);
+                    const hasImage = msg.imageUrl || (msg.attachment?.url && msg.attachment.url.startsWith('data:image'));
                     return (
                       <div 
                         key={msg.id}
@@ -3554,7 +3556,16 @@ export default function UserDashboard({
                             : 'bg-cyan-400 text-black font-black rounded-tr-none shadow-md'
                         }`}>
                           {msg.content}
-                          {msg.attachment && (
+                          {hasImage ? (
+                            <div className="mt-2.5">
+                              <img 
+                                src={msg.imageUrl || msg.attachment?.url} 
+                                alt="Message attachment" 
+                                className="rounded-lg max-h-52 w-full object-cover border border-white/20 cursor-pointer shadow-md"
+                                onClick={() => window.open(msg.imageUrl || msg.attachment?.url, '_blank')}
+                              />
+                            </div>
+                          ) : msg.attachment && (
                             <div className="mt-2 pt-2 border-t border-black/20 text-xs font-mono font-bold flex items-center gap-1.5 opacity-90">
                               <span>📎 Attachment: {msg.attachment.name}</span>
                             </div>
@@ -3569,24 +3580,45 @@ export default function UserDashboard({
 
               {/* Chat Send */}
               <form onSubmit={handleSendMessage} className="border-t border-white/10 pt-4" id="form-chat-send">
+                <input 
+                  type="file" 
+                  ref={userMsgImageInputRef}
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (evt) => {
+                        setMsgAttachment({ name: file.name, url: evt.target?.result as string });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
                 {msgAttachment && (
                   <div className="mb-2 p-2.5 bg-zinc-900 border border-zinc-700 rounded-lg flex items-center justify-between text-xs font-mono font-bold">
-                    <span className="text-cyan-300">📎 Attached: {msgAttachment.name}</span>
-                    <button type="button" onClick={() => setMsgAttachment(null)} className="text-red-400 hover:underline font-black">Remove</button>
+                    <span className="text-cyan-300 flex items-center gap-2 truncate">
+                      📎 Attached: {msgAttachment.name}
+                      {msgAttachment.url.startsWith('data:image') && (
+                        <img src={msgAttachment.url} alt="Preview" className="h-6 w-6 object-cover rounded border border-cyan-400/50" />
+                      )}
+                    </span>
+                    <button type="button" onClick={() => setMsgAttachment(null)} className="text-red-400 hover:underline font-black shrink-0">Remove</button>
                   </div>
                 )}
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setMsgAttachment({ name: 'treasury_balance_sheet.pdf', url: '#' })}
+                    onClick={() => userMsgImageInputRef.current?.click()}
                     className="px-4 bg-zinc-900 border-2 border-zinc-700 text-sm font-bold text-zinc-300 hover:text-white hover:border-cyan-400 rounded-xl cursor-pointer"
-                    title="Add attachment"
+                    title="Upload image or file"
                   >
-                    📎
+                    📷 / 📎
                   </button>
                   <input 
                     type="text" 
-                    required
+                    required={!msgAttachment}
                     value={newMsgContent}
                     onChange={(e) => setNewMsgContent(e.target.value)}
                     className="flex-1 px-4 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-sm font-bold text-white focus:outline-none"

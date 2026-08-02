@@ -1527,10 +1527,10 @@ app.get('/api/messages', authenticateToken, (req, res) => {
 });
 
 const handleSendMessage = (req: express.Request, res: express.Response) => {
-  const { content, receiverId, attachment } = req.body;
+  const { content, receiverId, attachment, attachments, imageUrl } = req.body;
 
-  if (!content) {
-    res.status(400).json({ error: 'Message content cannot be blank.' });
+  if (!content && !imageUrl && (!attachments || attachments.length === 0) && !attachment) {
+    res.status(400).json({ error: 'Message content or attachment cannot be blank.' });
     return;
   }
 
@@ -1554,9 +1554,12 @@ const handleSendMessage = (req: express.Request, res: express.Response) => {
     id: generateId(),
     senderId: role === 'admin' ? 'admin-1' : userId,
     senderName,
+    senderRole: role === 'admin' ? 'admin' : 'user',
     receiverId: actualReceiverId,
-    content,
-    attachment,
+    content: content || '',
+    attachment: attachment || (attachments && attachments.length > 0 ? attachments[0] : undefined),
+    attachments: attachments || (attachment ? [attachment] : undefined),
+    imageUrl: imageUrl || (attachment?.url && attachment.url.startsWith('data:image') ? attachment.url : (attachments?.[0]?.url && attachments[0].url.startsWith('data:image') ? attachments[0].url : undefined)),
     isRead: false,
     createdAt: new Date().toISOString()
   };

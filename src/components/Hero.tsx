@@ -287,7 +287,7 @@ export default function Hero({
                 target.onerror = null;
                 target.src = 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&w=1600&q=80';
               }}
-              className="w-full h-[500px] sm:h-[750px] lg:h-[950px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.01]"
+              className="w-full h-[500px] sm:h-[750px] lg:h-[950px] object-cover rounded-xl transition-all duration-700 animate-rocket-float"
             />
             {/* Absolute overlay badge inside image */}
             <div className="absolute bottom-6 left-6 sm:bottom-10 sm:left-10 bg-black/85 backdrop-blur-md border border-white/10 rounded-xl px-6 py-4 flex items-center justify-center shadow-2xl">

@@ -129,49 +129,74 @@ export default function Chatbot({ user, token, onOpenAuth }: ChatbotProps) {
     loadUserTickets();
   }, [user?.id, token]);
 
-  // Sync ticket replies if in Live Representative Mode
+  // Sync direct messages and ticket replies if in Live Representative Mode
   React.useEffect(() => {
-    if (!isLiveMode || !activeTicketId || !token) return;
+    if (!isLiveMode || !token) return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(getApiUrl('/api/support/tickets'), {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (res.ok) {
-          const ticketsList = await res.json();
-          const targetTicket = ticketsList.find((t: any) => t.id === activeTicketId);
-          if (targetTicket && targetTicket.replies) {
-            const mappedMessages: Message[] = targetTicket.replies.map((reply: any) => ({
-              id: reply.id,
-              sender: reply.senderRole === 'admin' ? 'rep' : 'user',
-              senderName: reply.senderName || (reply.senderRole === 'admin' ? 'Sarah (Operations Desk)' : 'You'),
-              text: reply.content,
-              timestamp: new Date(reply.createdAt)
+        const headers = { 'Authorization': `Bearer ${token}` };
+        
+        // Fetch direct messages from Admin Message Desk
+        const resMsg = await fetch(getApiUrl('/api/messages'), { headers });
+        if (resMsg.ok) {
+          const directMsgs: any[] = await resMsg.json();
+          if (directMsgs && directMsgs.length > 0) {
+            const mappedDirectMsgs: Message[] = directMsgs.map((m: any) => ({
+              id: m.id,
+              sender: m.senderRole === 'admin' || m.senderId === 'admin-1' ? 'rep' : 'user',
+              senderName: m.senderRole === 'admin' || m.senderId === 'admin-1' ? 'Elon Capital Loan Team' : (user?.name || 'You'),
+              text: m.content,
+              timestamp: new Date(m.createdAt)
             }));
-            
+
             setMessages(prev => {
-              // Check if new admin reply arrived
-              const prevRepMsgsCount = prev.filter(m => m.sender === 'rep').length;
-              const newRepMsgsCount = mappedMessages.filter(m => m.sender === 'rep').length;
-              if (newRepMsgsCount > prevRepMsgsCount) {
+              const prevRepCount = prev.filter(m => m.sender === 'rep').length;
+              const newRepCount = mappedDirectMsgs.filter(m => m.sender === 'rep').length;
+              if (newRepCount > prevRepCount) {
                 setHasUnreadReply(true);
               }
-
               const welcome = prev.filter(m => m.id === 'welcome');
-              return [...welcome, ...mappedMessages];
+              return [...welcome, ...mappedDirectMsgs];
             });
+            return;
+          }
+        }
+
+        if (activeTicketId) {
+          const res = await fetch(getApiUrl('/api/support/tickets'), { headers });
+          if (res.ok) {
+            const ticketsList = await res.json();
+            const targetTicket = ticketsList.find((t: any) => t.id === activeTicketId);
+            if (targetTicket && targetTicket.replies) {
+              const mappedMessages: Message[] = targetTicket.replies.map((reply: any) => ({
+                id: reply.id,
+                sender: reply.senderRole === 'admin' ? 'rep' : 'user',
+                senderName: reply.senderName || (reply.senderRole === 'admin' ? 'Elon Capital Loan Team' : 'You'),
+                text: reply.content,
+                timestamp: new Date(reply.createdAt)
+              }));
+              
+              setMessages(prev => {
+                const prevRepMsgsCount = prev.filter(m => m.sender === 'rep').length;
+                const newRepMsgsCount = mappedMessages.filter(m => m.sender === 'rep').length;
+                if (newRepMsgsCount > prevRepMsgsCount) {
+                  setHasUnreadReply(true);
+                }
+
+                const welcome = prev.filter(m => m.id === 'welcome');
+                return [...welcome, ...mappedMessages];
+              });
+            }
           }
         }
       } catch (err) {
-        console.error('Error polling support ticket replies', err);
+        console.error('Error polling live messages', err);
       }
-    }, 4000);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [isLiveMode, activeTicketId, token]);
+  }, [isLiveMode, activeTicketId, token, user?.name]);
 
   const handleSend = async (textToSend: string) => {
     if (!textToSend.trim()) return;
@@ -187,16 +212,28 @@ export default function Chatbot({ user, token, onOpenAuth }: ChatbotProps) {
     setMessages(prev => [...prev, userMsg]);
     setInput('');
 
-    if (isLiveMode && activeTicketId && token) {
+    if (isLiveMode && token) {
       try {
-        await fetch(getApiUrl('/api/support/tickets/reply'), {
+        if (activeTicketId) {
+          await fetch(getApiUrl('/api/support/tickets/reply'), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              ticketId: activeTicketId,
+              content: textToSend
+            })
+          });
+        }
+        await fetch(getApiUrl('/api/messages/send'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            ticketId: activeTicketId,
             content: textToSend
           })
         });

@@ -1,4 +1,5 @@
 import React from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { 
   User, 
   LoanApplication, 
@@ -81,6 +82,10 @@ export default function UserDashboard({
 
   const handleTabChange = (tab: 'account' | 'overview' | 'apply' | 'loans' | 'repayment' | 'kyc' | 'calculator' | 'messages' | 'support' | 'settings') => {
     setActiveTab(tab);
+    if (tab === 'messages') {
+      fetch(getApiUrl('/api/messages'), { headers: { 'Authorization': `Bearer ${token}` } });
+      setUnreadMsgCount(0);
+    }
     if (onTabChange) {
       onTabChange(tab);
     }
@@ -412,8 +417,8 @@ export default function UserDashboard({
 
   React.useEffect(() => {
     fetchAllData();
-    // Simple poll loop every 5 seconds for live messaging/updates
-    const interval = setInterval(fetchAllData, 5000);
+    // Simple poll loop every 3 seconds for live messaging/updates
+    const interval = setInterval(fetchAllData, 3000);
     return () => clearInterval(interval);
   }, [fetchAllData]);
 
@@ -562,7 +567,7 @@ export default function UserDashboard({
   // 3. Send Message
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMsgContent.trim()) return;
+    if (!newMsgContent.trim() && !msgAttachment) return;
 
     try {
       const res = await fetch(getApiUrl('/api/messages/send'), {
@@ -572,8 +577,9 @@ export default function UserDashboard({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          content: newMsgContent,
-          attachment: msgAttachment || undefined
+          content: newMsgContent.trim() || (msgAttachment ? `[Attachment: ${msgAttachment.name}]` : 'Attachment'),
+          attachment: msgAttachment || undefined,
+          imageUrl: msgAttachment?.url && (msgAttachment.url.startsWith('data:image') || msgAttachment.url.startsWith('http') || msgAttachment.url.startsWith('blob:')) ? msgAttachment.url : undefined
         })
       });
 
@@ -852,34 +858,88 @@ export default function UserDashboard({
     }
   };
 
-  const handlePayCollateral = async (loanId: string) => {
-    if (!collateralTxIdInput.trim()) {
-      triggerAlert('error', 'Please enter a valid transaction reference or payment proof.');
-      return;
-    }
+  const handleStripeCheckout = async (loan: LoanApplication, amount: number, installmentNum: number, payFull: boolean) => {
     setActionLoading(true);
     try {
-      const res = await fetch(getApiUrl('/api/loans/pay-collateral'), {
+      const res = await fetch(getApiUrl('/api/payments/create-stripe-session'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          loanId,
-          txId: collateralTxIdInput,
-          paymentMethod: collateralPaymentMethod,
-          installmentNumber: selectedInstallmentNum,
-          payFull: collateralPaymentMethod === 'Crypto' && isPayFullCrypto
+          loanId: loan.id,
+          paymentType: 'Collateral & Organizational Fee',
+          amount: amount,
+          installmentNumber: installmentNum,
+          payFull: payFull
         })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Collateral payment failed.');
+      if (!res.ok) throw new Error(data.error || 'Failed to initialize Stripe payment.');
 
-      triggerAlert('success', data.message || 'Payment Submitted Successfully.');
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.isTestMode) {
+        // Stripe API key test simulation
+        const verifyRes = await fetch(getApiUrl('/api/payments/verify-stripe-session'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            sessionId: data.sessionId,
+            loanId: loan.id,
+            paymentType: 'Collateral & Organizational Fee',
+            amount: amount,
+            installmentNumber: installmentNum,
+            payFull: payFull
+          })
+        });
+        const verifyData = await verifyRes.json();
+        if (!verifyRes.ok) throw new Error(verifyData.error || 'Card verification failed.');
+
+        triggerAlert('success', '🎉 Card Payment verified and confirmed successfully!');
+        setPayingCollateralLoan(null);
+        setCollateralTxIdInput('');
+        await fetchAllData();
+      }
+    } catch (err: any) {
+      triggerAlert('error', err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCryptoSubmit = async (loan: LoanApplication, amount: number, installmentNum: number, payFull: boolean) => {
+    if (!collateralTxIdInput.trim()) {
+      triggerAlert('error', 'Please enter your BEP20 blockchain transaction hash (TxID).');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const res = await fetch(getApiUrl('/api/payments/submit-crypto'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          loanId: loan.id,
+          txHash: collateralTxIdInput.trim(),
+          amount: amount,
+          paymentType: 'Collateral & Organizational Fee',
+          installmentNumber: installmentNum,
+          payFull: payFull
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to submit BEP20 crypto payment proof.');
+
+      triggerAlert('success', '⚡ BEP20 Crypto payment proof submitted for Admin verification!');
       setPayingCollateralLoan(null);
       setCollateralTxIdInput('');
-      setIsPayFullCrypto(false);
       await fetchAllData();
     } catch (err: any) {
       triggerAlert('error', err.message);
@@ -887,6 +947,20 @@ export default function UserDashboard({
       setActionLoading(false);
     }
   };
+
+  const handlePayCollateral = async (loanId: string) => {
+    if (!payingCollateralLoan) return;
+    const totalSettlement = Math.round(payingCollateralLoan.fundingDetails.requestedAmount * 0.285);
+    const instAmount = Math.round(totalSettlement / 4);
+    const amountToPay = isPayFullCrypto ? totalSettlement : instAmount;
+
+    if (collateralPaymentMethod === 'Stripe' || collateralPaymentMethod === 'Wire') {
+      await handleStripeCheckout(payingCollateralLoan, amountToPay, selectedInstallmentNum, isPayFullCrypto);
+    } else {
+      await handleCryptoSubmit(payingCollateralLoan, amountToPay, selectedInstallmentNum, isPayFullCrypto);
+    }
+  };
+
 
   // Read notifications helper
   const markNotificationsRead = async () => {
@@ -1200,6 +1274,31 @@ export default function UserDashboard({
         {/* WORKSPACE AREA */}
         <div className="lg:col-span-3 bg-white/[0.01] border border-white/5 rounded-2xl p-8 backdrop-blur-md shadow-2xl min-h-[500px]" id="dash-workspace">
           
+          {/* UNREAD ADMIN MESSAGE ALERT BANNER */}
+          {unreadMsgCount > 0 && activeTab !== 'messages' && (
+            <div 
+              onClick={() => handleTabChange('messages')}
+              className="mb-6 p-4 bg-gradient-to-r from-cyan-950 via-cyan-900 to-black border-2 border-cyan-400 rounded-2xl shadow-[0_0_30px_rgba(34,211,238,0.3)] flex items-center justify-between gap-4 cursor-pointer hover:scale-[1.01] transition-all animate-pulse"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-cyan-400 text-black rounded-xl shrink-0">
+                  <MessageSquare className="h-6 w-6 stroke-[3]" />
+                </div>
+                <div className="text-left">
+                  <h4 className="text-sm font-black text-white font-display uppercase tracking-wider">
+                    🚨 NEW MESSAGE FROM ELON CAPITAL ADMINISTRATOR ({unreadMsgCount})
+                  </h4>
+                  <p className="text-xs text-cyan-200 font-bold">
+                    The administrative desk has responded to your account request. Click here to open your inbox.
+                  </p>
+                </div>
+              </div>
+              <span className="px-4 py-2 bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs uppercase tracking-wider rounded-lg font-mono shrink-0 shadow-md">
+                View Inbox →
+              </span>
+            </div>
+          )}
+
           {/* ---------------- 0. ACCOUNT VAULT (USD) ---------------- */}
           {activeTab === 'account' && (() => {
             const disbursedLoan = loans.find(l => l.disbursed === true);
@@ -4131,127 +4230,64 @@ export default function UserDashboard({
                             <div className="p-5 bg-black/80 border-2 border-cyan-500/40 rounded-xl space-y-5">
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
                                 <div>
-                                  <h6 className="text-sm font-black text-white uppercase font-display">Submit Loan Repayment</h6>
-                                  <p className="text-xs text-gray-400 font-semibold">Select your payment method and enter your transfer reference hash.</p>
+                                  <h6 className="text-sm font-black text-white uppercase font-display flex items-center gap-2">
+                                    <span className="text-cyan-400 font-mono">⚡</span> Submit Loan Repayment
+                                  </h6>
+                                  <p className="text-xs text-gray-300 font-semibold mt-0.5">
+                                    Send your repayment via <strong className="text-cyan-400 font-black">Binance Smart Chain (BEP-20)</strong>, then paste your transaction hash below for instant confirmation.
+                                  </p>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setRepaymentMethod('Crypto')}
-                                    className={`px-3.5 py-1.5 text-xs font-mono font-black uppercase rounded-lg transition cursor-pointer ${
-                                      repaymentMethod === 'Crypto' ? 'bg-cyan-400 text-black shadow-md' : 'bg-white/10 text-gray-300 hover:text-white'
-                                    }`}
-                                  >
-                                    Crypto Payment
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setRepaymentMethod('Wire')}
-                                    className={`px-3.5 py-1.5 text-xs font-mono font-black uppercase rounded-lg transition cursor-pointer ${
-                                      repaymentMethod === 'Wire' ? 'bg-cyan-400 text-black shadow-md' : 'bg-white/10 text-gray-300 hover:text-white'
-                                    }`}
-                                  >
-                                    Bank Wire
-                                  </button>
+                                <div className="px-3 py-1 bg-cyan-950/80 border border-cyan-400/50 rounded-lg shrink-0">
+                                  <span className="text-[10px] font-mono font-black text-cyan-300 uppercase tracking-widest">
+                                    BEP-20 / BNB CHAIN EXCLUSIVE
+                                  </span>
                                 </div>
                               </div>
 
-                              {repaymentMethod === 'Crypto' ? (
-                                <div className="space-y-4">
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                      <label className="block text-[10px] font-mono font-black text-cyan-400 uppercase mb-1">Select Payment Asset *</label>
-                                      <select
-                                        value={repaymentCryptoAsset}
-                                        onChange={(e) => setRepaymentCryptoAsset(e.target.value as any)}
-                                        className="w-full px-3 py-2.5 bg-zinc-950 border border-zinc-700 rounded-xl text-xs font-mono font-bold text-white focus:outline-none focus:border-cyan-400"
-                                      >
-                                        <option value="USDT (TRC-20)">USDT (TRC-20 Tron Network)</option>
-                                        <option value="USDT (ERC-20)">USDT (ERC-20 Ethereum Network)</option>
-                                        <option value="BTC">Bitcoin (BTC Network)</option>
-                                        <option value="ETH">Ethereum (ETH Network)</option>
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="block text-[10px] font-mono font-black text-cyan-400 uppercase mb-1">Deposit Wallet Address</label>
-                                      <div className="flex items-center gap-2">
-                                        <input
-                                          type="text"
-                                          readOnly
-                                          value={
-                                            repaymentCryptoAsset.includes('TRC-20') ? 'TQn9Y2khEsLJW1ChV3a28K1X2Y8p3q1A8u' :
-                                            repaymentCryptoAsset.includes('BTC') ? 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' :
-                                            '0x71C7656EC7ab88b098defB751B7401B5f6d8976F'
-                                          }
-                                          className="w-full px-3 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-xs font-mono text-cyan-300 select-all"
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            const addr = repaymentCryptoAsset.includes('TRC-20') ? 'TQn9Y2khEsLJW1ChV3a28K1X2Y8p3q1A8u' :
-                                              repaymentCryptoAsset.includes('BTC') ? 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' :
-                                              '0x71C7656EC7ab88b098defB751B7401B5f6d8976F';
-                                            navigator.clipboard.writeText(addr);
-                                            triggerAlert('success', 'Address copied to clipboard!');
-                                          }}
-                                          className="px-3 py-2.5 bg-cyan-950 hover:bg-cyan-900 text-cyan-300 text-xs font-mono font-bold rounded-xl border border-cyan-500/30 cursor-pointer"
-                                        >
-                                          Copy
-                                        </button>
-                                      </div>
-                                    </div>
+                              <div className="space-y-4">
+                                <div className="p-4 bg-zinc-950 border-2 border-cyan-500/30 rounded-xl space-y-3">
+                                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <span className="text-xs font-mono font-black text-cyan-400 uppercase tracking-wider">
+                                      Binance Smart Chain (BEP-20) Wallet Address:
+                                    </span>
+                                    <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30 uppercase font-black">
+                                      ✓ Official Repayment Vault
+                                    </span>
                                   </div>
-
-                                  <div>
-                                    <label className="block text-[10px] font-mono font-black text-yellow-300 uppercase mb-1">Blockchain Tx Hash / Payment Reference Memo *</label>
-                                    <input
-                                      type="text"
-                                      value={repaymentTxInput}
-                                      onChange={(e) => setRepaymentTxInput(e.target.value)}
-                                      placeholder="Paste 0x... or TRC20 Transaction Hash / Ref ID"
-                                      className="w-full px-4 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-yellow-400 rounded-xl text-xs sm:text-sm font-mono font-bold text-white placeholder-gray-600 focus:outline-none"
-                                    />
-                                    <p className="text-[11px] font-mono text-yellow-300 font-bold mt-1">
-                                      ⚡ The Elon Capital loan team will confirm your payment and get back to you within 24 hours.
-                                    </p>
+                                  <div className="flex items-center gap-2 bg-black p-3 rounded-lg border-2 border-cyan-400/40 font-mono text-xs sm:text-sm font-black text-white select-all">
+                                    <span className="text-cyan-300 break-all">0xe7119007e20df3144bbcaf25131b9434289e974a</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText('0xe7119007e20df3144bbcaf25131b9434289e974a');
+                                        triggerAlert('success', 'Binance Smart Chain (BEP-20) address copied to clipboard!');
+                                      }}
+                                      className="px-3 py-1.5 bg-cyan-400 text-black hover:bg-cyan-300 text-xs font-black uppercase rounded-md transition-all cursor-pointer shrink-0 font-display shadow-md"
+                                    >
+                                      Copy Address
+                                    </button>
                                   </div>
+                                  <p className="text-[11px] font-mono text-zinc-300 font-semibold leading-relaxed">
+                                    💡 <strong className="text-white font-bold">Instruction:</strong> Send the exact repayment amount from your crypto wallet or exchange using the <strong className="text-cyan-300 font-bold">Binance Smart Chain (BEP-20) network</strong> to the address above.
+                                  </p>
                                 </div>
-                              ) : (
-                                <div className="space-y-4">
-                                  <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-xl space-y-2 font-mono text-xs text-gray-300">
-                                    <div className="flex justify-between border-b border-zinc-800 pb-1">
-                                      <span className="text-gray-400">Beneficiary Bank:</span>
-                                      <span className="text-white font-bold">Elon Capital Institutional Escrow</span>
-                                    </div>
-                                    <div className="flex justify-between border-b border-zinc-800 pb-1">
-                                      <span className="text-gray-400">Account Number:</span>
-                                      <span className="text-white font-bold select-all">984028371902</span>
-                                    </div>
-                                    <div className="flex justify-between border-b border-zinc-800 pb-1">
-                                      <span className="text-gray-400">SWIFT/BIC Code:</span>
-                                      <span className="text-white font-bold select-all">ELONUS33XXX</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-400">Reference Memo:</span>
-                                      <span className="text-cyan-400 font-bold select-all">REPAY-{loan.id}</span>
-                                    </div>
-                                  </div>
 
-                                  <div>
-                                    <label className="block text-[10px] font-mono font-black text-yellow-300 uppercase mb-1">Bank Wire Confirmation Reference / Receipt Ref *</label>
-                                    <input
-                                      type="text"
-                                      value={repaymentTxInput}
-                                      onChange={(e) => setRepaymentTxInput(e.target.value)}
-                                      placeholder="Enter wire transfer confirmation code or receipt reference"
-                                      className="w-full px-4 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-yellow-400 rounded-xl text-xs sm:text-sm font-mono font-bold text-white placeholder-gray-600 focus:outline-none"
-                                    />
-                                    <p className="text-[11px] font-mono text-yellow-300 font-bold mt-1">
-                                      ⚡ Include Reference Memo on wire receipt. The Elon Capital loan team will confirm your payment and get back to you within 24 hours.
-                                    </p>
-                                  </div>
+                                <div>
+                                  <label className="block text-xs font-mono font-black text-yellow-300 uppercase mb-1">
+                                    Blockchain Transaction Hash (TxHash / TxID) *
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={repaymentTxInput}
+                                    onChange={(e) => setRepaymentTxInput(e.target.value)}
+                                    placeholder="Paste your BEP-20 Transaction Hash (0x...)"
+                                    className="w-full px-4 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-yellow-400 rounded-xl text-xs sm:text-sm font-mono font-bold text-white placeholder-gray-600 focus:outline-none"
+                                  />
+                                  <p className="text-[11px] font-mono text-yellow-300 font-bold mt-1.5">
+                                    ⚡ Once submitted, our loan team will verify the transaction on the BSC blockchain. Upon confirmation, your loan status will update to Repaid & Closed.
+                                  </p>
                                 </div>
-                              )}
+                              </div>
 
                               <button
                                 type="button"
@@ -4439,47 +4475,46 @@ export default function UserDashboard({
             {/* Selector tabs */}
             <div className="space-y-2">
               <label className="block text-xs font-mono font-black uppercase text-gray-200 tracking-wider">
-                Select Your Settlement Payment Method:
+                Select Your Payment Gateway:
               </label>
               <div className="grid grid-cols-2 gap-3 p-1.5 bg-black rounded-xl border border-white/20">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCollateralPaymentMethod('Stripe');
+                  }}
+                  className={`py-3 px-2 text-xs font-mono font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    collateralPaymentMethod === 'Stripe' || collateralPaymentMethod === 'Wire'
+                      ? 'bg-yellow-400 text-black font-black shadow-lg scale-[1.02]'
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <span>💳 Credit / Debit Card (Stripe)</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => {
                     setCollateralPaymentMethod('Crypto');
                     setIsPayFullCrypto(true);
                   }}
-                  className={`py-3 text-xs font-mono font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
+                  className={`py-3 px-2 text-xs font-mono font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 ${
                     collateralPaymentMethod === 'Crypto'
                       ? 'bg-yellow-400 text-black font-black shadow-lg scale-[1.02]'
                       : 'text-gray-300 hover:text-white'
                   }`}
                 >
-                  🪙 USDT / Crypto Deposit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCollateralPaymentMethod('Wire');
-                    setIsPayFullCrypto(false);
-                  }}
-                  className={`py-3 text-xs font-mono font-black uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
-                    collateralPaymentMethod === 'Wire'
-                      ? 'bg-yellow-400 text-black font-black shadow-lg scale-[1.02]'
-                      : 'text-gray-300 hover:text-white'
-                  }`}
-                >
-                  🏦 Bank Wire / Card Transfer
+                  <span>🪙 Crypto (BEP20)</span>
                 </button>
               </div>
             </div>
 
-            {/* Option Crypto instructions */}
+            {/* Payment Option Contents */}
             {collateralPaymentMethod === 'Crypto' ? (
               <div className="space-y-4">
                 {/* Crypto Payment Plan Selection (Installment vs Pay Full) */}
                 <div className="p-3 bg-black rounded-xl border border-yellow-500/40 space-y-2">
                   <label className="block text-[11px] font-mono font-black uppercase text-yellow-300">
-                    Crypto Payment Option:
+                    BEP20 Payment Structure:
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
@@ -4514,93 +4549,120 @@ export default function UserDashboard({
                   </div>
                 </div>
 
-                <div className="p-4 bg-zinc-900 rounded-xl border border-yellow-500/30 space-y-3">
-                  <div>
-                    <span className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                      Settlement Network Protocol
-                    </span>
-                    <span className="text-sm font-mono font-black text-white">
-                      USDT (TRC-20 Tron Network) / USDT (ERC-20 Ethereum)
+                <div className="p-5 bg-zinc-900 rounded-xl border-2 border-cyan-500/40 space-y-4 text-center">
+                  <div className="inline-block px-3 py-1 bg-cyan-950 border border-cyan-400 text-cyan-400 font-mono text-xs font-black uppercase rounded-full tracking-wider">
+                    ⚡ Required Network Protocol: BEP20 (BNB Smart Chain)
+                  </div>
+
+                  {/* QR CODE DISPLAY */}
+                  <div className="py-2">
+                    <QRCodeSVG 
+                      value="0x2eaCE35C695bdCa012E6f0Ce95D5302103EDd926" 
+                      size={160} 
+                      bgLineWidth={0} 
+                      fgColor="#22d3ee" 
+                      bgColor="#0a0a0a" 
+                      level="H" 
+                      className="mx-auto rounded-xl p-3 bg-black border-2 border-cyan-500/40 shadow-[0_0_20px_rgba(34,211,238,0.2)]" 
+                    />
+                    <span className="block text-[11px] font-mono text-zinc-400 mt-2 font-bold uppercase tracking-wider">
+                      Scan QR Code to Send BEP20 Tokens
                     </span>
                   </div>
-                  <div>
-                    <span className="text-xs font-mono font-bold text-gray-400 uppercase tracking-wider block mb-1">
-                      Official Escrow Wallet Address:
+
+                  <div className="text-left space-y-1">
+                    <span className="text-xs font-mono font-bold text-gray-300 uppercase tracking-wider block">
+                      Official BEP20 Receiving Wallet Address:
                     </span>
-                    <div className="flex items-center justify-between gap-2 bg-black p-3 rounded-lg border-2 border-yellow-500/40 font-mono text-xs sm:text-sm font-black text-cyan-400 select-all">
-                      <span>0x71C7656EC7ab88b098defB751B7401B5f6d8976F</span>
+                    <div className="flex items-center justify-between gap-2 bg-black p-3.5 rounded-xl border-2 border-cyan-400/50 font-mono text-xs sm:text-sm font-black text-cyan-300 select-all">
+                      <span className="break-all font-mono">0x2eaCE35C695bdCa012E6f0Ce95D5302103EDd926</span>
                       <button
                         type="button"
                         onClick={() => {
-                          navigator.clipboard.writeText('0x71C7656EC7ab88b098defB751B7401B5f6d8976F');
-                          triggerAlert('success', 'Wallet address copied to clipboard!');
+                          navigator.clipboard.writeText('0x2eaCE35C695bdCa012E6f0Ce95D5302103EDd926');
+                          triggerAlert('success', 'BEP20 Wallet address copied to clipboard!');
                         }}
-                        className="px-2.5 py-1 bg-yellow-400 text-black text-[10px] font-black uppercase rounded hover:bg-yellow-300 transition-all cursor-pointer shrink-0 font-display"
+                        className="px-3 py-1.5 bg-cyan-400 text-black text-[11px] font-black uppercase rounded-lg hover:bg-cyan-300 transition-all cursor-pointer shrink-0 font-display shadow-md"
                       >
                         Copy
                       </button>
                     </div>
                   </div>
+
+                  <div className="p-3 bg-red-950/40 border border-red-500/40 rounded-lg text-left text-xs font-mono text-red-300 space-y-1">
+                    <span className="font-black uppercase block text-red-400">⚠️ IMPORTANT NETWORK WARNING:</span>
+                    <p className="leading-relaxed">
+                      Only send funds using the <strong className="text-white underline">BEP20 (BNB Smart Chain)</strong> network. Transactions sent using ERC20, TRC20, Polygon, or any other network will fail and funds may be lost.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="block text-xs font-mono font-black text-gray-200 uppercase tracking-wider">
-                    Paste Your Payment Transaction Hash (TxID) *
+                    Enter BEP20 Blockchain Transaction Hash (TxID) *
                   </label>
                   <input
                     type="text"
                     required
                     value={collateralTxIdInput}
                     onChange={(e) => setCollateralTxIdInput(e.target.value)}
-                    placeholder="e.g. 0x8a9f... or 64-character transaction hash"
-                    className="w-full px-4 py-3 bg-black border-2 border-zinc-700 focus:border-yellow-400 rounded-xl text-xs sm:text-sm font-mono font-bold text-white placeholder-gray-600 focus:outline-none"
+                    placeholder="e.g. 0x8a9f... 64-character BEP20 transaction hash"
+                    className="w-full px-4 py-3 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-xs sm:text-sm font-mono font-bold text-white placeholder-gray-600 focus:outline-none"
                   />
-                  <p className="text-[11px] font-mono text-yellow-300 font-black">
-                    ⚡ The Elon Capital loan team will confirm your payment and get back to you within 24 hours.
+                  <p className="text-[11px] font-mono text-cyan-300 font-bold">
+                    ⚡ Once submitted, your transaction hash will be audited by Admin. Verification takes under 24 hours.
                   </p>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="p-4 bg-zinc-900 rounded-xl border border-yellow-500/30 space-y-3 text-xs sm:text-sm">
-                  <div className="grid grid-cols-3 gap-2 pb-2 border-b border-white/10">
-                    <span className="text-gray-400 font-mono uppercase font-bold text-xs">Bank Name</span>
-                    <span className="col-span-2 text-white font-bold">Union Bancaire Privée</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 pb-2 border-b border-white/10">
-                    <span className="text-gray-400 font-mono uppercase font-bold text-xs">City/Country</span>
-                    <span className="col-span-2 text-white font-bold">Geneva, Switzerland</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 pb-2 border-b border-white/10">
-                    <span className="text-gray-400 font-mono uppercase font-bold text-xs">IBAN CH</span>
-                    <span className="col-span-2 text-cyan-400 font-mono font-black">CH76 0024 0240 1234 5678 9</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 pb-2 border-b border-white/10">
-                    <span className="text-gray-400 font-mono uppercase font-bold text-xs">SWIFT / BIC</span>
-                    <span className="col-span-2 text-white font-mono font-bold">UBPVCHGGXXX</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <span className="text-gray-400 font-mono uppercase font-bold text-xs">Reference Memo</span>
-                    <span className="col-span-2 text-yellow-400 font-mono uppercase font-black text-sm">
-                      COLLATERAL-{payingCollateralLoan.id}-INST{selectedInstallmentNum}
+                {/* STRIPE CARD PAYMENT METHOD */}
+                <div className="p-5 bg-zinc-900 rounded-xl border-2 border-yellow-400/40 space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <span className="text-xs font-mono font-black text-yellow-400 uppercase tracking-wider">
+                      💳 Stripe Card Payment Gateway
+                    </span>
+                    <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full uppercase">
+                      Instant Automated Settlement
                     </span>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label className="block text-xs font-mono font-black text-gray-200 uppercase tracking-wider">
-                    Bank Reference ID / Wire Slip Validation Code *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={collateralTxIdInput}
-                    onChange={(e) => setCollateralTxIdInput(e.target.value)}
-                    placeholder="Enter wire transfer validation code or transaction reference"
-                    className="w-full px-4 py-3 bg-black border-2 border-zinc-700 focus:border-yellow-400 rounded-xl text-xs sm:text-sm font-mono font-bold text-white placeholder-gray-600 focus:outline-none"
-                  />
-                  <p className="text-[11px] font-mono text-yellow-300 font-black">
-                    ⚡ Include Reference Memo on wire receipt. The Elon Capital loan team will confirm your payment and get back to you within 24 hours.
+                  <div className="p-4 bg-black rounded-xl border border-white/10 space-y-2 text-xs font-mono">
+                    <div className="flex justify-between text-gray-300">
+                      <span>Loan Reference ID:</span>
+                      <span className="text-white font-bold">{payingCollateralLoan.id}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-300">
+                      <span>Fee Description:</span>
+                      <span className="text-white font-bold">Collateral Deposit & Organizational Fee</span>
+                    </div>
+                    <div className="flex justify-between text-yellow-300 font-bold text-sm pt-2 border-t border-white/10">
+                      <span>Total Amount to Pay:</span>
+                      <span className="text-yellow-400 font-black text-base">
+                        ${(() => {
+                          const totalSettlement = Math.round(payingCollateralLoan.fundingDetails.requestedAmount * 0.285);
+                          const instAmount = Math.round(totalSettlement / 4);
+                          return (isPayFullCrypto ? totalSettlement : instAmount).toLocaleString();
+                        })()} USD
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-mono text-gray-300 uppercase font-bold block">
+                      Accepted Cards & Methods:
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-mono font-black text-white bg-black/60 p-3 rounded-lg border border-white/10">
+                      <span className="px-2.5 py-1 bg-zinc-800 rounded border border-white/10 text-cyan-300">💳 Visa</span>
+                      <span className="px-2.5 py-1 bg-zinc-800 rounded border border-white/10 text-amber-300">💳 Mastercard</span>
+                      <span className="px-2.5 py-1 bg-zinc-800 rounded border border-white/10 text-cyan-200">💳 American Express</span>
+                      <span className="px-2.5 py-1 bg-zinc-800 rounded border border-white/10 text-white">🍎 Apple Pay</span>
+                      <span className="px-2.5 py-1 bg-zinc-800 rounded border border-white/10 text-emerald-300">G Pay</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] font-mono text-gray-300 leading-relaxed font-bold">
+                    🔒 Payment will be securely processed via 256-Bit SSL Encrypted Stripe Checkout. Your payment status will update immediately upon authorization.
                   </p>
                 </div>
               </div>
@@ -4615,10 +4677,13 @@ export default function UserDashboard({
               >
                 {actionLoading ? (
                   <RefreshCw className="h-5 w-5 animate-spin text-black" />
+                ) : collateralPaymentMethod === 'Stripe' || collateralPaymentMethod === 'Wire' ? (
+                  '💳 PROCEED TO STRIPE CARD CHECKOUT'
                 ) : (
-                  '✅ SUBMIT DEPOSIT FOR VERIFICATION'
+                  '⚡ SUBMIT BEP20 CRYPTO PAYMENT PROOF'
                 )}
               </button>
+
               <button
                 type="button"
                 onClick={() => setPayingCollateralLoan(null)}

@@ -60,7 +60,7 @@ export default function HelloSection({ onApplyClick }: HelloSectionProps) {
                 target.onerror = null;
                 target.src = 'https://images.unsplash.com/photo-1517976487492-5750f3195933?auto=format&fit=crop&w=1200&q=80';
               }}
-              className="w-full h-[450px] sm:h-[520px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-102"
+              className="w-full h-[450px] sm:h-[520px] object-cover rounded-xl transition-all duration-700 animate-rocket-float"
             />
             {/* Absolute overlay badge inside image */}
             <div className="absolute bottom-5 left-5 right-5 bg-black/90 backdrop-blur-md border border-white/10 rounded-xl p-4 flex items-center justify-center">

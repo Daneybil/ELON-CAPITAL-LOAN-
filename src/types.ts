@@ -194,3 +194,23 @@ export interface HomePageContent {
   statActiveBorrowers: string;
   statGlobalProjects: string;
 }
+
+export interface PaymentRecord {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  applicationId: string; // Loan ID
+  type: 'Collateral Fee' | 'Organizational Fee' | 'Loan Repayment' | 'Settlement Deposit';
+  paymentMethod: 'Stripe Card' | 'Crypto (BEP20)';
+  amount: number;
+  network?: string; // 'BEP20 (BNB Smart Chain)' or 'Stripe Card'
+  walletAddress?: string; // '0x2eaCE35C695bdCa012E6f0Ce95D5302103EDd926' or card descriptor
+  txHash?: string; // Transaction Hash / Stripe Session ID / Charge ID
+  stripeSessionId?: string;
+  status: 'Pending' | 'Under Review' | 'Confirmed' | 'Approved' | 'Rejected' | 'Failed';
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt?: string;
+  installmentNumber?: number;
+}

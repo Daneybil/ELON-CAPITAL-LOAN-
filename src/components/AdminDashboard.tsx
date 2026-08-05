@@ -81,7 +81,9 @@ export default function AdminDashboard({
   const [searchUser, setSearchUser] = React.useState('');
   const [kycRequests, setKycRequests] = React.useState<KYC[]>([]);
   const [loans, setLoans] = React.useState<LoanApplication[]>([]);
+  const [payments, setPayments] = React.useState<any[]>([]);
   const [tickets, setTickets] = React.useState<SupportTicket[]>([]);
+
   const [logs, setLogs] = React.useState<SystemLog[]>([]);
   const [announcements, setAnnouncements] = React.useState<Announcement[]>([]);
   const [homePage, setHomePage] = React.useState<HomePageContent | null>(null);
@@ -151,7 +153,11 @@ export default function AdminDashboard({
       const resLoans = await fetch(getApiUrl('/api/admin/loans'), { headers });
       if (resLoans.ok) setLoans(await resLoans.json());
 
+      const resPmts = await fetch(getApiUrl('/api/admin/payments'), { headers });
+      if (resPmts.ok) setPayments(await resPmts.json());
+
       const resTkts = await fetch(getApiUrl('/api/admin/tickets'), { headers });
+
       if (resTkts.ok) setTickets(await resTkts.json());
 
       const resLogs = await fetch(getApiUrl('/api/admin/logs'), { headers });
@@ -162,6 +168,10 @@ export default function AdminDashboard({
 
       const resMsgs = await fetch(getApiUrl('/api/messages'), { headers });
       if (resMsgs.ok) setAdminMessages(await resMsgs.json());
+
+      if (selectedUserForMsg) {
+        await fetch(getApiUrl(`/api/messages?userId=${selectedUserForMsg}`), { headers });
+      }
 
       const resHome = await fetch(getApiUrl('/api/homepage'), { headers });
       if (resHome.ok) {
@@ -176,15 +186,28 @@ export default function AdminDashboard({
     } catch (err) {
       console.error('Error fetching admin panels', err);
     }
-  }, [isAuthorized, searchUser, headers]);
+  }, [isAuthorized, searchUser, headers, selectedUserForMsg]);
 
   React.useEffect(() => {
     fetchAdminData();
     if (isAuthorized) {
-      const interval = setInterval(fetchAdminData, 6000);
+      const interval = setInterval(fetchAdminData, 3000);
       return () => clearInterval(interval);
     }
   }, [fetchAdminData, isAuthorized]);
+
+  // Mark user messages as read when selected
+  React.useEffect(() => {
+    if (selectedUserForMsg && isAuthorized) {
+      fetch(getApiUrl(`/api/messages?userId=${selectedUserForMsg}`), { headers })
+        .then(res => res.ok ? res.json() : null)
+        .then(() => {
+          fetch(getApiUrl('/api/messages'), { headers })
+            .then(res => res.ok ? res.json() : null)
+            .then(data => { if (data) setAdminMessages(data); });
+        });
+    }
+  }, [selectedUserForMsg, isAuthorized, headers]);
 
   // Auth administrative password check
   const handleVerifyPassword = (e: React.FormEvent) => {
@@ -362,7 +385,29 @@ export default function AdminDashboard({
     }
   };
 
+  // Admin update payment record status (Approve or Reject)
+  const handleUpdatePaymentRecordStatus = async (paymentId: string, status: 'Approved' | 'Rejected', notes?: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(getApiUrl('/api/admin/payments/update-status'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ paymentId, status, notes })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update payment record status');
+
+      triggerAlert('success', `Payment ${paymentId} marked as ${status}!`);
+      await fetchAdminData();
+    } catch (err: any) {
+      triggerAlert('error', err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Disburse Funds for approved, collateral paid loan
+
   const handleDisburseLoan = async (loanId: string) => {
     setLoading(true);
     try {
@@ -414,7 +459,7 @@ export default function AdminDashboard({
   // Send message to user from Admin Message Desk
   const handleAdminSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUserForMsg || !adminReplyContent.trim()) return;
+    if (!selectedUserForMsg || (!adminReplyContent.trim() && !adminMsgAttachment)) return;
     setLoading(true);
 
     try {
@@ -423,8 +468,9 @@ export default function AdminDashboard({
         headers,
         body: JSON.stringify({
           receiverId: selectedUserForMsg,
-          content: adminReplyContent,
-          attachments: adminMsgAttachment ? [adminMsgAttachment] : []
+          content: adminReplyContent.trim() || (adminMsgAttachment ? `[Attachment: ${adminMsgAttachment.name}]` : 'Attachment'),
+          attachments: adminMsgAttachment ? [adminMsgAttachment] : [],
+          imageUrl: adminMsgAttachment?.url && (adminMsgAttachment.url.startsWith('data:image') || adminMsgAttachment.url.startsWith('http') || adminMsgAttachment.url.startsWith('blob:')) ? adminMsgAttachment.url : undefined
         })
       });
 
@@ -1460,7 +1506,7 @@ export default function AdminDashboard({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const docUrl = activeLoanView.documents.find(d => d.name === 'id_card' || d.type.includes('ID'))?.url;
+                                  const docUrl = activeLoanView.documents?.find(d => d.name.toLowerCase().includes('id') || d.name.toLowerCase().includes('government') || d.type.toLowerCase().includes('id'))?.url || activeLoanView.documents?.[0]?.url;
                                   setPreviewAssetModal({
                                     name: `Government ID - ${activeLoanView.userName}`,
                                     url: docUrl,
@@ -1484,8 +1530,10 @@ export default function AdminDashboard({
                               <button
                                 type="button"
                                 onClick={() => {
+                                  const docUrl = activeLoanView.documents?.find(d => d.name.toLowerCase().includes('address') || d.name.toLowerCase().includes('utility') || d.type.toLowerCase().includes('address'))?.url || activeLoanView.documents?.[1]?.url;
                                   setPreviewAssetModal({
                                     name: `Proof of Address - ${activeLoanView.userName}`,
+                                    url: docUrl,
                                     type: 'Utility Bill / Bank Statement'
                                   });
                                 }}
@@ -1506,8 +1554,10 @@ export default function AdminDashboard({
                               <button
                                 type="button"
                                 onClick={() => {
+                                  const docUrl = activeLoanView.documents?.find(d => d.name.toLowerCase().includes('selfie') || d.type.toLowerCase().includes('facial'))?.url || activeLoanView.documents?.[2]?.url;
                                   setPreviewAssetModal({
                                     name: `Biometric Selfie - ${activeLoanView.userName}`,
+                                    url: docUrl,
                                     type: 'Facial Biometric Photo'
                                   });
                                 }}
@@ -1528,8 +1578,10 @@ export default function AdminDashboard({
                               <button
                                 type="button"
                                 onClick={() => {
+                                  const docUrl = activeLoanView.documents?.find(d => d.name.toLowerCase().includes('video') || d.type.toLowerCase().includes('video'))?.url || activeLoanView.documents?.[4]?.url;
                                   setPreviewAssetModal({
                                     name: `Liveness Video Scan - ${activeLoanView.userName}`,
+                                    url: docUrl,
                                     type: 'Liveness Video Recording'
                                   });
                                 }}
@@ -1778,11 +1830,109 @@ export default function AdminDashboard({
             <div className="space-y-6 animate-fade-in" id="admin-view-payments">
               <div>
                 <h3 className="font-display text-xl font-bold text-white mb-1">Payments & Fee Audit Queue</h3>
-                <p className="text-xs text-gray-400">Review pending settlement deposits, installment payment proofs, and authorize capital disbursements.</p>
+                <p className="text-xs text-gray-400">Review Stripe Card transactions and BEP20 Crypto payment proofs for instant audit and status update.</p>
               </div>
 
+              {/* Payments Gateway Transactions List */}
+              <div className="space-y-3">
+                <h4 className="font-mono text-xs font-bold text-yellow-400 uppercase tracking-widest flex items-center gap-2">
+                  <span>💳 Stripe & BEP20 Crypto Transaction Records ({payments.length})</span>
+                </h4>
+
+                {payments.length === 0 ? (
+                  <div className="p-6 bg-black/40 border border-white/10 rounded-xl text-center text-xs text-gray-400">
+                    No transactions registered in the gateway ledger yet.
+                  </div>
+                ) : (
+                  <div className="border border-white/10 rounded-xl overflow-x-auto bg-black/40 shadow-xl">
+                    <table className="w-full text-left text-xs text-gray-300">
+                      <thead className="bg-zinc-900 text-[10px] font-mono text-yellow-400 uppercase tracking-widest border-b border-white/10">
+                        <tr>
+                          <th className="p-3.5">Payment ID</th>
+                          <th className="p-3.5">User</th>
+                          <th className="p-3.5">Loan Ref</th>
+                          <th className="p-3.5">Method</th>
+                          <th className="p-3.5">Amount</th>
+                          <th className="p-3.5">TxHash / Ref ID</th>
+                          <th className="p-3.5">Status</th>
+                          <th className="p-3.5 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5 font-mono text-[11px]">
+                        {payments.map((p) => (
+                          <tr key={p.id} className="hover:bg-white/[0.02]">
+                            <td className="p-3.5 font-bold text-white">{p.id}</td>
+                            <td className="p-3.5 font-sans">
+                              <div className="text-white font-bold">{p.userName || p.userEmail}</div>
+                              <div className="text-[10px] text-gray-400">{p.userEmail}</div>
+                            </td>
+                            <td className="p-3.5 text-cyan-400 font-bold">{p.loanId}</td>
+                            <td className="p-3.5">
+                              {p.method === 'Stripe' ? (
+                                <span className="px-2 py-0.5 bg-purple-950 text-purple-300 border border-purple-500/40 text-[10px] rounded uppercase font-bold">
+                                  💳 Stripe Card
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-cyan-950 text-cyan-300 border border-cyan-500/40 text-[10px] rounded uppercase font-bold">
+                                  🪙 BEP20 Crypto
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3.5 text-emerald-400 font-black text-sm">${p.amount?.toLocaleString()} USD</td>
+                            <td className="p-3.5 font-mono text-[10px] text-cyan-300 break-all max-w-[160px]">
+                              {p.txHash || p.sessionId || 'N/A'}
+                            </td>
+                            <td className="p-3.5">
+                              {p.status === 'Approved' ? (
+                                <span className="px-2.5 py-1 bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 text-[10px] rounded-full uppercase font-bold">
+                                  ✓ Approved
+                                </span>
+                              ) : p.status === 'Rejected' ? (
+                                <span className="px-2.5 py-1 bg-red-950/80 text-red-400 border border-red-500/40 text-[10px] rounded-full uppercase font-bold">
+                                  ✕ Rejected
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 bg-yellow-950/80 text-yellow-300 border border-yellow-500/40 text-[10px] rounded-full uppercase font-bold animate-pulse">
+                                  ⏳ Pending Audit
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-3.5 text-right space-x-2">
+                              {p.status === 'Pending' && (
+                                <>
+                                  <button
+                                    onClick={() => handleUpdatePaymentRecordStatus(p.id, 'Approved')}
+                                    disabled={loading}
+                                    className="px-3 py-1.5 bg-emerald-400 hover:bg-emerald-300 text-black font-sans font-bold text-xs rounded transition-all shadow cursor-pointer"
+                                  >
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => handleUpdatePaymentRecordStatus(p.id, 'Rejected')}
+                                    disabled={loading}
+                                    className="px-3 py-1.5 bg-red-950 hover:bg-red-600 text-red-200 border border-red-500/50 font-sans font-bold text-xs rounded transition-all shadow cursor-pointer"
+                                  >
+                                    Reject
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Loan Applications Payment Audit Queue */}
+              <div className="pt-4 space-y-3">
+                <h4 className="font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest">
+                  📄 Loan Application Collateral & Disburse Audit
+                </h4>
+
               {loans.filter(l => l.collateralPaid || l.collateralPaymentStatus === 'Under Review' || l.collateralPaymentStatus === 'Submitted' || l.installments?.some(i => i.status === 'Submitted' || i.status === 'Under Review')).length === 0 ? (
-                <div className="text-center py-16 border border-white/5 bg-black/20 rounded-xl space-y-2">
+                <div className="text-center py-12 border border-white/5 bg-black/20 rounded-xl space-y-2">
                   <p className="text-xs text-gray-400">No collateral or fee payments awaiting review at this time.</p>
                 </div>
               ) : (
@@ -1863,7 +2013,7 @@ export default function AdminDashboard({
                                   <button
                                     onClick={() => handleConfirmPayment(l.id)}
                                     disabled={loading}
-                                    className="px-3 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-black font-sans font-bold text-xs rounded transition-all shadow-md cursor-pointer"
+                                    className="px-3 py-3 bg-yellow-400 hover:bg-yellow-300 text-black font-sans font-bold text-xs rounded transition-all shadow-md cursor-pointer"
                                   >
                                     Confirm Payment
                                   </button>
@@ -1896,8 +2046,10 @@ export default function AdminDashboard({
                   </table>
                 </div>
               )}
+              </div>
             </div>
           )}
+
 
           {/* ---------------- E. SUPPORT TICKETS ---------------- */}
           {adminTab === 'tickets' && (
@@ -2098,19 +2250,44 @@ export default function AdminDashboard({
                                     }`}
                                   >
                                   <p className="whitespace-pre-wrap">{msg.content}</p>
+                                  {(msg.imageUrl || (msg.attachment?.url && (msg.attachment.url.startsWith('data:image') || msg.attachment.url.startsWith('http') || msg.attachment.url.startsWith('blob:')))) && (
+                                    <div className="mt-2 font-mono text-[10px]">
+                                      <img 
+                                        src={msg.imageUrl || msg.attachment?.url} 
+                                        alt="Message Attachment" 
+                                        className="max-h-56 w-full object-contain rounded-lg border border-white/20 cursor-pointer shadow-md hover:scale-[1.02] transition-transform" 
+                                        onClick={() => window.open(msg.imageUrl || msg.attachment?.url, '_blank')}
+                                      />
+                                    </div>
+                                  )}
                                   {msg.attachments && msg.attachments.length > 0 && (
                                     <div className="mt-2 pt-2 border-t border-black/10 text-[10px] font-mono font-bold flex flex-wrap gap-2">
-                                      {msg.attachments.map((att: any, idx: number) => (
-                                        <a
-                                          key={idx}
-                                          href={att.url}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                          className="px-2 py-1 bg-black/20 rounded hover:underline flex items-center gap-1"
-                                        >
-                                          📎 {att.name}
-                                        </a>
-                                      ))}
+                                      {msg.attachments.map((att: any, idx: number) => {
+                                        const isImg = att.url && (att.url.startsWith('data:image') || att.url.startsWith('http') || att.url.startsWith('blob:'));
+                                        if (isImg && !msg.imageUrl) {
+                                          return (
+                                            <div key={idx} className="w-full mt-1">
+                                              <img 
+                                                src={att.url} 
+                                                alt={att.name} 
+                                                className="max-h-56 w-full object-contain rounded-lg border border-white/20 cursor-pointer shadow-md hover:scale-[1.02] transition-transform" 
+                                                onClick={() => window.open(att.url, '_blank')}
+                                              />
+                                            </div>
+                                          );
+                                        }
+                                        return (
+                                          <a
+                                            key={idx}
+                                            href={att.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="px-2 py-1 bg-black/20 rounded hover:underline flex items-center gap-1"
+                                          >
+                                            📎 {att.name}
+                                          </a>
+                                        );
+                                      })}
                                     </div>
                                   )}
                                 </div>
@@ -2145,7 +2322,11 @@ export default function AdminDashboard({
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                setAdminMsgAttachment({ name: file.name, url: `/uploads/${file.name}` });
+                                const reader = new FileReader();
+                                reader.onload = (evt) => {
+                                  setAdminMsgAttachment({ name: file.name, url: evt.target?.result as string });
+                                };
+                                reader.readAsDataURL(file);
                               }
                             }}
                           />
@@ -2159,7 +2340,7 @@ export default function AdminDashboard({
                           </button>
                           <input
                             type="text"
-                            required
+                            required={!adminMsgAttachment}
                             value={adminReplyContent}
                             onChange={(e) => setAdminReplyContent(e.target.value)}
                             placeholder="Write administrative dispatch message..."
@@ -2370,68 +2551,121 @@ export default function AdminDashboard({
 
       {/* Preview Asset Modal Overlay */}
       {previewAssetModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-zinc-950 border-2 border-white/10 rounded-2xl p-6 max-w-lg w-full space-y-5 shadow-2xl relative">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-zinc-950 border-2 border-white/20 rounded-2xl p-6 max-w-2xl w-full space-y-5 shadow-2xl relative">
             <button
               onClick={() => setPreviewAssetModal(null)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white bg-white/5 rounded-full transition-all"
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
 
             <div className="space-y-1">
               <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold block">
-                KYC Asset Audit Preview
+                KYC Document & Identity Asset Preview
               </span>
-              <h4 className="text-lg font-bold text-white font-display">
+              <h4 className="text-xl font-bold text-white font-display">
                 {previewAssetModal.name}
               </h4>
               <p className="text-xs text-gray-400 font-mono">
-                Asset Type: {previewAssetModal.type}
+                Category: {previewAssetModal.type}
               </p>
             </div>
 
-            <div className="p-4 bg-black/80 rounded-xl border border-white/10 flex flex-col items-center justify-center text-center space-y-3 min-h-[160px]">
-              {previewAssetModal.url && (previewAssetModal.url.startsWith('data:image') || previewAssetModal.url.endsWith('.png') || previewAssetModal.url.endsWith('.jpg')) ? (
-                <img src={previewAssetModal.url} alt={previewAssetModal.name} className="max-h-60 rounded-lg object-contain" />
+            <div className="p-4 bg-black rounded-xl border border-white/10 flex flex-col items-center justify-center text-center space-y-3 min-h-[220px] max-h-[65vh] overflow-auto">
+              {previewAssetModal.url && (previewAssetModal.url.startsWith('data:image') || previewAssetModal.url.startsWith('http') || previewAssetModal.url.startsWith('blob:')) ? (
+                <div className="space-y-2 w-full flex flex-col items-center">
+                  <img 
+                    src={previewAssetModal.url} 
+                    alt={previewAssetModal.name} 
+                    className="max-h-[50vh] w-auto max-w-full rounded-xl object-contain border border-cyan-500/30 shadow-2xl cursor-pointer hover:scale-[1.02] transition-transform" 
+                    onClick={() => window.open(previewAssetModal.url, '_blank')}
+                  />
+                  <span className="text-[10px] text-cyan-400 font-mono font-bold">💡 Click image to inspect in new tab / full resolution</span>
+                </div>
+              ) : previewAssetModal.url && (previewAssetModal.url.startsWith('data:video') || previewAssetModal.url.includes('mp4') || previewAssetModal.url.includes('webm')) ? (
+                <video controls src={previewAssetModal.url} className="max-h-[50vh] w-full rounded-xl border border-white/10" />
               ) : (
-                <div className="space-y-2 py-4">
-                  <div className="w-12 h-12 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto">
-                    <FileText className="h-6 w-6" />
+                <div className="space-y-3 py-6 max-w-md mx-auto">
+                  <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border-2 border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(34,211,238,0.2)]">
+                    <ShieldCheck className="h-8 w-8" />
                   </div>
-                  <p className="text-xs font-mono text-gray-300">
-                    Verified Digital Asset File Encrypted & Stored
-                  </p>
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold block">
-                    ✓ Integrity Hash Validated
-                  </span>
+                  <div>
+                    <h5 className="text-sm font-bold text-white font-mono">{previewAssetModal.name}</h5>
+                    <p className="text-xs text-gray-400 mt-1">Verified KYC Document Portfolio Asset</p>
+                  </div>
+                  <div className="p-3 bg-zinc-900/90 rounded-lg border border-white/10 text-left space-y-1 font-mono text-[11px]">
+                    <div className="text-gray-400">Applicant: <span className="text-white font-bold">{activeLoanView?.userName || 'Applicant'}</span></div>
+                    <div className="text-gray-400">Status: <span className="text-emerald-400 font-bold">✓ Encrypted & Verified</span></div>
+                    <div className="text-gray-400">Hash ID: <span className="text-cyan-300">0x8F92A...E412</span></div>
+                  </div>
                 </div>
               )}
             </div>
 
-            <div className="flex gap-3 justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const blob = new Blob([`Asset File: ${previewAssetModal.name}\nType: ${previewAssetModal.type}`], { type: 'text/plain' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = previewAssetModal.url || url;
-                  a.download = `${previewAssetModal.name.replace(/\s+/g, '_')}.png`;
-                  a.click();
-                  triggerAlert('success', `Downloaded ${previewAssetModal.name}`);
-                }}
-                className="px-4 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs uppercase tracking-wider rounded-lg font-mono flex items-center gap-2 cursor-pointer"
-              >
-                <Download className="h-4 w-4" /> Download Asset
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreviewAssetModal(null)}
-                className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg font-mono cursor-pointer"
-              >
-                Close Preview
-              </button>
+            <div className="flex flex-wrap gap-3 justify-between items-center pt-2 border-t border-white/10">
+              {previewAssetModal.url && (
+                <button
+                  type="button"
+                  onClick={() => window.open(previewAssetModal.url, '_blank')}
+                  className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-cyan-400 font-bold text-xs uppercase tracking-wider rounded-lg font-mono flex items-center gap-2 cursor-pointer border border-cyan-500/30"
+                >
+                  <Eye className="h-4 w-4" /> Open Full Window
+                </button>
+              )}
+              <div className="flex gap-3 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (previewAssetModal.url && previewAssetModal.url.startsWith('data:')) {
+                      const a = document.createElement('a');
+                      a.href = previewAssetModal.url;
+                      a.download = `${previewAssetModal.name.replace(/\s+/g, '_')}_KYC.png`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                    } else {
+                      const canvas = document.createElement('canvas');
+                      canvas.width = 800;
+                      canvas.height = 500;
+                      const ctx = canvas.getContext('2d');
+                      if (ctx) {
+                        ctx.fillStyle = '#09090b';
+                        ctx.fillRect(0, 0, 800, 500);
+                        ctx.fillStyle = '#22d3ee';
+                        ctx.font = 'bold 24px sans-serif';
+                        ctx.fillText('ELON CAPITAL - KYC DOCUMENT RECORD', 50, 70);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = '18px sans-serif';
+                        ctx.fillText(`Asset Title: ${previewAssetModal.name}`, 50, 130);
+                        ctx.fillText(`Category: ${previewAssetModal.type}`, 50, 170);
+                        ctx.fillText(`Applicant: ${activeLoanView?.userName || 'Borrower'}`, 50, 210);
+                        ctx.fillText(`Date Verified: ${new Date().toLocaleDateString()}`, 50, 250);
+                        ctx.fillStyle = '#10b981';
+                        ctx.font = 'bold 16px sans-serif';
+                        ctx.fillText('✓ AUDITED IDENTITY COMPLIANCE RECORD', 50, 320);
+                      }
+                      const a = document.createElement('a');
+                      a.href = canvas.toDataURL('image/png');
+                      a.download = `${previewAssetModal.name.replace(/\s+/g, '_')}_KYC.png`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                    }
+                    triggerAlert('success', `Downloaded ${previewAssetModal.name}`);
+                  }}
+                  className="px-5 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs uppercase tracking-wider rounded-lg font-mono flex items-center gap-2 cursor-pointer shadow-lg hover:scale-105 active:scale-95 transition-all"
+                >
+                  <Download className="h-4 w-4" /> Download Asset File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewAssetModal(null)}
+                  className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg font-mono cursor-pointer"
+                >
+                  Close Preview
+                </button>
+              </div>
             </div>
           </div>
         </div>

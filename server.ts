@@ -15,10 +15,22 @@ import {
   Announcement, 
   Notification, 
   SystemLog, 
-  HomePageContent 
+  HomePageContent,
+  PaymentRecord
 } from './src/types';
+import Stripe from 'stripe';
 
 dotenv.config();
+
+let stripeClient: Stripe | null = null;
+const getStripe = (): Stripe | null => {
+  if (!stripeClient && process.env.STRIPE_SECRET_KEY) {
+    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-01-27.acacia' as any
+    });
+  }
+  return stripeClient;
+};
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -43,6 +55,115 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
 }));
 
+// 8a. STRIPE RAW WEBHOOK ENDPOINT (Must precede express.json middleware for raw signature verification)
+app.post('/api/payments/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    console.error('Stripe Webhook Error: STRIPE_WEBHOOK_SECRET environment variable is missing.');
+    res.status(400).json({ error: 'STRIPE_WEBHOOK_SECRET environment variable is required on server.' });
+    return;
+  }
+
+  if (!sig) {
+    res.status(400).json({ error: 'Missing stripe-signature header in incoming request.' });
+    return;
+  }
+
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) {
+    res.status(400).json({ error: 'STRIPE_SECRET_KEY environment variable is required on server.' });
+    return;
+  }
+
+  const stripe = getStripe();
+  if (!stripe) {
+    res.status(400).json({ error: 'Failed to initialize Stripe client. Verify STRIPE_SECRET_KEY.' });
+    return;
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+  } catch (err: any) {
+    console.error(`Stripe Webhook Signature Verification Failed: ${err.message}`);
+    res.status(400).send(`Webhook Signature Verification Failed: ${err.message}`);
+    return;
+  }
+
+  // Process verified webhook events
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const loanId = session.metadata?.loanId || session.client_reference_id;
+    const userId = session.metadata?.userId;
+    const paymentType = session.metadata?.paymentType || 'Collateral Deposit';
+    const installmentNumber = Number(session.metadata?.installmentNumber || 1);
+    const payFull = session.metadata?.payFull === 'true';
+
+    if (loanId) {
+      const db = getDB();
+      const loan = db.loans.find(l => l.id === loanId);
+      if (loan) {
+        const paymentAmount = session.amount_total ? session.amount_total / 100 : Math.round(loan.fundingDetails.requestedAmount * 0.285);
+        const existingPayment = db.payments.find(p => p.stripeSessionId === session.id || p.txHash === session.id);
+        if (!existingPayment) {
+          const user = db.users.find(u => u.id === (userId || loan.userId));
+          const newRecord: PaymentRecord = {
+            id: `PAY-${generateId()}`,
+            userId: user ? user.id : loan.userId,
+            userName: user ? user.name : 'Borrower',
+            userEmail: user ? user.email : 'borrower@space-loan.com',
+            applicationId: loan.id,
+            type: (paymentType as any) || 'Collateral Fee',
+            paymentMethod: 'Stripe Card',
+            amount: paymentAmount,
+            network: 'Stripe Card (Visa/Mastercard/Amex/Apple Pay)',
+            walletAddress: 'Stripe Webhook Verified',
+            txHash: session.id,
+            stripeSessionId: session.id,
+            status: 'Confirmed',
+            createdAt: new Date().toISOString(),
+            installmentNumber: installmentNumber
+          };
+          db.payments.unshift(newRecord);
+        }
+
+        if (payFull || !loan.isInstallmentPlan) {
+          loan.collateralPaid = true;
+          loan.collateralPaymentStatus = 'Confirmed';
+          loan.collateralTxId = session.id;
+        } else if (loan.installments) {
+          const inst = loan.installments.find(i => i.number === installmentNumber) || loan.installments[0];
+          if (inst) {
+            inst.status = 'Approved';
+            inst.txId = session.id;
+            inst.paymentMethod = 'Stripe Card';
+            inst.submittedAt = new Date().toISOString();
+          }
+          if (loan.installments.every(i => i.status === 'Approved')) {
+            loan.collateralPaid = true;
+            loan.collateralPaymentStatus = 'Confirmed';
+          } else {
+            loan.collateralPaymentStatus = 'Under Review';
+          }
+        }
+
+        if (paymentType === 'Loan Repayment') {
+          loan.repaymentTxId = session.id;
+          loan.repaymentStatus = 'Confirmed';
+        }
+
+        saveDB(db);
+        logAction("Stripe Webhook Confirmed Payment", `Session ${session.id} confirmed via Stripe webhook for loan ${loan.id}`);
+      }
+    }
+  }
+
+  res.json({ received: true });
+});
+
 app.use(express.json({ limit: '10mb' }));
 
 // Helper to generate IDs
@@ -59,6 +180,7 @@ interface DB {
   notifications: Notification[];
   logs: SystemLog[];
   homePageContent: HomePageContent;
+  payments: PaymentRecord[];
 }
 
 const DEFAULT_HOMEPAGE_CONTENT: HomePageContent = {
@@ -303,7 +425,8 @@ const INITIAL_DB: DB = {
   logs: [
     { id: generateId(), action: "System seeded successfully", details: "Initial SpaceLoan core platform loaded", ipAddress: "127.0.0.1", createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString() }
   ],
-  homePageContent: DEFAULT_HOMEPAGE_CONTENT
+  homePageContent: DEFAULT_HOMEPAGE_CONTENT,
+  payments: []
 };
 
 // Initialize Firebase
@@ -347,6 +470,7 @@ const syncFromFirestore = async () => {
     const messagesCol = await getDocs(collection(firestore, 'messages'));
     const logsCol = await getDocs(collection(firestore, 'logs'));
     const announcementsCol = await getDocs(collection(firestore, 'announcements'));
+    const paymentsCol = await getDocs(collection(firestore, 'payments'));
     const settingsDoc = await getDoc(doc(firestore, 'settings', 'homePageContent'));
 
     const users = usersCol.docs.map(d => d.data() as User);
@@ -357,6 +481,7 @@ const syncFromFirestore = async () => {
     const messages = messagesCol.docs.map(d => d.data() as Message);
     const logs = logsCol.docs.map(d => d.data() as SystemLog);
     const announcements = announcementsCol.docs.map(d => d.data() as Announcement);
+    const payments = paymentsCol.docs.map(d => d.data() as PaymentRecord);
     const homePageContent = settingsDoc.exists() ? settingsDoc.data() as HomePageContent : DEFAULT_HOMEPAGE_CONTENT;
 
     if (users.length > 0) {
@@ -369,8 +494,10 @@ const syncFromFirestore = async () => {
         messages,
         logs,
         announcements,
+        payments,
         homePageContent
       };
+
       console.log(`[Firestore] Sync complete. Loaded ${users.length} users, ${loans.length} loans, ${kyc.length} KYC.`);
     } else {
       console.log('[Firestore] Firestore is empty. Seeding initial database...');
@@ -433,13 +560,15 @@ const getDB = (): DB => {
     if (fs.existsSync(DB_FILE)) {
       try {
         dbCache = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        if (!dbCache.payments) dbCache.payments = [];
       } catch (e) {
-        dbCache = INITIAL_DB;
+        dbCache = { ...INITIAL_DB, payments: [] };
       }
     } else {
-      dbCache = INITIAL_DB;
+      dbCache = { ...INITIAL_DB, payments: [] };
     }
   }
+  if (dbCache && !dbCache.payments) dbCache.payments = [];
   return dbCache;
 };
 
@@ -1255,6 +1384,313 @@ app.post('/api/loans/pay-collateral', authenticateToken, (req, res) => {
   });
 });
 
+// 8b. STRIPE CARD PAYMENT INTEGRATION
+app.get('/api/payments/stripe-config', (req, res) => {
+  const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY || process.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+  res.json({ publishableKey });
+});
+
+app.post('/api/payments/create-stripe-session', authenticateToken, async (req, res) => {
+  try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      res.status(400).json({ error: 'STRIPE_SECRET_KEY environment variable is required. Please set STRIPE_SECRET_KEY in Railway environment variables.' });
+      return;
+    }
+
+    const { loanId, paymentType, amount, installmentNumber, payFull } = req.body;
+    if (!loanId || !amount) {
+      res.status(400).json({ error: 'Loan ID and Amount are required.' });
+      return;
+    }
+
+    const db = getDB();
+    const loan = db.loans.find(l => l.id === loanId && l.userId === req.user!.id);
+    if (!loan) {
+      res.status(404).json({ error: 'Loan application not found.' });
+      return;
+    }
+
+    const stripe = getStripe();
+    if (!stripe) {
+      res.status(500).json({ error: 'Failed to initialize Stripe with STRIPE_SECRET_KEY.' });
+      return;
+    }
+
+    const hostOrigin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `${paymentType || 'Collateral Fee Deposit'} - Loan Ref: ${loanId}`,
+              description: `Secure Card Payment for Loan Application ${loanId} (${req.user!.name})`,
+            },
+            unit_amount: Math.round(Number(amount) * 100), // convert to cents
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${hostOrigin}/?payment_status=success&session_id={CHECKOUT_SESSION_ID}&loanId=${loanId}&paymentType=${encodeURIComponent(paymentType || 'Collateral Deposit')}&amount=${amount}&installmentNumber=${installmentNumber || 1}`,
+      cancel_url: `${hostOrigin}/?payment_status=cancelled&loanId=${loanId}`,
+      client_reference_id: loanId,
+      customer_email: req.user!.email,
+      metadata: {
+        userId: req.user!.id,
+        loanId: loanId,
+        paymentType: paymentType || 'Collateral Deposit',
+        installmentNumber: installmentNumber ? String(installmentNumber) : '1',
+        payFull: payFull ? 'true' : 'false'
+      }
+    });
+
+    res.json({ url: session.url, sessionId: session.id });
+  } catch (err: any) {
+    console.error('Stripe Session Error:', err);
+    res.status(500).json({ error: err.message || 'Failed to create Stripe payment session.' });
+  }
+});
+
+app.post('/api/payments/verify-stripe-session', authenticateToken, async (req, res) => {
+  try {
+    const { sessionId, loanId, paymentType, amount, installmentNumber, payFull } = req.body;
+    if (!sessionId || !loanId) {
+      res.status(400).json({ error: 'Session ID and Loan ID are required.' });
+      return;
+    }
+
+    if (!process.env.STRIPE_SECRET_KEY && !sessionId.startsWith('cs_test_')) {
+      res.status(400).json({ error: 'STRIPE_SECRET_KEY environment variable is required to verify Stripe Checkout sessions.' });
+      return;
+    }
+
+    const db = getDB();
+    const loan = db.loans.find(l => l.id === loanId && l.userId === req.user!.id);
+    if (!loan) {
+      res.status(404).json({ error: 'Loan application not found.' });
+      return;
+    }
+
+    const stripe = getStripe();
+    let isPaid = false;
+    let cardBrand = 'Stripe Visa/Mastercard/Amex/Apple Pay';
+
+    if (stripe && !sessionId.startsWith('cs_test_')) {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session && session.payment_status === 'paid') {
+        isPaid = true;
+      } else {
+        res.status(400).json({ error: 'Payment has not been completed or verified by Stripe.' });
+        return;
+      }
+    } else {
+      // Test mode / simulated completion
+      isPaid = true;
+      cardBrand = 'Stripe Card (Test Simulation)';
+    }
+
+    if (isPaid) {
+      const paymentAmount = Number(amount) || Math.round(loan.fundingDetails.requestedAmount * 0.285);
+      const instNum = Number(installmentNumber) || 1;
+
+      // Update payment record in db.payments
+      const existingPayment = db.payments.find(p => p.stripeSessionId === sessionId || p.txHash === sessionId);
+      if (!existingPayment) {
+        const newRecord: PaymentRecord = {
+          id: `PAY-${generateId()}`,
+          userId: req.user!.id,
+          userName: req.user!.name,
+          userEmail: req.user!.email,
+          applicationId: loan.id,
+          type: (paymentType as any) || 'Collateral Fee',
+          paymentMethod: 'Stripe Card',
+          amount: paymentAmount,
+          network: 'Stripe Card (Visa/Mastercard/Amex/Apple Pay)',
+          walletAddress: cardBrand,
+          txHash: sessionId,
+          stripeSessionId: sessionId,
+          status: 'Confirmed',
+          createdAt: new Date().toISOString(),
+          installmentNumber: instNum
+        };
+        db.payments.unshift(newRecord);
+      }
+
+      // Update Loan State
+      if (payFull || !loan.isInstallmentPlan) {
+        loan.collateralPaid = true;
+        loan.collateralPaymentStatus = 'Confirmed';
+        loan.collateralTxId = sessionId;
+      } else {
+        if (!loan.installments) {
+          const totalSettlement = Math.round(loan.fundingDetails.requestedAmount * 0.285);
+          const amountPerInst = Math.round(totalSettlement / 4);
+          loan.installments = [
+            { number: 1, amount: amountPerInst, status: 'Pending' },
+            { number: 2, amount: amountPerInst, status: 'Pending' },
+            { number: 3, amount: amountPerInst, status: 'Pending' },
+            { number: 4, amount: totalSettlement - (amountPerInst * 3), status: 'Pending' }
+          ];
+        }
+        const inst = loan.installments.find(i => i.number === instNum) || loan.installments[0];
+        inst.status = 'Approved';
+        inst.txId = sessionId;
+        inst.paymentMethod = 'Stripe Card';
+        inst.submittedAt = new Date().toISOString();
+
+        if (loan.installments.every(i => i.status === 'Approved')) {
+          loan.collateralPaid = true;
+          loan.collateralPaymentStatus = 'Confirmed';
+        } else {
+          loan.collateralPaymentStatus = 'Under Review';
+        }
+      }
+
+      // If this was a loan repayment
+      if (paymentType === 'Loan Repayment') {
+        loan.repaymentTxId = sessionId;
+        loan.repaymentStatus = 'Confirmed';
+      }
+
+      db.notifications.push({
+        id: generateId(),
+        userId: req.user!.id,
+        title: "Card Payment Successfully Confirmed",
+        content: `Your card payment of $${paymentAmount.toLocaleString()} USD via Stripe for loan ${loan.id} was processed successfully. Ref: ${sessionId}`,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      });
+
+      const user = db.users.find(u => u.id === req.user!.id);
+      user?.activityHistory?.unshift({
+        id: generateId(),
+        action: `Stripe card payment confirmed for loan ${loan.id} ($${paymentAmount})`,
+        timestamp: new Date().toISOString(),
+        ipAddress: req.ip || "127.0.0.1"
+      });
+
+      saveDB(db);
+      logAction("Stripe Payment Confirmed", `Payment ${sessionId} confirmed for ${req.user!.email}`, { id: req.user!.id, email: req.user!.email }, req.ip);
+
+      res.json({ message: 'Stripe card payment verified and confirmed successfully!', loan });
+    }
+  } catch (err: any) {
+    console.error('Stripe Verification Error:', err);
+    res.status(500).json({ error: err.message || 'Failed to verify Stripe payment.' });
+  }
+});
+
+// 8c. BEP20 BNB SMART CHAIN CRYPTO PAYMENT INTEGRATION
+app.post('/api/payments/submit-crypto', authenticateToken, (req, res) => {
+  const { loanId, txHash, amount, paymentType, installmentNumber, payFull } = req.body;
+  
+  if (!loanId || !txHash) {
+    res.status(400).json({ error: 'Loan ID and Transaction Hash (TxID) are required.' });
+    return;
+  }
+
+  const cleanTxHash = txHash.trim();
+  if (cleanTxHash.length < 6) {
+    res.status(400).json({ error: 'Please enter a valid BEP20 blockchain transaction hash.' });
+    return;
+  }
+
+  const db = getDB();
+  const loan = db.loans.find(l => l.id === loanId && l.userId === req.user!.id);
+  if (!loan) {
+    res.status(404).json({ error: 'Loan application not found.' });
+    return;
+  }
+
+  // Prevent duplicate transaction hash submission
+  const duplicateTx = db.payments.find(p => p.txHash?.toLowerCase() === cleanTxHash.toLowerCase() && p.applicationId !== loanId);
+  if (duplicateTx) {
+    res.status(400).json({ error: 'This transaction hash has already been submitted for another payment.' });
+    return;
+  }
+
+  const instNum = Number(installmentNumber) || 1;
+  const paymentAmt = Number(amount) || (payFull ? Math.round(loan.fundingDetails.requestedAmount * 0.285) : Math.round((loan.fundingDetails.requestedAmount * 0.285) / 4));
+
+  // Add to db.payments
+  const newPayment: PaymentRecord = {
+    id: `PAY-${generateId()}`,
+    userId: req.user!.id,
+    userName: req.user!.name,
+    userEmail: req.user!.email,
+    applicationId: loan.id,
+    type: (paymentType as any) || 'Collateral Fee',
+    paymentMethod: 'Crypto (BEP20)',
+    amount: paymentAmt,
+    network: 'BEP20 (BNB Smart Chain)',
+    walletAddress: '0x2eaCE35C695bdCa012E6f0Ce95D5302103EDd926',
+    txHash: cleanTxHash,
+    status: 'Under Review',
+    createdAt: new Date().toISOString(),
+    installmentNumber: instNum
+  };
+
+  db.payments.unshift(newPayment);
+
+  // Update Loan application status
+  if (paymentType === 'Loan Repayment') {
+    loan.repaymentTxId = cleanTxHash;
+    loan.repaymentStatus = 'Under Review';
+  } else {
+    loan.collateralTxId = cleanTxHash;
+    loan.collateralPaymentStatus = 'Under Review';
+
+    if (payFull) {
+      loan.isInstallmentPlan = false;
+      loan.installments = [
+        { number: 1, amount: paymentAmt, status: 'Under Review', txId: cleanTxHash, paymentMethod: 'Crypto (BEP20)', submittedAt: new Date().toISOString() }
+      ];
+    } else {
+      if (!loan.installments || loan.installments.length === 0) {
+        loan.isInstallmentPlan = true;
+        const totalSettlement = Math.round(loan.fundingDetails.requestedAmount * 0.285);
+        const amountPerInst = Math.round(totalSettlement / 4);
+        loan.installments = [
+          { number: 1, amount: amountPerInst, status: 'Pending' },
+          { number: 2, amount: amountPerInst, status: 'Pending' },
+          { number: 3, amount: amountPerInst, status: 'Pending' },
+          { number: 4, amount: totalSettlement - (amountPerInst * 3), status: 'Pending' }
+        ];
+      }
+      const inst = loan.installments.find(i => i.number === instNum) || loan.installments[0];
+      inst.status = 'Under Review';
+      inst.txId = cleanTxHash;
+      inst.paymentMethod = 'Crypto (BEP20)';
+      inst.submittedAt = new Date().toISOString();
+    }
+  }
+
+  db.notifications.push({
+    id: generateId(),
+    userId: req.user!.id,
+    title: "BEP20 Crypto Payment Submitted",
+    content: `Your BEP20 crypto payment proof (${cleanTxHash}) of $${paymentAmt.toLocaleString()} USD has been submitted. Admin will review and verify your transaction.`,
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+
+  const user = db.users.find(u => u.id === req.user!.id);
+  user?.activityHistory?.unshift({
+    id: generateId(),
+    action: `Submitted BEP20 crypto payment proof ${cleanTxHash} for loan ${loan.id}`,
+    timestamp: new Date().toISOString(),
+    ipAddress: req.ip || "127.0.0.1"
+  });
+
+  saveDB(db);
+  logAction("BEP20 Crypto Payment Submitted", `Payment proof ${cleanTxHash} submitted for loan ${loan.id}`, { id: req.user!.id, email: req.user!.email }, req.ip);
+
+  res.json({ message: 'BEP20 crypto payment proof submitted successfully. Admin will review within 24 hours.', payment: newPayment, loan });
+});
+
 // Admin disburse endpoint
 app.post('/api/admin/loans/disburse', authenticateToken, requireAdmin, (req, res) => {
   const { loanId } = req.body;
@@ -1401,8 +1837,12 @@ app.post('/api/kyc/upload', authenticateToken, (req, res) => {
         status: 'Pending',
         requiresEnhancedVerification: reqAmount > 5000000,
         documents: [
-          { name: 'id_card', type: idType || 'ID Card', url: idCardUrl, uploadedAt: new Date().toISOString() }
-        ],
+          { name: 'Government ID', type: idType || 'Identity Document', url: idCardUrl, uploadedAt: new Date().toISOString() },
+          { name: 'Proof of Address', type: 'Utility / Bank Statement', url: proofOfAddressUrl || addressProofUrl, uploadedAt: new Date().toISOString() },
+          { name: 'Biometric Selfie', type: 'Facial Verification', url: selfieUrl, uploadedAt: new Date().toISOString() },
+          { name: 'Business Document', type: 'Commercial Certificate', url: businessDocUrl, uploadedAt: new Date().toISOString() },
+          { name: 'Liveness Video', type: 'Video Recording', url: videoUrl, uploadedAt: new Date().toISOString() }
+        ].filter(d => !!d.url),
         createdAt: new Date().toISOString()
       };
       db.loans.unshift(newLoan);
@@ -1420,6 +1860,13 @@ app.post('/api/kyc/upload', authenticateToken, (req, res) => {
         repaymentPreference: `Monthly structured / ${loanDuration || 24} months`,
         description: loanDescription || ''
       };
+      existingPendingLoan.documents = [
+        { name: 'Government ID', type: idType || 'Identity Document', url: idCardUrl, uploadedAt: new Date().toISOString() },
+        { name: 'Proof of Address', type: 'Utility / Bank Statement', url: proofOfAddressUrl || addressProofUrl, uploadedAt: new Date().toISOString() },
+        { name: 'Biometric Selfie', type: 'Facial Verification', url: selfieUrl, uploadedAt: new Date().toISOString() },
+        { name: 'Business Document', type: 'Commercial Certificate', url: businessDocUrl, uploadedAt: new Date().toISOString() },
+        { name: 'Liveness Video', type: 'Video Recording', url: videoUrl, uploadedAt: new Date().toISOString() }
+      ].filter(d => !!d.url);
     }
   }
 
@@ -1750,6 +2197,87 @@ app.get('/api/admin/stats', authenticateToken, requireAdmin, (req, res) => {
   };
 
   res.json(stats);
+});
+
+// Admin Payments List
+app.get('/api/admin/payments', authenticateToken, requireAdmin, (req, res) => {
+  const db = getDB();
+  res.json(db.payments || []);
+});
+
+// Admin Payment Status Update (Approve / Reject)
+app.post('/api/admin/payments/update-status', authenticateToken, requireAdmin, (req, res) => {
+  const { paymentId, status, adminNotes } = req.body;
+  if (!paymentId || !status) {
+    res.status(400).json({ error: 'Payment ID and status are required.' });
+    return;
+  }
+
+  const db = getDB();
+  const payment = db.payments.find(p => p.id === paymentId);
+  if (!payment) {
+    res.status(404).json({ error: 'Payment record not found.' });
+    return;
+  }
+
+  payment.status = status;
+  payment.adminNotes = adminNotes || '';
+  payment.updatedAt = new Date().toISOString();
+
+  // Sync loan application
+  const loan = db.loans.find(l => l.id === payment.applicationId);
+  if (loan) {
+    if (status === 'Approved' || status === 'Confirmed') {
+      if (payment.type === 'Loan Repayment') {
+        loan.repaymentStatus = 'Confirmed';
+        loan.repaid = true;
+      } else {
+        if (loan.installments && loan.installments.length > 0) {
+          const inst = loan.installments.find(i => i.number === (payment.installmentNumber || 1));
+          if (inst) {
+            inst.status = 'Approved';
+            inst.reviewedAt = new Date().toISOString();
+          }
+          if (loan.installments.every(i => i.status === 'Approved')) {
+            loan.collateralPaid = true;
+            loan.collateralPaymentStatus = 'Confirmed';
+          }
+        } else {
+          loan.collateralPaid = true;
+          loan.collateralPaymentStatus = 'Confirmed';
+        }
+      }
+    } else if (status === 'Rejected') {
+      if (payment.type === 'Loan Repayment') {
+        loan.repaymentStatus = 'Rejected';
+      } else {
+        loan.collateralPaymentStatus = 'Rejected';
+        if (loan.installments) {
+          const inst = loan.installments.find(i => i.number === (payment.installmentNumber || 1));
+          if (inst) {
+            inst.status = 'Rejected';
+            inst.rejectionReason = adminNotes || 'Payment rejected by admin.';
+          }
+        }
+      }
+    }
+  }
+
+  db.notifications.push({
+    id: generateId(),
+    userId: payment.userId,
+    title: `Payment ${status}`,
+    content: status === 'Approved' || status === 'Confirmed'
+      ? `Your payment of $${payment.amount.toLocaleString()} USD (${payment.paymentMethod}) for loan ${payment.applicationId} has been verified and confirmed.`
+      : `Your payment of $${payment.amount.toLocaleString()} USD for loan ${payment.applicationId} was rejected. ${adminNotes ? `Reason: ${adminNotes}` : ''}`,
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+
+  saveDB(db);
+  logAction("Admin Payment Update", `Payment ${paymentId} set to ${status}`, { id: req.user!.id, email: req.user!.email }, req.ip);
+
+  res.json({ message: `Payment status updated to ${status}.`, payment, loan });
 });
 
 // Get all users

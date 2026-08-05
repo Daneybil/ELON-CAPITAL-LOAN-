@@ -76,28 +76,41 @@ body {
 
 /* Noticeable, fluid Ken Burns animation for background scanning motion */
 @keyframes ken-burns {
-  0% { transform: scale(1.04) translate(0px, 0px); }
-  25% { transform: scale(1.12) translate(-22px, -14px); }
-  50% { transform: scale(1.08) translate(18px, 14px); }
-  75% { transform: scale(1.15) translate(-14px, 18px); }
-  100% { transform: scale(1.04) translate(0px, 0px); }
+  0% { transform: scale(1.05) translate(0px, 0px); }
+  25% { transform: scale(1.2) translate(-32px, -22px); }
+  50% { transform: scale(1.12) translate(28px, 18px); }
+  75% { transform: scale(1.22) translate(-20px, 25px); }
+  100% { transform: scale(1.05) translate(0px, 0px); }
 }
 
 .animate-ken-burns {
-  animation: ken-burns 24s ease-in-out infinite;
+  animation: ken-burns 12s ease-in-out infinite;
 }
 
 /* Dynamic rotating, in-and-out depth motion for space/moon image */
 @keyframes space-moon-rotate {
   0% { transform: scale(1) rotate(0deg) translate(0px, 0px); }
-  25% { transform: scale(1.05) rotate(2.5deg) translate(-10px, 8px); }
-  50% { transform: scale(1.02) rotate(0deg) translate(8px, -10px); }
-  75% { transform: scale(1.06) rotate(-2.5deg) translate(-6px, -4px); }
+  25% { transform: scale(1.14) rotate(3deg) translate(-18px, -20px); }
+  50% { transform: scale(1.04) rotate(-2deg) translate(15px, 18px); }
+  75% { transform: scale(1.16) rotate(3.5deg) translate(-12px, 14px); }
   100% { transform: scale(1) rotate(0deg) translate(0px, 0px); }
 }
 
 .animate-space-moon-rotate {
-  animation: space-moon-rotate 18s ease-in-out infinite;
+  animation: space-moon-rotate 10s ease-in-out infinite;
+}
+
+/* Dynamic floating, scaling thrust propulsion motion for rocket images */
+@keyframes rocket-float {
+  0% { transform: scale(1) translateY(0px) rotate(0deg); }
+  25% { transform: scale(1.1) translateY(-24px) rotate(2deg); }
+  50% { transform: scale(1.03) translateY(-8px) rotate(-1.5deg); }
+  75% { transform: scale(1.12) translateY(-28px) rotate(2.5deg); }
+  100% { transform: scale(1) translateY(0px) rotate(0deg); }
+}
+
+.animate-rocket-float {
+  animation: rocket-float 9s ease-in-out infinite;
 }
 
 /* Premium 3D Glassmorphic styles for auth form and inputs matching image */

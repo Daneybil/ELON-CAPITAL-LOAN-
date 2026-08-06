@@ -1231,8 +1231,8 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
   // Enforce "one active loan application" rule
   const existingActiveLoan = db.loans.find(l => 
     l.userId === req.user!.id && 
-    !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled', 'Disbursed', 'Completed'].includes(l.status) &&
-    !l.disbursed
+    !l.repaid &&
+    !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled'].includes(l.status)
   );
 
   if (existingActiveLoan) {
@@ -1380,6 +1380,85 @@ app.post('/api/loans/pay-collateral', authenticateToken, (req, res) => {
 
   res.json({
     message: 'The Elon Capital loan team will review your payment and get back to you within 24 hours.',
+    loan
+  });
+});
+
+// 8. LOAN REPAYMENT ENDPOINT
+app.post('/api/loans/repay', authenticateToken, (req, res) => {
+  const { loanId, txId, amount } = req.body;
+  if (!loanId || !txId) {
+    res.status(400).json({ error: 'Loan ID and Transaction Reference (TxHash) are required.' });
+    return;
+  }
+
+  const cleanTxHash = String(txId).trim();
+  const db = getDB();
+  const loan = db.loans.find(l => l.id === loanId && l.userId === req.user!.id);
+  if (!loan) {
+    res.status(404).json({ error: 'Loan application not found.' });
+    return;
+  }
+
+  // Prevent duplicate transaction submission
+  if (db.payments) {
+    const duplicateTx = db.payments.find(p => p.txHash && p.txHash.toLowerCase() === cleanTxHash.toLowerCase());
+    if (duplicateTx) {
+      res.status(400).json({ error: 'This transaction hash has already been submitted for another payment.' });
+      return;
+    }
+  }
+
+  const requestedAmt = loan.fundingDetails.requestedAmount;
+  const totalPayback = Math.round(requestedAmt * 1.15); // default term payback
+  const paymentAmount = Number(amount) && Number(amount) > 0 ? Number(amount) : totalPayback;
+
+  const newPayment: PaymentRecord = {
+    id: `PAY-${generateId()}`,
+    userId: req.user!.id,
+    userName: req.user!.name || loan.userName,
+    userEmail: req.user!.email || loan.userEmail,
+    applicationId: loan.id,
+    type: 'Loan Repayment',
+    paymentMethod: 'Crypto (BEP20)',
+    amount: paymentAmount,
+    network: 'BEP20 (BNB Smart Chain)',
+    walletAddress: '0x2eaCE35C695bdCa012E6f0Ce95D5302103EDd926',
+    txHash: cleanTxHash,
+    status: 'Under Review',
+    createdAt: new Date().toISOString()
+  };
+
+  if (!db.payments) db.payments = [];
+  db.payments.unshift(newPayment);
+
+  // Update loan repayment status
+  loan.repaymentTxId = cleanTxHash;
+  loan.repaymentStatus = 'Under Review';
+
+  db.notifications.push({
+    id: generateId(),
+    userId: req.user!.id,
+    title: "Loan Repayment Proof Submitted",
+    content: `Your loan repayment proof (${cleanTxHash}) of $${paymentAmount.toLocaleString()} USD has been submitted. Admin will review and verify your transaction on the BSC network.`,
+    isRead: false,
+    createdAt: new Date().toISOString()
+  });
+
+  const user = db.users.find(u => u.id === req.user!.id);
+  user?.activityHistory?.unshift({
+    id: generateId(),
+    action: `Submitted loan repayment proof ${cleanTxHash} ($${paymentAmount.toLocaleString()}) for loan ${loan.id}`,
+    timestamp: new Date().toISOString(),
+    ipAddress: req.ip || "127.0.0.1"
+  });
+
+  saveDB(db);
+  logAction("Loan Repayment Submitted", `Repayment proof ${cleanTxHash} submitted for loan ${loan.id}`, { id: req.user!.id, email: req.user!.email }, req.ip);
+
+  res.json({
+    message: 'Loan repayment proof submitted successfully. The Elon Capital loan team will verify your transaction on the BSC blockchain within 24 hours.',
+    payment: newPayment,
     loan
   });
 });
@@ -2231,6 +2310,8 @@ app.post('/api/admin/payments/update-status', authenticateToken, requireAdmin, (
       if (payment.type === 'Loan Repayment') {
         loan.repaymentStatus = 'Confirmed';
         loan.repaid = true;
+        loan.repaidAt = new Date().toISOString();
+        loan.status = 'Settled';
       } else {
         if (loan.installments && loan.installments.length > 0) {
           const inst = loan.installments.find(i => i.number === (payment.installmentNumber || 1));

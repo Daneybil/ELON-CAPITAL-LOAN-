@@ -49,6 +49,12 @@ const getInterestRateFromPreference = (prefStr?: string): number => {
   return 15;
 };
 
+const calculateTotalRepayable = (loan: LoanApplication): number => {
+  const principal = loan.fundingDetails?.requestedAmount || 0;
+  const rate = getInterestRateFromPreference(loan.fundingDetails?.repaymentPreference);
+  return Math.round(principal * (1 + rate / 100));
+};
+
 interface UserDashboardProps {
   user: User;
   token: string;
@@ -113,6 +119,7 @@ export default function UserDashboard({
   const [repaymentMethod, setRepaymentMethod] = React.useState<'Crypto' | 'Wire'>('Crypto');
   const [repaymentCryptoAsset, setRepaymentCryptoAsset] = React.useState<'USDT (TRC-20)' | 'USDT (ERC-20)' | 'BTC' | 'ETH'>('USDT (TRC-20)');
   const [repaymentTxInput, setRepaymentTxInput] = React.useState('');
+  const [repaymentAmountInput, setRepaymentAmountInput] = React.useState('');
 
   // Form Loading States
   const [loadingLoans, setLoadingLoans] = React.useState(false);
@@ -4245,33 +4252,61 @@ export default function UserDashboard({
                               </div>
 
                               <div className="space-y-4">
-                                <div className="p-4 bg-zinc-950 border-2 border-cyan-500/30 rounded-xl space-y-3">
+                                <div className="p-4 bg-zinc-950 border-2 border-cyan-500/30 rounded-xl space-y-4">
                                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                     <span className="text-xs font-mono font-black text-cyan-400 uppercase tracking-wider">
-                                      Binance Smart Chain (BEP-20) Wallet Address:
+                                      Binance Smart Chain (BEP-20) Receiving Wallet Address:
                                     </span>
                                     <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30 uppercase font-black">
-                                      ✓ Official Repayment Vault
+                                      ✓ Official Receiving Vault
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-2 bg-black p-3 rounded-lg border-2 border-cyan-400/40 font-mono text-xs sm:text-sm font-black text-white select-all">
-                                    <span className="text-cyan-300 break-all">0xe7119007e20df3144bbcaf25131b9434289e974a</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText('0xe7119007e20df3144bbcaf25131b9434289e974a');
-                                        triggerAlert('success', 'Binance Smart Chain (BEP-20) address copied to clipboard!');
-                                      }}
-                                      className="px-3 py-1.5 bg-cyan-400 text-black hover:bg-cyan-300 text-xs font-black uppercase rounded-md transition-all cursor-pointer shrink-0 font-display shadow-md"
-                                    >
-                                      Copy Address
-                                    </button>
+
+                                  <div className="flex flex-col sm:flex-row items-center gap-4 bg-black p-4 rounded-xl border-2 border-cyan-400/40">
+                                    <div className="bg-white p-2 rounded-lg shrink-0 shadow-md">
+                                      <QRCodeSVG value="0x2eaCE35C695bdCa012E6f0Ce95D5302103EDd926" size={100} />
+                                    </div>
+                                    <div className="space-y-2 flex-1 w-full">
+                                      <div className="flex items-center justify-between gap-2 bg-zinc-900 p-2.5 rounded-lg border border-white/10">
+                                        <span className="text-cyan-300 font-mono text-xs sm:text-sm font-black break-all select-all">
+                                          0x2eaCE35C695bdCa012E6f0Ce95D5302103EDd926
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText('0x2eaCE35C695bdCa012E6f0Ce95D5302103EDd926');
+                                            triggerAlert('success', 'BEP-20 receiving wallet address copied to clipboard!');
+                                          }}
+                                          className="px-3 py-1.5 bg-cyan-400 text-black hover:bg-cyan-300 text-xs font-black uppercase rounded-md transition-all cursor-pointer shrink-0 font-display shadow-md"
+                                        >
+                                          Copy Address
+                                        </button>
+                                      </div>
+                                      <p className="text-[11px] font-mono text-zinc-300 font-semibold leading-relaxed">
+                                        💡 <strong className="text-white font-bold">Instruction:</strong> Transfer your repayment using the <strong className="text-cyan-300 font-bold">Binance Smart Chain (BEP-20) network</strong> to the wallet address or QR code above.
+                                      </p>
+                                    </div>
                                   </div>
-                                  <p className="text-[11px] font-mono text-zinc-300 font-semibold leading-relaxed">
-                                    💡 <strong className="text-white font-bold">Instruction:</strong> Send the exact repayment amount from your crypto wallet or exchange using the <strong className="text-cyan-300 font-bold">Binance Smart Chain (BEP-20) network</strong> to the address above.
+                                </div>
+
+                                {/* Repayment Amount Field */}
+                                <div>
+                                  <label className="block text-xs font-mono font-black text-cyan-300 uppercase mb-1">
+                                    Repayment Amount (USD) *
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={repaymentAmountInput}
+                                    onChange={(e) => setRepaymentAmountInput(e.target.value)}
+                                    placeholder={`Suggested total payback: $${calculateTotalRepayable(loan).toLocaleString()}`}
+                                    className="w-full px-4 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-xs sm:text-sm font-mono font-bold text-white placeholder-gray-600 focus:outline-none"
+                                  />
+                                  <p className="text-[11px] font-mono text-gray-400 mt-1">
+                                    Leave blank to default to full repayable amount (${calculateTotalRepayable(loan).toLocaleString()} USD).
                                   </p>
                                 </div>
 
+                                {/* TxHash Field */}
                                 <div>
                                   <label className="block text-xs font-mono font-black text-yellow-300 uppercase mb-1">
                                     Blockchain Transaction Hash (TxHash / TxID) *
@@ -4284,7 +4319,7 @@ export default function UserDashboard({
                                     className="w-full px-4 py-3 bg-zinc-950 border-2 border-zinc-700 focus:border-yellow-400 rounded-xl text-xs sm:text-sm font-mono font-bold text-white placeholder-gray-600 focus:outline-none"
                                   />
                                   <p className="text-[11px] font-mono text-yellow-300 font-bold mt-1.5">
-                                    ⚡ Once submitted, our loan team will verify the transaction on the BSC blockchain. Upon confirmation, your loan status will update to Repaid & Closed.
+                                    ⚡ Once submitted, our loan team will verify the transaction on the BSC blockchain. Upon confirmation, your loan status will update to Repaid & Settled.
                                   </p>
                                 </div>
                               </div>
@@ -4304,13 +4339,15 @@ export default function UserDashboard({
                                       },
                                       body: JSON.stringify({
                                         loanId: loan.id,
-                                        txId: repaymentTxInput.trim()
+                                        txId: repaymentTxInput.trim(),
+                                        amount: repaymentAmountInput ? Number(repaymentAmountInput) : calculateTotalRepayable(loan)
                                       })
                                     });
                                     const data = await res.json();
                                     if (!res.ok) throw new Error(data.error || 'Repayment submission failed.');
                                     triggerAlert('success', data.message || 'Repayment submitted successfully!');
                                     setRepaymentTxInput('');
+                                    setRepaymentAmountInput('');
                                     await fetchAllData();
                                   } catch (err: any) {
                                     triggerAlert('error', err.message);

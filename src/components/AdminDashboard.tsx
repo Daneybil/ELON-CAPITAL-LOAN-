@@ -33,7 +33,20 @@ import {
   Key,
   Globe,
   LogOut,
-  ArrowLeft
+  ArrowLeft,
+  UserCheck,
+  ZoomIn,
+  Paperclip,
+  Send,
+  FileSpreadsheet,
+  Phone,
+  Mail,
+  MapPin,
+  CreditCard,
+  Briefcase,
+  Building,
+  DollarSign,
+  Calendar
 } from 'lucide-react';
 import { getApiUrl } from '../utils/api';
 
@@ -96,6 +109,8 @@ export default function AdminDashboard({
   const adminMsgAttachmentInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Modal Doc Viewers
+  const [selectedUserDetail, setSelectedUserDetail] = React.useState<User | null>(null);
+  const [showUserModalPassword, setShowUserModalPassword] = React.useState(false);
   const [visibleUserPasswords, setVisibleUserPasswords] = React.useState<Record<string, boolean>>({});
   const [showKycModalPassword, setShowKycModalPassword] = React.useState(false);
   const [activeKycDoc, setActiveKycDoc] = React.useState<KYC | null>(null);
@@ -269,10 +284,10 @@ export default function AdminDashboard({
     }
   };
 
-  // Approve / Reject KYC
-  const handleAuditKyc = async (kycId: string, status: 'Approved' | 'Rejected') => {
-    if (status === 'Rejected' && !kycRemarks.trim()) {
-      triggerAlert('error', 'Please enter a rejection reason before rejecting this KYC application.');
+  // Approve / Reject / Request Additional Docs KYC
+  const handleAuditKyc = async (kycId: string, status: 'Approved' | 'Rejected' | 'Additional Docs Requested') => {
+    if ((status === 'Rejected' || status === 'Additional Docs Requested') && !kycRemarks.trim()) {
+      triggerAlert('error', `Please enter a reason or notes before setting KYC status to ${status}.`);
       return;
     }
     setLoading(true);
@@ -1021,23 +1036,32 @@ export default function AdminDashboard({
                           </td>
                           <td className="p-4 font-mono text-[10px] uppercase text-gray-400">{u.role}</td>
                           <td className="p-4 text-right">
-                            {u.role !== 'admin' && (
-                              u.isSuspended ? (
-                                <button
-                                  onClick={() => handleToggleSuspension(u.id, false)}
-                                  className="px-2.5 py-1 text-[10px] font-semibold text-cyan-400 border border-cyan-500/20 bg-cyan-950/20 rounded-md hover:bg-cyan-400 hover:text-black transition-all cursor-pointer"
-                                >
-                                  Reactivate
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleToggleSuspension(u.id, true)}
-                                  className="px-2.5 py-1 text-[10px] font-semibold text-red-400 border border-red-500/20 bg-red-950/20 rounded-md hover:bg-red-500 hover:text-white transition-all cursor-pointer"
-                                >
-                                  Suspend Account
-                                </button>
-                              )
-                            )}
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => setSelectedUserDetail(u)}
+                                className="px-2.5 py-1 text-[10px] font-semibold text-cyan-400 border border-cyan-500/20 bg-cyan-950/20 rounded-md hover:bg-cyan-400 hover:text-black transition-all cursor-pointer flex items-center gap-1"
+                                title="View Unified User Profile (Account, Loans, KYC)"
+                              >
+                                <UserCheck className="h-3 w-3" /> Profile
+                              </button>
+                              {u.role !== 'admin' && (
+                                u.isSuspended ? (
+                                  <button
+                                    onClick={() => handleToggleSuspension(u.id, false)}
+                                    className="px-2.5 py-1 text-[10px] font-semibold text-cyan-400 border border-cyan-500/20 bg-cyan-950/20 rounded-md hover:bg-cyan-400 hover:text-black transition-all cursor-pointer"
+                                  >
+                                    Reactivate
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleToggleSuspension(u.id, true)}
+                                    className="px-2.5 py-1 text-[10px] font-semibold text-red-400 border border-red-500/20 bg-red-950/20 rounded-md hover:bg-red-500 hover:text-white transition-all cursor-pointer"
+                                  >
+                                    Suspend
+                                  </button>
+                                )
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1114,17 +1138,35 @@ export default function AdminDashboard({
                             <span className="text-[10px] text-zinc-300 font-mono text-center truncate w-full">{activeKycDoc.idCardUrl}</span>
                             <span className="text-[9px] text-zinc-500 font-mono mt-1">Security AES-256 Encrypted</span>
                           </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewAssetModal({ name: `Govt ID (${activeKycDoc.idType || 'Passport'})`, url: activeKycDoc.idCardUrl, type: 'Government ID' })}
+                              className="flex-1 py-1.5 px-2 bg-white/5 hover:bg-white/10 text-cyan-400 text-[10px] font-bold font-mono rounded flex items-center justify-center gap-1 border border-cyan-500/20"
+                            >
+                              <ZoomIn className="h-3 w-3" /> View / Zoom
+                            </button>
+                          </div>
                         </div>
 
                         <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-3">
                           <span className="text-[10px] font-mono text-gray-500 uppercase block">Applicant Biometric Face Selfie</span>
                           <div className="h-28 bg-black border border-white/5 rounded-lg flex flex-col items-center justify-center text-xs text-cyan-400 font-mono p-4">
-                            {activeKycDoc.selfieUrl && activeKycDoc.selfieUrl.startsWith('http') ? (
+                            {activeKycDoc.selfieUrl && (activeKycDoc.selfieUrl.startsWith('http') || activeKycDoc.selfieUrl.startsWith('data:image')) ? (
                               <img src={activeKycDoc.selfieUrl} alt="Selfie" className="h-16 w-16 rounded-full object-cover border border-cyan-400/30 mb-1" referrerPolicy="no-referrer" />
                             ) : (
                               <span className="text-xl mb-1">👤</span>
                             )}
                             <span className="text-[9px] text-zinc-300 font-mono truncate w-full text-center">{activeKycDoc.selfieUrl}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewAssetModal({ name: 'Applicant Biometric Selfie', url: activeKycDoc.selfieUrl, type: 'Biometric Selfie' })}
+                              className="flex-1 py-1.5 px-2 bg-white/5 hover:bg-white/10 text-cyan-400 text-[10px] font-bold font-mono rounded flex items-center justify-center gap-1 border border-cyan-500/20"
+                            >
+                              <ZoomIn className="h-3 w-3" /> View / Zoom
+                            </button>
                           </div>
                         </div>
 
@@ -1134,6 +1176,15 @@ export default function AdminDashboard({
                             <span className="text-xl mb-1">📹</span>
                             <span className="text-[10px] text-zinc-300 font-mono text-center truncate w-full">{activeKycDoc.videoUrl || 'live_face_scan_video.mp4'}</span>
                             <span className="text-[9px] text-emerald-400 font-mono font-bold mt-1">✓ Liveness Check Passed</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewAssetModal({ name: 'Liveness Video Verification', url: activeKycDoc.videoUrl || activeKycDoc.selfieUrl, type: 'Liveness Video' })}
+                              className="flex-1 py-1.5 px-2 bg-white/5 hover:bg-white/10 text-cyan-400 text-[10px] font-bold font-mono rounded flex items-center justify-center gap-1 border border-cyan-500/20"
+                            >
+                              <Play className="h-3 w-3" /> Play Video
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1253,16 +1304,22 @@ export default function AdminDashboard({
                         />
                       </div>
 
-                      <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                      <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-white/5">
                         <button
                           onClick={() => handleAuditKyc(activeKycDoc.id, 'Rejected')}
-                          className="px-5 py-2.5 text-xs font-semibold text-red-400 border border-red-500/20 bg-red-950/20 rounded-lg hover:bg-red-500 hover:text-white transition-all cursor-pointer"
+                          className="px-4 py-2 text-xs font-semibold text-red-400 border border-red-500/20 bg-red-950/20 rounded-lg hover:bg-red-500 hover:text-white transition-all cursor-pointer"
                         >
                           Reject Identity Files
                         </button>
                         <button
+                          onClick={() => handleAuditKyc(activeKycDoc.id, 'Additional Docs Requested')}
+                          className="px-4 py-2 text-xs font-semibold text-yellow-400 border border-yellow-500/30 bg-yellow-950/30 rounded-lg hover:bg-yellow-500 hover:text-black transition-all cursor-pointer"
+                        >
+                          Request Additional Documents
+                        </button>
+                        <button
                           onClick={() => handleAuditKyc(activeKycDoc.id, 'Approved')}
-                          className="px-5 py-2.5 text-xs font-semibold text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg cursor-pointer"
+                          className="px-5 py-2 text-xs font-semibold text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg cursor-pointer"
                         >
                           Approve Clearance
                         </button>
@@ -1866,15 +1923,19 @@ export default function AdminDashboard({
                               <div className="text-white font-bold">{p.userName || p.userEmail}</div>
                               <div className="text-[10px] text-gray-400">{p.userEmail}</div>
                             </td>
-                            <td className="p-3.5 text-cyan-400 font-bold">{p.loanId}</td>
+                            <td className="p-3.5 text-cyan-400 font-bold">{p.applicationId || p.loanId}</td>
                             <td className="p-3.5">
-                              {p.method === 'Stripe' ? (
+                              {p.type === 'Loan Repayment' ? (
+                                <span className="px-2 py-0.5 bg-emerald-950 text-emerald-300 border border-emerald-500/40 text-[10px] rounded uppercase font-bold">
+                                  🔄 Loan Repayment
+                                </span>
+                              ) : p.method === 'Stripe' || p.paymentMethod === 'Stripe' ? (
                                 <span className="px-2 py-0.5 bg-purple-950 text-purple-300 border border-purple-500/40 text-[10px] rounded uppercase font-bold">
                                   💳 Stripe Card
                                 </span>
                               ) : (
                                 <span className="px-2 py-0.5 bg-cyan-950 text-cyan-300 border border-cyan-500/40 text-[10px] rounded uppercase font-bold">
-                                  🪙 BEP20 Crypto
+                                  🪙 BEP20 Collateral
                                 </span>
                               )}
                             </td>
@@ -1898,7 +1959,7 @@ export default function AdminDashboard({
                               )}
                             </td>
                             <td className="p-3.5 text-right space-x-2">
-                              {p.status === 'Pending' && (
+                              {(p.status === 'Pending' || p.status === 'Under Review') && (
                                 <>
                                   <button
                                     onClick={() => handleUpdatePaymentRecordStatus(p.id, 'Approved')}
@@ -1908,7 +1969,10 @@ export default function AdminDashboard({
                                     Approve
                                   </button>
                                   <button
-                                    onClick={() => handleUpdatePaymentRecordStatus(p.id, 'Rejected')}
+                                    onClick={() => {
+                                      const notes = prompt('Enter reason for rejecting payment record:') || '';
+                                      handleUpdatePaymentRecordStatus(p.id, 'Rejected', notes);
+                                    }}
                                     disabled={loading}
                                     className="px-3 py-1.5 bg-red-950 hover:bg-red-600 text-red-200 border border-red-500/50 font-sans font-bold text-xs rounded transition-all shadow cursor-pointer"
                                   >
@@ -2548,6 +2612,238 @@ export default function AdminDashboard({
         </div>
 
       </div>
+
+      {/* Unified User Profile Modal Overlay */}
+      {selectedUserDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-4xl bg-[#09090b] border border-white/10 rounded-2xl p-6 md:p-8 my-8 shadow-2xl space-y-6">
+            <button 
+              onClick={() => setSelectedUserDetail(null)} 
+              className="absolute top-6 right-6 text-gray-500 hover:text-white p-2 rounded-lg bg-white/5 border border-white/10 transition-all cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Header */}
+            <div className="border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-full bg-cyan-950 border border-cyan-500/30 flex items-center justify-center font-bold text-cyan-400 font-mono text-lg">
+                  {selectedUserDetail.name[0]}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display text-2xl font-black text-white">{selectedUserDetail.name}</h3>
+                    <span className={`px-2 py-0.5 text-[9px] font-mono rounded-full font-bold uppercase ${
+                      selectedUserDetail.isVerified ? 'bg-cyan-950/40 text-cyan-400 border border-cyan-500/30' : 'bg-red-950/40 text-red-500 border border-red-500/20'
+                    }`}>
+                      {selectedUserDetail.isVerified ? 'VERIFIED' : 'UNVERIFIED'}
+                    </span>
+                    {selectedUserDetail.isSuspended && (
+                      <span className="px-2 py-0.5 text-[9px] font-mono rounded-full font-bold uppercase bg-red-950/60 text-red-400 border border-red-500/40">
+                        SUSPENDED
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 font-mono mt-0.5">
+                    User ID: <span className="text-cyan-400 font-bold">{selectedUserDetail.id}</span> • Registered: {new Date(selectedUserDetail.createdAt || Date.now()).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 3 Main Sections: Account Info, Loan Applications, KYC Details */}
+            {(() => {
+              const userLoansList = loans.filter(l => l.userId === selectedUserDetail.id || l.userEmail.toLowerCase() === selectedUserDetail.email.toLowerCase());
+              const userKycRecord = kycRequests.find(k => k.userId === selectedUserDetail.id || k.userEmail.toLowerCase() === selectedUserDetail.email.toLowerCase());
+
+              return (
+                <div className="space-y-6">
+                  {/* 1. Account Info Card */}
+                  <div className="p-5 bg-white/[0.01] border border-white/5 rounded-xl space-y-4">
+                    <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest font-bold flex items-center gap-2 border-b border-white/5 pb-2">
+                      <UserCheck className="h-4 w-4" /> 1. Account & Security Credentials
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <span className="text-gray-500 block text-[10px] uppercase font-mono">Full Name</span>
+                        <span className="text-white font-semibold">{selectedUserDetail.name}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block text-[10px] uppercase font-mono">Email Address</span>
+                        <span className="text-white font-mono">{selectedUserDetail.email}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block text-[10px] uppercase font-mono">Login Password</span>
+                        <div className="flex items-center gap-2 bg-black/60 px-2.5 py-1 rounded border border-white/10 w-fit font-mono mt-1">
+                          <span className="text-emerald-400 font-bold select-all">
+                            {showUserModalPassword ? (selectedUserDetail.password || 'ElonCapital2026!') : '••••••••••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowUserModalPassword(!showUserModalPassword)}
+                            className="text-cyan-400 hover:text-cyan-300"
+                          >
+                            {showUserModalPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block text-[10px] uppercase font-mono">Phone Number</span>
+                        <span className="text-white font-mono">{selectedUserDetail.phone || 'Not Specified'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block text-[10px] uppercase font-mono">Country</span>
+                        <span className="text-white font-medium">{selectedUserDetail.country || 'United States'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block text-[10px] uppercase font-mono">Role</span>
+                        <span className="text-white font-mono uppercase">{selectedUserDetail.role}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Loan Facilities & History */}
+                  <div className="p-5 bg-white/[0.01] border border-white/5 rounded-xl space-y-4">
+                    <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest font-bold flex items-center gap-2 border-b border-white/5 pb-2">
+                      <FileText className="h-4 w-4" /> 2. Loan Applications ({userLoansList.length})
+                    </h4>
+                    {userLoansList.length === 0 ? (
+                      <p className="text-xs text-gray-500 italic py-2">No active or historic loan applications submitted by this user.</p>
+                    ) : (
+                      <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                        {userLoansList.map(loan => (
+                          <div key={loan.id} className="p-4 bg-black/40 border border-white/5 rounded-lg space-y-3">
+                            <div className="flex flex-wrap justify-between items-center gap-2">
+                              <div>
+                                <span className="font-mono text-[10px] text-gray-500">LOAN REF: {loan.id}</span>
+                                <h5 className="font-bold text-sm text-white">${loan.fundingDetails.requestedAmount.toLocaleString()} • {loan.fundingDetails.purpose}</h5>
+                              </div>
+                              <span className={`px-2.5 py-1 text-[10px] font-mono font-bold rounded-full uppercase border ${
+                                loan.status === 'Approved' ? 'bg-cyan-950/40 text-cyan-400 border-cyan-500/30' :
+                                loan.status === 'Pending' ? 'bg-yellow-950/40 text-yellow-500 border-yellow-500/20' :
+                                'bg-red-950/40 text-red-500 border-red-500/20'
+                              }`}>
+                                {loan.status}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-400 italic">"{loan.fundingDetails.description}"</p>
+                            {/* Attached loan documents */}
+                            {loan.documents && loan.documents.length > 0 && (
+                              <div className="pt-2 border-t border-white/5">
+                                <span className="text-[10px] font-mono text-gray-500 block mb-1.5">ATTACHED BORROWER DOCUMENTS:</span>
+                                <div className="flex flex-wrap gap-2">
+                                  {loan.documents.map((doc, idx) => (
+                                    <button
+                                      key={idx}
+                                      onClick={() => setPreviewAssetModal({ name: doc.name, url: doc.url, type: doc.type })}
+                                      className="px-2.5 py-1 bg-white/5 hover:bg-cyan-950/40 border border-white/10 hover:border-cyan-500/30 text-cyan-400 text-[10px] font-mono rounded flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <ZoomIn className="h-3 w-3" /> {doc.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 3. KYC Compliance Portfolio */}
+                  <div className="p-5 bg-white/[0.01] border border-white/5 rounded-xl space-y-4">
+                    <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest font-bold flex items-center gap-2 border-b border-white/5 pb-2">
+                      <ShieldCheck className="h-4 w-4" /> 3. KYC Verification Portfolio
+                    </h4>
+                    {!userKycRecord ? (
+                      <p className="text-xs text-gray-500 italic py-2">No KYC application record on file for this borrower.</p>
+                    ) : (
+                      <div className="space-y-4 text-xs">
+                        <div className="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/5">
+                          <div>
+                            <span className="text-[10px] text-gray-500 font-mono block">KYC STATUS</span>
+                            <span className="font-bold text-white uppercase">{userKycRecord.status}</span>
+                          </div>
+                          <button
+                            onClick={() => { setSelectedUserDetail(null); setActiveKycDoc(userKycRecord); }}
+                            className="px-3 py-1.5 bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs rounded transition-all cursor-pointer flex items-center gap-1"
+                          >
+                            <Eye className="h-3.5 w-3.5" /> Full KYC Audit View
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="p-3 bg-black/40 rounded-lg border border-white/5 space-y-1">
+                            <span className="text-[10px] font-mono text-gray-500 block">GOVT ID ({userKycRecord.idType || 'Passport'})</span>
+                            <p className="text-cyan-400 font-mono truncate">{userKycRecord.idCardUrl}</p>
+                            <button
+                              onClick={() => setPreviewAssetModal({ name: `Govt ID (${userKycRecord.idType || 'Passport'})`, url: userKycRecord.idCardUrl, type: 'Government ID' })}
+                              className="mt-1 px-2 py-0.5 bg-white/5 hover:bg-white/10 text-cyan-400 text-[10px] font-mono rounded flex items-center gap-1 border border-cyan-500/20"
+                            >
+                              <ZoomIn className="h-3 w-3" /> View / Zoom Document
+                            </button>
+                          </div>
+
+                          <div className="p-3 bg-black/40 rounded-lg border border-white/5 space-y-1">
+                            <span className="text-[10px] font-mono text-gray-500 block">BIOMETRIC SELFIE / LIVENESS</span>
+                            <p className="text-cyan-400 font-mono truncate">{userKycRecord.selfieUrl}</p>
+                            <button
+                              onClick={() => setPreviewAssetModal({ name: 'Biometric Selfie', url: userKycRecord.selfieUrl, type: 'Selfie' })}
+                              className="mt-1 px-2 py-0.5 bg-white/5 hover:bg-white/10 text-cyan-400 text-[10px] font-mono rounded flex items-center gap-1 border border-cyan-500/20"
+                            >
+                              <ZoomIn className="h-3 w-3" /> View Selfie Media
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Quick Actions Footer */}
+                  <div className="flex flex-wrap justify-between items-center gap-3 pt-4 border-t border-white/10">
+                    <button
+                      onClick={() => {
+                        setSelectedUserForMsg(selectedUserDetail.id);
+                        setAdminTab('messages');
+                        setSelectedUserDetail(null);
+                      }}
+                      className="px-4 py-2 bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-400 border border-cyan-500/30 text-xs font-bold rounded-lg transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <MessageSquare className="h-4 w-4" /> Message Borrower
+                    </button>
+
+                    <div className="flex gap-3">
+                      {selectedUserDetail.role !== 'admin' && (
+                        selectedUserDetail.isSuspended ? (
+                          <button
+                            onClick={() => { handleToggleSuspension(selectedUserDetail.id, false); setSelectedUserDetail(null); }}
+                            className="px-4 py-2 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-bold rounded-lg transition-all cursor-pointer"
+                          >
+                            Reactivate Account
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => { handleToggleSuspension(selectedUserDetail.id, true); setSelectedUserDetail(null); }}
+                            className="px-4 py-2 bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-500/30 text-xs font-bold rounded-lg transition-all cursor-pointer"
+                          >
+                            Suspend Account
+                          </button>
+                        )
+                      )}
+                      <button
+                        onClick={() => setSelectedUserDetail(null)}
+                        className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold rounded-lg transition-all cursor-pointer"
+                      >
+                        Close Profile
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* Preview Asset Modal Overlay */}
       {previewAssetModal && (

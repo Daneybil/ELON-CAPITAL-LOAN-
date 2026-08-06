@@ -64,7 +64,7 @@ export interface LoanApplication {
     creditScore?: number;
     assetsValue?: number;
   };
-  status: 'Pending' | 'Approved' | 'Declined' | 'Under Review' | 'Processing';
+  status: 'Pending' | 'Approved' | 'Declined' | 'Under Review' | 'Processing' | 'Settled';
   rejectionReason?: string;
   requiresEnhancedVerification: boolean;
   documents: Array<{ name: string; type: string; url: string; uploadedAt: string }>;

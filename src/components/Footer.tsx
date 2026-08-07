@@ -78,6 +78,13 @@ export default function Footer({
           <p className="text-gray-600 text-[10px] font-mono tracking-wider">
             © {new Date().getFullYear()} ELONCAPITALLOAN.SPACE
           </p>
+          <span className="text-gray-800 text-[10px] font-mono">/</span>
+          <a 
+            href="mailto:customersupport@eloncapital.store"
+            className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors lowercase tracking-normal font-semibold"
+          >
+            customersupport@eloncapital.store
+          </a>
         </div>
 
         {/* Links */}

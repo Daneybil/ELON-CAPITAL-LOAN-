@@ -2312,6 +2312,10 @@ app.post('/api/admin/payments/update-status', authenticateToken, requireAdmin, (
         loan.repaid = true;
         loan.repaidAt = new Date().toISOString();
         loan.status = 'Settled';
+        const reqAmt = loan.fundingDetails?.requestedAmount || 0;
+        const totalPayback = loan.totalPayback || Math.round(reqAmt * 1.15);
+        loan.totalRepaid = (loan.totalRepaid || 0) + payment.amount;
+        loan.remainingBalance = Math.max(0, totalPayback - loan.totalRepaid);
       } else {
         if (loan.installments && loan.installments.length > 0) {
           const inst = loan.installments.find(i => i.number === (payment.installmentNumber || 1));

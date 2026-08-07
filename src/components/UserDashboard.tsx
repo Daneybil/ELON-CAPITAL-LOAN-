@@ -1185,96 +1185,96 @@ export default function UserDashboard({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
         
         {/* SIDEBAR NAVIGATION */}
-        <div className="lg:col-span-1 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 gap-2 lg:gap-0 lg:space-y-2.5 scrollbar-none" id="dash-sidebar">
+        <div className="lg:col-span-1 flex flex-col space-y-2.5 bg-zinc-950/80 p-3 sm:p-4 rounded-2xl border border-white/10 shadow-xl self-start" id="dash-sidebar">
           <button
             onClick={() => handleTabChange('account')}
-            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl text-xs sm:text-sm lg:text-base font-black tracking-wide transition-all font-display cursor-pointer ${
               activeTab === 'account' ? 'bg-emerald-950/70 text-emerald-300 border-l-4 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.3)]' : 'text-zinc-200 hover:text-white hover:bg-white/[0.03]'
             }`}
             id="tab-btn-account"
           >
-            <span className="flex items-center gap-2 sm:gap-3.5">
-              <CreditCard className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] text-emerald-400 shrink-0" /> Account Vault
+            <span className="flex items-center gap-2.5">
+              <CreditCard className="h-5 w-5 stroke-[2.5] text-emerald-400 shrink-0" /> Account Vault
             </span>
-            <span className="bg-emerald-400 text-black font-mono font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full uppercase shrink-0">USD Account</span>
+            <span className="bg-emerald-400 text-black font-mono font-black text-[9px] px-2 py-0.5 rounded-full uppercase shrink-0">USD</span>
           </button>
 
           <button
             onClick={() => handleTabChange('overview')}
-            className={`shrink-0 lg:w-full flex items-center gap-2 sm:gap-3.5 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
+            className={`w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-xs sm:text-sm lg:text-base font-black tracking-wide transition-all font-display cursor-pointer ${
               activeTab === 'overview' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <Activity className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Overview & Logs
+            <Activity className="h-5 w-5 stroke-[2.5] shrink-0" /> Overview & Logs
           </button>
 
           <button
             onClick={() => handleTabChange('loans')}
-            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl text-xs sm:text-sm lg:text-base font-black tracking-wide transition-all font-display cursor-pointer ${
               activeTab === 'loans' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <span className="flex items-center gap-2 sm:gap-3.5"><FileText className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Loan Applications</span>
-            {loans.length > 0 && <span className="bg-cyan-400 text-black font-mono font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full shrink-0">{loans.length}</span>}
+            <span className="flex items-center gap-2.5"><FileText className="h-5 w-5 stroke-[2.5] shrink-0" /> Loan Applications</span>
+            {loans.length > 0 && <span className="bg-cyan-400 text-black font-mono font-black text-[10px] px-2 py-0.5 rounded-full shrink-0">{loans.length}</span>}
           </button>
 
           <button
             onClick={() => handleTabChange('repayment')}
-            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl text-xs sm:text-sm lg:text-base font-black tracking-wide transition-all font-display cursor-pointer ${
               activeTab === 'repayment' ? 'bg-emerald-950/70 text-emerald-300 border-l-4 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.3)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
             id="tab-btn-repayment"
           >
-            <span className="flex items-center gap-2 sm:gap-3.5"><RefreshCw className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] text-emerald-400 shrink-0" /> Loan Repayment</span>
-            <span className="bg-emerald-400 text-black font-mono font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full uppercase shrink-0">Pay</span>
+            <span className="flex items-center gap-2.5"><RefreshCw className="h-5 w-5 stroke-[2.5] text-emerald-400 shrink-0" /> Loan Repayment</span>
+            <span className="bg-emerald-400 text-black font-mono font-black text-[9px] px-2 py-0.5 rounded-full uppercase shrink-0">Pay</span>
           </button>
 
           <button
             onClick={() => handleTabChange('kyc')}
-            className={`shrink-0 lg:w-full flex items-center gap-2 sm:gap-3.5 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
+            className={`w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-xs sm:text-sm lg:text-base font-black tracking-wide transition-all font-display cursor-pointer ${
               activeTab === 'kyc' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <ShieldCheck className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Document KYC
+            <ShieldCheck className="h-5 w-5 stroke-[2.5] shrink-0" /> Document KYC
           </button>
 
           <button
             onClick={() => handleTabChange('calculator')}
-            className={`shrink-0 lg:w-full flex items-center gap-2 sm:gap-3.5 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
+            className={`w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-xs sm:text-sm lg:text-base font-black tracking-wide transition-all font-display cursor-pointer ${
               activeTab === 'calculator' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
             id="tab-btn-calculator"
           >
-            <Calculator className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] text-cyan-400 shrink-0" /> Loan Calculator
+            <Calculator className="h-5 w-5 stroke-[2.5] text-cyan-400 shrink-0" /> Loan Calculator
           </button>
 
           <button
             onClick={() => handleTabChange('messages')}
-            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl text-xs sm:text-sm lg:text-base font-black tracking-wide transition-all font-display cursor-pointer ${
               activeTab === 'messages' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <span className="flex items-center gap-2 sm:gap-3.5"><MessageSquare className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Message Desk</span>
-            {unreadMsgCount > 0 && <span className="bg-cyan-400 text-black font-black font-mono text-[10px] sm:text-xs px-2 py-0.5 rounded-full shrink-0">{unreadMsgCount}</span>}
+            <span className="flex items-center gap-2.5"><MessageSquare className="h-5 w-5 stroke-[2.5] shrink-0" /> Message Desk</span>
+            {unreadMsgCount > 0 && <span className="bg-cyan-400 text-black font-black font-mono text-[10px] px-2 py-0.5 rounded-full shrink-0">{unreadMsgCount}</span>}
           </button>
 
           <button
             onClick={() => handleTabChange('support')}
-            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl text-xs sm:text-sm lg:text-base font-black tracking-wide transition-all font-display cursor-pointer ${
               activeTab === 'support' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <span className="flex items-center gap-2 sm:gap-3.5"><HelpCircle className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Support Center</span>
-            {tickets.length > 0 && <span className="bg-white/20 text-white font-mono font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full shrink-0">{tickets.length}</span>}
+            <span className="flex items-center gap-2.5"><HelpCircle className="h-5 w-5 stroke-[2.5] shrink-0" /> Support Center</span>
+            {tickets.length > 0 && <span className="bg-white/20 text-white font-mono font-black text-[10px] px-2 py-0.5 rounded-full shrink-0">{tickets.length}</span>}
           </button>
 
           <button
             onClick={() => { handleTabChange('settings'); markNotificationsRead(); }}
-            className={`shrink-0 lg:w-full flex items-center gap-2 sm:gap-3.5 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
+            className={`w-full flex items-center gap-2.5 px-4 py-3.5 rounded-xl text-xs sm:text-sm lg:text-base font-black tracking-wide transition-all font-display cursor-pointer ${
               activeTab === 'settings' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <Settings className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Account Settings
+            <Settings className="h-5 w-5 stroke-[2.5] shrink-0" /> Account Settings
           </button>
         </div>
 
@@ -2952,8 +2952,14 @@ export default function UserDashboard({
                                   onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                      setKycIdCard(file.name);
-                                      triggerAlert('success', `📁 Front ID uploaded: ${file.name}`);
+                                      const reader = new FileReader();
+                                      reader.onload = (evt) => {
+                                        if (evt.target?.result) {
+                                          setKycIdCard(evt.target.result as string);
+                                          triggerAlert('success', `📁 Front ID uploaded: ${file.name}`);
+                                        }
+                                      };
+                                      reader.readAsDataURL(file);
                                     }
                                   }}
                                 />
@@ -3001,8 +3007,14 @@ export default function UserDashboard({
                                   onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
-                                      setKycIdCardBack(file.name);
-                                      triggerAlert('success', `📁 Back ID uploaded: ${file.name}`);
+                                      const reader = new FileReader();
+                                      reader.onload = (evt) => {
+                                        if (evt.target?.result) {
+                                          setKycIdCardBack(evt.target.result as string);
+                                          triggerAlert('success', `📁 Back ID uploaded: ${file.name}`);
+                                        }
+                                      };
+                                      reader.readAsDataURL(file);
                                     }
                                   }}
                                 />
@@ -3109,8 +3121,14 @@ export default function UserDashboard({
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            setKycProofOfAddress(file.name);
-                            triggerAlert('success', `📁 Proof of Address uploaded: ${file.name}`);
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              if (evt.target?.result) {
+                                setKycProofOfAddress(evt.target.result as string);
+                                triggerAlert('success', `📁 Proof of Address uploaded: ${file.name}`);
+                              }
+                            };
+                            reader.readAsDataURL(file);
                           }
                         }}
                       />
@@ -3166,8 +3184,14 @@ export default function UserDashboard({
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            setKycBusiness(file.name);
-                            triggerAlert('success', `📁 Business document selected: ${file.name}`);
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              if (evt.target?.result) {
+                                setKycBusiness(evt.target.result as string);
+                                triggerAlert('success', `📁 Business document selected: ${file.name}`);
+                              }
+                            };
+                            reader.readAsDataURL(file);
                           }
                         }}
                       />
@@ -3747,6 +3771,32 @@ export default function UserDashboard({
               <div className="border-b border-white/10 pb-4">
                 <h3 className="font-display text-2xl sm:text-3xl font-black text-white mb-1 uppercase tracking-tight">Help Desk & Support Center</h3>
                 <p className="text-sm font-semibold text-zinc-300">Initiate service tickets or consult platform documentation.</p>
+              </div>
+
+              {/* Official Customer Support Email Banner */}
+              <div className="p-6 bg-gradient-to-r from-zinc-950 via-cyan-950/40 to-zinc-950 border-2 border-cyan-400/50 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-6 shadow-[0_0_25px_rgba(34,211,238,0.15)]">
+                <div className="flex items-center gap-4 text-left">
+                  <div className="h-12 w-12 rounded-xl bg-cyan-950 border border-cyan-400/50 text-cyan-400 flex items-center justify-center shrink-0 shadow-md">
+                    <Mail className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono font-black text-cyan-400 uppercase tracking-widest block">Official Customer Support Desk</span>
+                    <a 
+                      href="mailto:customersupport@eloncapital.store"
+                      className="text-lg font-mono font-bold text-white hover:text-cyan-300 underline underline-offset-4 transition-colors"
+                    >
+                      customersupport@eloncapital.store
+                    </a>
+                    <p className="text-xs text-zinc-300 font-semibold mt-0.5">Direct 24/7 priority customer support & inquiry desk.</p>
+                  </div>
+                </div>
+                <a
+                  href="mailto:customersupport@eloncapital.store?subject=Customer%20Support%20Inquiry"
+                  className="px-6 py-3.5 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer font-display shadow-md shrink-0 flex items-center gap-2 hover:scale-105 active:scale-95"
+                >
+                  <Mail className="h-4 w-4 stroke-[2.5]" />
+                  <span>Email Support Desk</span>
+                </a>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

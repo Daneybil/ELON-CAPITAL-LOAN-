@@ -2,6 +2,7 @@ import React from 'react';
 import { Menu, X, ArrowUpRight, ShieldCheck, User as UserIcon, LogOut } from 'lucide-react';
 import { User } from '../types';
 import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
+import LanguageSelector from './LanguageSelector';
 
 interface NavbarProps {
   user: User | null;
@@ -171,9 +172,10 @@ export default function Navbar({
           </div>
 
           {/* User controls / Auth buttons: Login, Register, Logout */}
-          <div className="hidden md:flex items-center gap-4 text-[11px] uppercase tracking-widest" id="nav-actions">
+          <div className="hidden md:flex items-center gap-3 text-[11px] uppercase tracking-widest" id="nav-actions">
+            <LanguageSelector />
             {user ? (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 {user.role === 'admin' ? (
                   <span className="px-2 py-0.5 text-[8px] font-mono font-bold uppercase tracking-widest text-cyan-400 bg-cyan-950/40 border border-cyan-500/20 rounded-full flex items-center gap-1">
                     <ShieldCheck className="h-2.5 w-2.5" /> Admin
@@ -214,7 +216,8 @@ export default function Navbar({
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden flex items-center gap-4">
+          <div className="md:hidden flex items-center gap-2 sm:gap-4">
+            <LanguageSelector />
             {user && (
               <button 
                 onClick={onNavigateToDashboard}

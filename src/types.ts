@@ -82,6 +82,9 @@ export interface LoanApplication {
   repaidAt?: string;
   repaymentTxId?: string;
   repaymentStatus?: 'None' | 'Pending' | 'Submitted' | 'Under Review' | 'Confirmed' | 'Rejected';
+  totalPayback?: number;
+  totalRepaid?: number;
+  remainingBalance?: number;
   gender?: string;
   ssnBvn?: string;
   nationalId?: string;

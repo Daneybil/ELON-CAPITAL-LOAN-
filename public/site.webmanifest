@@ -1,0 +1,23 @@
+{
+  "name": "Elon Capital Loan Protocol",
+  "short_name": "Elon Capital",
+  "description": "Institutional Loan Protocol & Business Funding Platform",
+  "icons": [
+    {
+      "src": "/elon_capital_logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/elon_capital_logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b"
+}

@@ -36,6 +36,13 @@ import {
   ArrowLeft,
   UserCheck,
   ZoomIn,
+  ZoomOut,
+  RotateCw,
+  Maximize2,
+  Minimize2,
+  CheckCircle2,
+  XCircle,
+  FileCheck,
   Paperclip,
   Send,
   FileSpreadsheet,
@@ -86,7 +93,17 @@ export default function AdminDashboard({
   const [demoMfaToken] = React.useState('842940');
 
   // Panel Tabs
-  const [adminTab, setAdminTab] = React.useState<'stats' | 'users' | 'kyc' | 'loans' | 'payments' | 'tickets' | 'messages' | 'announcements' | 'homepage' | 'logs'>('stats');
+  const [adminTab, setAdminTab] = React.useState<'stats' | 'users' | 'kyc' | 'loans' | 'payments' | 'repayments' | 'tickets' | 'messages' | 'announcements' | 'homepage' | 'logs'>('stats');
+
+  // Repayment Review State
+  const [repaymentNotes, setRepaymentNotes] = React.useState<Record<string, string>>({});
+  const [repaymentFilter, setRepaymentFilter] = React.useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [repaymentSearch, setRepaymentSearch] = React.useState('');
+
+  // Asset Preview Controls State
+  const [previewZoom, setPreviewZoom] = React.useState(1);
+  const [previewRotate, setPreviewRotate] = React.useState(0);
+  const [isFullScreenModal, setIsFullScreenModal] = React.useState(false);
 
   // Dynamic API State
   const [adminStats, setAdminStats] = React.useState<any>(null);
@@ -762,10 +779,10 @@ export default function AdminDashboard({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
         
         {/* Navigation Sidebar */}
-        <div className="lg:col-span-1 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 gap-1.5 lg:gap-0 lg:space-y-1.5 scrollbar-none" id="admin-sidebar">
+        <div className="lg:col-span-1 flex flex-col space-y-2 bg-zinc-950/80 p-3 sm:p-4 rounded-2xl border border-white/10 shadow-xl self-start" id="admin-sidebar">
           <button
             onClick={() => setAdminTab('stats')}
-            className={`shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
               adminTab === 'stats' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
@@ -774,7 +791,7 @@ export default function AdminDashboard({
 
           <button
             onClick={() => setAdminTab('kyc')}
-            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
               adminTab === 'kyc' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
@@ -788,7 +805,7 @@ export default function AdminDashboard({
 
           <button
             onClick={() => setAdminTab('loans')}
-            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
               adminTab === 'loans' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
@@ -802,11 +819,11 @@ export default function AdminDashboard({
 
           <button
             onClick={() => setAdminTab('payments')}
-            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
               adminTab === 'payments' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <span className="flex items-center gap-2 sm:gap-3"><Lock className="h-4 w-4 shrink-0" /> Payments</span>
+            <span className="flex items-center gap-2 sm:gap-3"><Lock className="h-4 w-4 shrink-0" /> Payments & Collateral</span>
             {loans.filter(l => l.collateralPaid && !l.disbursed).length > 0 && (
               <span className="bg-green-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full shrink-0">
                 {loans.filter(l => l.collateralPaid && !l.disbursed).length}
@@ -815,8 +832,26 @@ export default function AdminDashboard({
           </button>
 
           <button
+            onClick={() => setAdminTab('repayments')}
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+              adminTab === 'repayments' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
+            }`}
+          >
+            <span className="flex items-center gap-2 sm:gap-3"><DollarSign className="h-4 w-4 shrink-0 text-emerald-400" /> Loan Repayment Review</span>
+            {payments.filter(p => p.type === 'Loan Repayment' && (p.status === 'Under Review' || p.status === 'Pending')).length > 0 ? (
+              <span className="bg-amber-400 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full shrink-0 shadow-[0_0_10px_rgba(251,191,36,0.5)] animate-pulse">
+                {payments.filter(p => p.type === 'Loan Repayment' && (p.status === 'Under Review' || p.status === 'Pending')).length} NEW
+              </span>
+            ) : (
+              <span className="bg-emerald-950 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[9px] px-2 py-0.5 rounded-full shrink-0">
+                {payments.filter(p => p.type === 'Loan Repayment').length}
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setAdminTab('messages')}
-            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
               adminTab === 'messages' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
@@ -830,7 +865,7 @@ export default function AdminDashboard({
 
           <button
             onClick={() => setAdminTab('tickets')}
-            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
+            className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
               adminTab === 'tickets' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
@@ -844,7 +879,7 @@ export default function AdminDashboard({
 
           <button
             onClick={() => setAdminTab('users')}
-            className={`shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
               adminTab === 'users' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
@@ -853,7 +888,7 @@ export default function AdminDashboard({
 
           <button
             onClick={() => setAdminTab('logs')}
-            className={`shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
               adminTab === 'logs' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
@@ -2115,6 +2150,257 @@ export default function AdminDashboard({
           )}
 
 
+          {/* ---------------- LOAN REPAYMENTS REVIEW & SETTLEMENT ---------------- */}
+          {adminTab === 'repayments' && (
+            <div className="space-y-6 animate-fade-in" id="admin-view-repayments">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/10 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold rounded-full uppercase tracking-wider">
+                      FINANCIAL PROTOCOL AUDIT
+                    </span>
+                    <span className="text-xs text-gray-400 font-mono">Automated Settlement Engine</span>
+                  </div>
+                  <h3 className="font-display text-2xl font-black text-white mt-1">Loan Repayment Review & Settlement</h3>
+                  <p className="text-xs text-gray-400 mt-0.5">Review borrower submitted repayments, inspect blockchain hashes, add internal notes, approve and settle loans.</p>
+                </div>
+                
+                <button
+                  onClick={fetchAdminData}
+                  className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-mono font-bold text-cyan-400 flex items-center gap-2 transition cursor-pointer"
+                >
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin-slow" /> Refresh Repayment Feed
+                </button>
+              </div>
+
+              {/* Metric Highlights */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-5 bg-zinc-950 border border-white/10 rounded-2xl space-y-1 shadow-lg">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400 font-bold block">Total Repayments</span>
+                  <div className="text-2xl font-black font-display text-white">
+                    {payments.filter(p => p.type === 'Loan Repayment').length} <span className="text-xs font-mono text-gray-400 font-normal">submitted</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-cyan-400 font-bold">
+                    ${payments.filter(p => p.type === 'Loan Repayment').reduce((acc, p) => acc + (p.amount || 0), 0).toLocaleString()} USD Total
+                  </div>
+                </div>
+
+                <div className="p-5 bg-amber-950/30 border border-amber-500/20 rounded-2xl space-y-1 shadow-lg">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold block">Awaiting Verification</span>
+                  <div className="text-2xl font-black font-display text-amber-300">
+                    {payments.filter(p => p.type === 'Loan Repayment' && (p.status === 'Under Review' || p.status === 'Pending')).length} <span className="text-xs font-mono text-amber-400/80 font-normal">pending review</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-amber-400 font-bold">
+                    ${payments.filter(p => p.type === 'Loan Repayment' && (p.status === 'Under Review' || p.status === 'Pending')).reduce((acc, p) => acc + (p.amount || 0), 0).toLocaleString()} USD Pending
+                  </div>
+                </div>
+
+                <div className="p-5 bg-emerald-950/30 border border-emerald-500/20 rounded-2xl space-y-1 shadow-lg">
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold block">Approved & Settled Loans</span>
+                  <div className="text-2xl font-black font-display text-emerald-400">
+                    {payments.filter(p => p.type === 'Loan Repayment' && (p.status === 'Approved' || p.status === 'Confirmed')).length} <span className="text-xs font-mono text-emerald-300/80 font-normal">settled</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-emerald-400 font-bold">
+                    ${payments.filter(p => p.type === 'Loan Repayment' && (p.status === 'Approved' || p.status === 'Confirmed')).reduce((acc, p) => acc + (p.amount || 0), 0).toLocaleString()} USD Confirmed
+                  </div>
+                </div>
+              </div>
+
+              {/* Filters & Search Bar */}
+              <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 p-4 bg-zinc-950/80 border border-white/10 rounded-2xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setRepaymentFilter('all')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition ${
+                      repaymentFilter === 'all' ? 'bg-cyan-400 text-black' : 'bg-white/5 text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    All Repayments ({payments.filter(p => p.type === 'Loan Repayment').length})
+                  </button>
+                  <button
+                    onClick={() => setRepaymentFilter('pending')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition ${
+                      repaymentFilter === 'pending' ? 'bg-amber-400 text-black' : 'bg-white/5 text-amber-400 hover:bg-amber-950/40'
+                    }`}
+                  >
+                    ⏳ Pending Review ({payments.filter(p => p.type === 'Loan Repayment' && (p.status === 'Under Review' || p.status === 'Pending')).length})
+                  </button>
+                  <button
+                    onClick={() => setRepaymentFilter('approved')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition ${
+                      repaymentFilter === 'approved' ? 'bg-emerald-400 text-black' : 'bg-white/5 text-emerald-400 hover:bg-emerald-950/40'
+                    }`}
+                  >
+                    ✓ Approved & Settled ({payments.filter(p => p.type === 'Loan Repayment' && (p.status === 'Approved' || p.status === 'Confirmed')).length})
+                  </button>
+                  <button
+                    onClick={() => setRepaymentFilter('rejected')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition ${
+                      repaymentFilter === 'rejected' ? 'bg-red-400 text-black' : 'bg-white/5 text-red-400 hover:bg-red-950/40'
+                    }`}
+                  >
+                    ✕ Rejected ({payments.filter(p => p.type === 'Loan Repayment' && p.status === 'Rejected').length})
+                  </button>
+                </div>
+
+                <div className="relative min-w-[240px]">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+                  <input
+                    type="text"
+                    value={repaymentSearch}
+                    onChange={(e) => setRepaymentSearch(e.target.value)}
+                    placeholder="Search borrower, loan ID or hash..."
+                    className="w-full pl-9 pr-4 py-2 bg-black border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 font-mono focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+              </div>
+
+              {/* Repayments Data List */}
+              {(() => {
+                const filteredRepayments = payments.filter(p => {
+                  if (p.type !== 'Loan Repayment') return false;
+                  if (repaymentFilter === 'pending' && p.status !== 'Under Review' && p.status !== 'Pending') return false;
+                  if (repaymentFilter === 'approved' && p.status !== 'Approved' && p.status !== 'Confirmed') return false;
+                  if (repaymentFilter === 'rejected' && p.status !== 'Rejected') return false;
+
+                  if (repaymentSearch.trim()) {
+                    const q = repaymentSearch.toLowerCase();
+                    const name = (p.userName || '').toLowerCase();
+                    const email = (p.userEmail || '').toLowerCase();
+                    const loanId = (p.applicationId || '').toLowerCase();
+                    const hash = (p.txHash || '').toLowerCase();
+                    return name.includes(q) || email.includes(q) || loanId.includes(q) || hash.includes(q);
+                  }
+                  return true;
+                });
+
+                if (filteredRepayments.length === 0) {
+                  return (
+                    <div className="p-12 text-center border-2 border-dashed border-white/10 rounded-2xl bg-zinc-950/50 space-y-3">
+                      <DollarSign className="h-12 w-12 text-zinc-600 mx-auto" />
+                      <h4 className="text-base font-bold text-white font-display uppercase tracking-wide">No Repayment Submissions Found</h4>
+                      <p className="text-xs text-gray-400 max-w-md mx-auto">Borrower loan repayments submitted via cryptocurrency or wire transfers will appear in this review queue.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-4">
+                    {filteredRepayments.map((pmt) => {
+                      const matchedLoan = loans.find(l => l.id === pmt.applicationId);
+                      const isPending = pmt.status === 'Under Review' || pmt.status === 'Pending';
+                      const isApproved = pmt.status === 'Approved' || pmt.status === 'Confirmed';
+
+                      return (
+                        <div key={pmt.id} className="p-6 bg-zinc-950 border-2 border-white/10 hover:border-cyan-500/30 rounded-2xl space-y-5 transition-all shadow-xl">
+                          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-white/10 pb-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-xs font-black text-cyan-400">Loan Ref: {pmt.applicationId || 'N/A'}</span>
+                                <span className="text-zinc-600">•</span>
+                                <span className="font-mono text-xs text-gray-400">Pmt ID: {pmt.id}</span>
+                                <span className="text-zinc-600">•</span>
+                                <span className="font-mono text-xs text-zinc-400">{new Date(pmt.createdAt).toLocaleString()}</span>
+                              </div>
+                              <h4 className="text-lg font-bold text-white font-display flex items-center gap-2">
+                                <span>{pmt.userName}</span>
+                                <span className="text-xs font-mono font-normal text-gray-400">({pmt.userEmail})</span>
+                              </h4>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <span className={`px-3 py-1.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider border ${
+                                isApproved ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/40' :
+                                isPending ? 'bg-amber-950/80 text-amber-300 border-amber-500/40 animate-pulse' :
+                                'bg-red-950/80 text-red-400 border-red-500/40'
+                              }`}>
+                                {isApproved ? '✓ Approved & Settled' : isPending ? '⏳ Under Review' : '✕ Rejected'}
+                              </span>
+                              <span className="text-2xl font-black font-display text-cyan-400">
+                                ${pmt.amount.toLocaleString()} <span className="text-xs font-mono text-zinc-400">USD</span>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+                            <div className="p-3.5 bg-black/60 rounded-xl border border-white/5 space-y-1">
+                              <span className="text-[10px] text-gray-500 uppercase block font-bold">Payment Method & Network</span>
+                              <div className="text-white font-bold">{pmt.paymentMethod || 'Cryptocurrency Transfer'}</div>
+                              <div className="text-cyan-400">{pmt.network || 'BNB Smart Chain (BEP20)'}</div>
+                            </div>
+
+                            <div className="p-3.5 bg-black/60 rounded-xl border border-white/5 space-y-1">
+                              <span className="text-[10px] text-gray-500 uppercase block font-bold">Wallet Address / Source</span>
+                              <div className="text-zinc-300 font-mono text-[11px] truncate">{pmt.walletAddress || '0x71C...39F1'}</div>
+                              <div className="text-[10px] text-gray-500">Destination: Institutional Treasury</div>
+                            </div>
+
+                            <div className="p-3.5 bg-black/60 rounded-xl border border-white/5 space-y-1">
+                              <span className="text-[10px] text-gray-500 uppercase block font-bold">Blockchain Tx Hash / Ref</span>
+                              <div className="text-cyan-400 font-mono text-[11px] truncate flex items-center justify-between">
+                                <span className="truncate">{pmt.txHash || '0x8f29...a1b2'}</span>
+                                {pmt.txHash && pmt.txHash.startsWith('0x') && (
+                                  <a
+                                    href={`https://bscscan.com/tx/${pmt.txHash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[10px] text-cyan-300 hover:underline font-bold shrink-0 ml-2"
+                                  >
+                                    BSCScan ↗
+                                  </a>
+                                )}
+                              </div>
+                              <div className="text-[10px] font-bold text-emerald-400">
+                                {matchedLoan?.status === 'Settled' ? '✓ Loan Marked as Settled' : `Outstanding Bal: $${(matchedLoan?.remainingBalance || 0).toLocaleString()}`}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Internal Notes & Action Controls */}
+                          <div className="pt-2 border-t border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                            <div className="flex-1">
+                              <input
+                                type="text"
+                                value={repaymentNotes[pmt.id] !== undefined ? repaymentNotes[pmt.id] : (pmt.adminNotes || '')}
+                                onChange={(e) => setRepaymentNotes(prev => ({ ...prev, [pmt.id]: e.target.value }))}
+                                placeholder="Add internal compliance notes (e.g. Verified on-chain via block #3918241)..."
+                                className="w-full px-4 py-2.5 bg-black border border-white/10 rounded-xl text-xs text-white placeholder-gray-500 font-mono focus:outline-none focus:border-cyan-400"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdatePaymentRecordStatus(pmt.id, 'Approved', repaymentNotes[pmt.id] || pmt.adminNotes || '')}
+                                disabled={loading || isApproved}
+                                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-black font-bold text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center gap-2 font-display shadow-[0_0_15px_rgba(16,185,129,0.3)]"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                                {isApproved ? 'Approved & Settled' : 'Approve & Settle Loan'}
+                              </button>
+
+                              {!isApproved && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdatePaymentRecordStatus(pmt.id, 'Rejected', repaymentNotes[pmt.id] || 'Payment verification failed.')}
+                                  disabled={loading}
+                                  className="px-4 py-2.5 bg-red-950/80 hover:bg-red-600 text-red-200 hover:text-white border border-red-500/50 font-bold text-xs uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center gap-1.5 font-display"
+                                >
+                                  <XCircle className="h-4 w-4" /> Reject
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+
           {/* ---------------- E. SUPPORT TICKETS ---------------- */}
           {adminTab === 'tickets' && (
             <div className="space-y-6 animate-fade-in" id="admin-view-tickets">
@@ -2845,75 +3131,153 @@ export default function AdminDashboard({
         </div>
       )}
 
-      {/* Preview Asset Modal Overlay */}
+      {/* Enhanced KYC & Asset Document Viewer Modal */}
       {previewAssetModal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-zinc-950 border-2 border-white/20 rounded-2xl p-6 max-w-2xl w-full space-y-5 shadow-2xl relative">
-            <button
-              onClick={() => setPreviewAssetModal(null)}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all cursor-pointer"
-            >
-              <X className="h-5 w-5" />
-            </button>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 z-[100] animate-fade-in">
+          <div className={`bg-zinc-950 border-2 border-cyan-500/30 rounded-2xl p-6 shadow-2xl relative flex flex-col transition-all duration-300 ${
+            isFullScreenModal ? 'w-full h-full max-w-none rounded-none border-none p-8' : 'max-w-4xl w-full max-h-[92vh]'
+          }`}>
+            {/* Header Bar */}
+            <div className="flex justify-between items-start border-b border-white/10 pb-4 mb-4 gap-4">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold block flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" /> SECURE IDENTITY & KYC ASSET VIEWER
+                </span>
+                <h4 className="text-xl font-black text-white font-display mt-0.5">{previewAssetModal.name}</h4>
+                <p className="text-xs text-gray-400 font-mono mt-0.5">Category: <span className="text-cyan-300 font-bold">{previewAssetModal.type}</span></p>
+              </div>
 
-            <div className="space-y-1">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold block">
-                KYC Document & Identity Asset Preview
-              </span>
-              <h4 className="text-xl font-bold text-white font-display">
-                {previewAssetModal.name}
-              </h4>
-              <p className="text-xs text-gray-400 font-mono">
-                Category: {previewAssetModal.type}
-              </p>
-            </div>
-
-            <div className="p-4 bg-black rounded-xl border border-white/10 flex flex-col items-center justify-center text-center space-y-3 min-h-[220px] max-h-[65vh] overflow-auto">
-              {previewAssetModal.url && (previewAssetModal.url.startsWith('data:image') || previewAssetModal.url.startsWith('http') || previewAssetModal.url.startsWith('blob:')) ? (
-                <div className="space-y-2 w-full flex flex-col items-center">
-                  <img 
-                    src={previewAssetModal.url} 
-                    alt={previewAssetModal.name} 
-                    className="max-h-[50vh] w-auto max-w-full rounded-xl object-contain border border-cyan-500/30 shadow-2xl cursor-pointer hover:scale-[1.02] transition-transform" 
-                    onClick={() => window.open(previewAssetModal.url, '_blank')}
-                  />
-                  <span className="text-[10px] text-cyan-400 font-mono font-bold">💡 Click image to inspect in new tab / full resolution</span>
-                </div>
-              ) : previewAssetModal.url && (previewAssetModal.url.startsWith('data:video') || previewAssetModal.url.includes('mp4') || previewAssetModal.url.includes('webm')) ? (
-                <video controls src={previewAssetModal.url} className="max-h-[50vh] w-full rounded-xl border border-white/10" />
-              ) : (
-                <div className="space-y-3 py-6 max-w-md mx-auto">
-                  <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border-2 border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(34,211,238,0.2)]">
-                    <ShieldCheck className="h-8 w-8" />
-                  </div>
-                  <div>
-                    <h5 className="text-sm font-bold text-white font-mono">{previewAssetModal.name}</h5>
-                    <p className="text-xs text-gray-400 mt-1">Verified KYC Document Portfolio Asset</p>
-                  </div>
-                  <div className="p-3 bg-zinc-900/90 rounded-lg border border-white/10 text-left space-y-1 font-mono text-[11px]">
-                    <div className="text-gray-400">Applicant: <span className="text-white font-bold">{activeLoanView?.userName || 'Applicant'}</span></div>
-                    <div className="text-gray-400">Status: <span className="text-emerald-400 font-bold">✓ Encrypted & Verified</span></div>
-                    <div className="text-gray-400">Hash ID: <span className="text-cyan-300">0x8F92A...E412</span></div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-3 justify-between items-center pt-2 border-t border-white/10">
-              {previewAssetModal.url && (
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => window.open(previewAssetModal.url, '_blank')}
-                  className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-cyan-400 font-bold text-xs uppercase tracking-wider rounded-lg font-mono flex items-center gap-2 cursor-pointer border border-cyan-500/30"
+                  onClick={() => setIsFullScreenModal(!isFullScreenModal)}
+                  className="p-2 text-cyan-400 hover:text-white bg-white/5 hover:bg-white/15 border border-cyan-500/30 rounded-xl transition cursor-pointer"
+                  title={isFullScreenModal ? "Exit Fullscreen" : "Fullscreen View"}
                 >
-                  <Eye className="h-4 w-4" /> Open Full Window
+                  {isFullScreenModal ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 </button>
-              )}
-              <div className="flex gap-3 ml-auto">
                 <button
                   type="button"
                   onClick={() => {
-                    if (previewAssetModal.url && previewAssetModal.url.startsWith('data:')) {
+                    setPreviewAssetModal(null);
+                    setPreviewZoom(1);
+                    setPreviewRotate(0);
+                    setIsFullScreenModal(false);
+                  }}
+                  className="p-2 text-gray-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Toolbar Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-black/80 rounded-xl border border-white/10 mb-4 font-mono text-xs">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom(prev => Math.min(prev + 0.25, 3))}
+                  className="px-3 py-1.5 bg-white/5 hover:bg-white/15 text-cyan-400 rounded-lg border border-white/10 flex items-center gap-1 font-bold cursor-pointer"
+                >
+                  <ZoomIn className="h-3.5 w-3.5" /> Zoom In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom(prev => Math.max(prev - 0.25, 0.5))}
+                  className="px-3 py-1.5 bg-white/5 hover:bg-white/15 text-cyan-400 rounded-lg border border-white/10 flex items-center gap-1 font-bold cursor-pointer"
+                >
+                  <ZoomOut className="h-3.5 w-3.5" /> Zoom Out
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPreviewZoom(1); setPreviewRotate(0); }}
+                  className="px-3 py-1.5 bg-white/5 hover:bg-white/15 text-zinc-300 rounded-lg border border-white/10 font-bold cursor-pointer"
+                >
+                  Reset
+                </button>
+                <span className="px-2.5 py-1 bg-cyan-950/60 border border-cyan-500/30 text-cyan-300 font-bold text-[10px] rounded-md">
+                  {Math.round(previewZoom * 100)}%
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPreviewRotate(prev => (prev + 90) % 360)}
+                  className="px-3 py-1.5 bg-white/5 hover:bg-white/15 text-cyan-400 rounded-lg border border-white/10 flex items-center gap-1 font-bold cursor-pointer"
+                >
+                  <RotateCw className="h-3.5 w-3.5" /> Rotate 90°
+                </button>
+                {previewAssetModal.url && (
+                  <button
+                    type="button"
+                    onClick={() => window.open(previewAssetModal.url, '_blank')}
+                    className="px-3 py-1.5 bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 rounded-lg border border-cyan-500/30 flex items-center gap-1 font-bold cursor-pointer"
+                  >
+                    <Eye className="h-3.5 w-3.5" /> External Window
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Main Asset Canvas Area */}
+            <div className="flex-1 bg-black rounded-xl border border-white/10 flex items-center justify-center p-6 overflow-auto min-h-[300px] relative">
+              {previewAssetModal.url && (previewAssetModal.url.startsWith('data:image') || previewAssetModal.url.startsWith('http') || previewAssetModal.url.startsWith('blob:')) ? (
+                <div className="relative overflow-auto max-h-[60vh] w-full flex justify-center items-center">
+                  <img
+                    src={previewAssetModal.url}
+                    alt={previewAssetModal.name}
+                    style={{
+                      transform: `scale(${previewZoom}) rotate(${previewRotate}deg)`,
+                      transition: 'transform 0.2s ease-in-out'
+                    }}
+                    className="max-h-[55vh] w-auto rounded-xl object-contain border border-cyan-500/30 shadow-2xl cursor-grab active:cursor-grabbing"
+                  />
+                </div>
+              ) : previewAssetModal.url && (previewAssetModal.url.startsWith('data:video') || previewAssetModal.url.includes('mp4') || previewAssetModal.url.includes('webm') || previewAssetModal.type.toLowerCase().includes('video')) ? (
+                <div className="w-full max-h-[60vh] flex flex-col items-center">
+                  <video
+                    controls
+                    autoPlay
+                    src={previewAssetModal.url}
+                    className="w-full max-h-[50vh] rounded-xl border border-cyan-500/30 shadow-2xl bg-black"
+                  >
+                    Your browser does not support HTML5 video playback.
+                  </video>
+                  <span className="text-[10px] text-emerald-400 font-mono mt-2 font-bold">✓ Biometric Liveness Video Stream Playing</span>
+                </div>
+              ) : (
+                /* Document Certificate / Fallback Visual Card */
+                <div className="p-8 bg-zinc-950 rounded-2xl border-2 border-cyan-500/30 text-left max-w-lg w-full space-y-4 shadow-2xl">
+                  <div className="flex items-center gap-3 border-b border-white/10 pb-3">
+                    <div className="w-12 h-12 rounded-xl bg-cyan-400/10 border border-cyan-400/30 flex items-center justify-center text-cyan-400">
+                      <FileText className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h5 className="text-base font-bold text-white font-display">{previewAssetModal.name}</h5>
+                      <p className="text-xs text-gray-400 font-mono">Official KYC Registry Record</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-xs font-mono text-zinc-300 bg-black/60 p-4 rounded-xl border border-white/5">
+                    <div className="flex justify-between"><span className="text-gray-500">Document Type:</span><span className="text-cyan-400 font-bold">{previewAssetModal.type}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">File Reference:</span><span className="text-white font-bold truncate max-w-[200px]">{previewAssetModal.url || 'kyc_document_file.pdf'}</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Audit Status:</span><span className="text-emerald-400 font-bold">✓ Verified Encrypted</span></div>
+                    <div className="flex justify-between"><span className="text-gray-500">Security Hash:</span><span className="text-zinc-400">0x742d3...89f1</span></div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-between items-center pt-4 border-t border-white/10 mt-4">
+              <span className="text-[10px] font-mono text-gray-500">Use mouse wheel or zoom buttons to inspect micro-text details.</span>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (previewAssetModal.url && (previewAssetModal.url.startsWith('data:') || previewAssetModal.url.startsWith('http'))) {
                       const a = document.createElement('a');
                       a.href = previewAssetModal.url;
                       a.download = `${previewAssetModal.name.replace(/\s+/g, '_')}_KYC.png`;
@@ -2929,14 +3293,14 @@ export default function AdminDashboard({
                         ctx.fillStyle = '#09090b';
                         ctx.fillRect(0, 0, 800, 500);
                         ctx.fillStyle = '#22d3ee';
-                        ctx.font = 'bold 24px sans-serif';
+                        ctx.font = 'bold 22px sans-serif';
                         ctx.fillText('ELON CAPITAL - KYC DOCUMENT RECORD', 50, 70);
                         ctx.fillStyle = '#ffffff';
-                        ctx.font = '18px sans-serif';
+                        ctx.font = '16px sans-serif';
                         ctx.fillText(`Asset Title: ${previewAssetModal.name}`, 50, 130);
                         ctx.fillText(`Category: ${previewAssetModal.type}`, 50, 170);
-                        ctx.fillText(`Applicant: ${activeLoanView?.userName || 'Borrower'}`, 50, 210);
-                        ctx.fillText(`Date Verified: ${new Date().toLocaleDateString()}`, 50, 250);
+                        ctx.fillText(`File Name: ${previewAssetModal.url || 'KYC Asset'}`, 50, 210);
+                        ctx.fillText(`Date Exported: ${new Date().toLocaleDateString()}`, 50, 250);
                         ctx.fillStyle = '#10b981';
                         ctx.font = 'bold 16px sans-serif';
                         ctx.fillText('✓ AUDITED IDENTITY COMPLIANCE RECORD', 50, 320);
@@ -2950,16 +3314,21 @@ export default function AdminDashboard({
                     }
                     triggerAlert('success', `Downloaded ${previewAssetModal.name}`);
                   }}
-                  className="px-5 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs uppercase tracking-wider rounded-lg font-mono flex items-center gap-2 cursor-pointer shadow-lg hover:scale-105 active:scale-95 transition-all"
+                  className="px-5 py-2.5 bg-cyan-400 hover:bg-cyan-300 text-black font-bold text-xs uppercase tracking-wider rounded-xl font-mono flex items-center gap-2 cursor-pointer shadow-lg hover:scale-105 active:scale-95 transition-all"
                 >
                   <Download className="h-4 w-4" /> Download Asset File
                 </button>
                 <button
                   type="button"
-                  onClick={() => setPreviewAssetModal(null)}
-                  className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider rounded-lg font-mono cursor-pointer"
+                  onClick={() => {
+                    setPreviewAssetModal(null);
+                    setPreviewZoom(1);
+                    setPreviewRotate(0);
+                    setIsFullScreenModal(false);
+                  }}
+                  className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl font-mono cursor-pointer"
                 >
-                  Close Preview
+                  Close
                 </button>
               </div>
             </div>

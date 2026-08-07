@@ -1,0 +1,8 @@
+# robots.txt for Elon Capital Loan Protocol
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin
+
+# Sitemap declaration
+Sitemap: https://ais-pre-437l66yccosljiigmzfngs-5552940451.europe-west1.run.app/sitemap.xml

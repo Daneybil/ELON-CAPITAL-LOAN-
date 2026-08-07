@@ -13,6 +13,14 @@ export default function Contact() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
+    
+    // Construct mailto link with form values
+    const subject = encodeURIComponent(`Funding Inquiry: ${formData.company || formData.name}`);
+    const body = encodeURIComponent(
+      `Full Name: ${formData.name}\nEmail: ${formData.email}\nCompany: ${formData.company || 'N/A'}\n\nFunding Requirement:\n${formData.message}`
+    );
+    window.location.href = `mailto:customersupport@eloncapital.store?subject=${subject}&body=${body}`;
+
     setTimeout(() => {
       setSubmitted(false);
       setFormData({ name: '', email: '', company: '', message: '' });
@@ -41,8 +49,13 @@ export default function Contact() {
                   <Mail className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="font-mono text-[10px] text-gray-500 uppercase">Secure Email</p>
-                  <p className="text-sm font-medium text-white hover:text-cyan-400 transition-colors">capital@spaceloan.space</p>
+                  <p className="font-mono text-[10px] text-gray-500 uppercase">Customer Support & Capital Desk</p>
+                  <a 
+                    href="mailto:customersupport@eloncapital.store" 
+                    className="text-sm font-medium text-cyan-400 hover:text-cyan-300 underline underline-offset-4 transition-colors font-mono"
+                  >
+                    customersupport@eloncapital.store
+                  </a>
                 </div>
               </div>
 

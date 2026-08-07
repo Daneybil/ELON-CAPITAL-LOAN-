@@ -1182,104 +1182,104 @@ export default function UserDashboard({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
         
         {/* SIDEBAR NAVIGATION */}
-        <div className="lg:col-span-1 space-y-2.5" id="dash-sidebar">
+        <div className="lg:col-span-1 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 gap-2 lg:gap-0 lg:space-y-2.5 scrollbar-none" id="dash-sidebar">
           <button
             onClick={() => handleTabChange('account')}
-            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
               activeTab === 'account' ? 'bg-emerald-950/70 text-emerald-300 border-l-4 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.3)]' : 'text-zinc-200 hover:text-white hover:bg-white/[0.03]'
             }`}
             id="tab-btn-account"
           >
-            <span className="flex items-center gap-3.5">
-              <CreditCard className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5] text-emerald-400" /> Account Vault
+            <span className="flex items-center gap-2 sm:gap-3.5">
+              <CreditCard className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] text-emerald-400 shrink-0" /> Account Vault
             </span>
-            <span className="bg-emerald-400 text-black font-mono font-black text-xs px-2.5 py-0.5 rounded-full uppercase">USD Account</span>
+            <span className="bg-emerald-400 text-black font-mono font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full uppercase shrink-0">USD Account</span>
           </button>
 
           <button
             onClick={() => handleTabChange('overview')}
-            className={`w-full flex items-center gap-3.5 px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+            className={`shrink-0 lg:w-full flex items-center gap-2 sm:gap-3.5 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
               activeTab === 'overview' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <Activity className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Overview & Logs
+            <Activity className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Overview & Logs
           </button>
 
           <button
             onClick={() => handleTabChange('loans')}
-            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
               activeTab === 'loans' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <span className="flex items-center gap-3.5"><FileText className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Loan Applications</span>
-            {loans.length > 0 && <span className="bg-cyan-400 text-black font-mono font-black text-xs px-2.5 py-0.5 rounded-full">{loans.length}</span>}
+            <span className="flex items-center gap-2 sm:gap-3.5"><FileText className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Loan Applications</span>
+            {loans.length > 0 && <span className="bg-cyan-400 text-black font-mono font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full shrink-0">{loans.length}</span>}
           </button>
 
           <button
             onClick={() => handleTabChange('repayment')}
-            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
               activeTab === 'repayment' ? 'bg-emerald-950/70 text-emerald-300 border-l-4 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.3)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
             id="tab-btn-repayment"
           >
-            <span className="flex items-center gap-3.5"><RefreshCw className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5] text-emerald-400" /> Loan Repayment</span>
-            <span className="bg-emerald-400 text-black font-mono font-black text-xs px-2.5 py-0.5 rounded-full uppercase">Pay</span>
+            <span className="flex items-center gap-2 sm:gap-3.5"><RefreshCw className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] text-emerald-400 shrink-0" /> Loan Repayment</span>
+            <span className="bg-emerald-400 text-black font-mono font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full uppercase shrink-0">Pay</span>
           </button>
 
           <button
             onClick={() => handleTabChange('kyc')}
-            className={`w-full flex items-center gap-3.5 px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+            className={`shrink-0 lg:w-full flex items-center gap-2 sm:gap-3.5 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
               activeTab === 'kyc' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Document KYC
+            <ShieldCheck className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Document KYC
           </button>
 
           <button
             onClick={() => handleTabChange('calculator')}
-            className={`w-full flex items-center gap-3.5 px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+            className={`shrink-0 lg:w-full flex items-center gap-2 sm:gap-3.5 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
               activeTab === 'calculator' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
             id="tab-btn-calculator"
           >
-            <Calculator className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5] text-cyan-400" /> Loan Calculator
+            <Calculator className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] text-cyan-400 shrink-0" /> Loan Calculator
           </button>
 
           <button
             onClick={() => handleTabChange('messages')}
-            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
               activeTab === 'messages' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <span className="flex items-center gap-3.5"><MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Message Desk</span>
-            {unreadMsgCount > 0 && <span className="bg-cyan-400 text-black font-black font-mono text-xs px-2.5 py-0.5 rounded-full">{unreadMsgCount}</span>}
+            <span className="flex items-center gap-2 sm:gap-3.5"><MessageSquare className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Message Desk</span>
+            {unreadMsgCount > 0 && <span className="bg-cyan-400 text-black font-black font-mono text-[10px] sm:text-xs px-2 py-0.5 rounded-full shrink-0">{unreadMsgCount}</span>}
           </button>
 
           <button
             onClick={() => handleTabChange('support')}
-            className={`w-full flex items-center justify-between px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
               activeTab === 'support' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <span className="flex items-center gap-3.5"><HelpCircle className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Support Center</span>
-            {tickets.length > 0 && <span className="bg-white/20 text-white font-mono font-black text-xs px-2.5 py-0.5 rounded-full">{tickets.length}</span>}
+            <span className="flex items-center gap-2 sm:gap-3.5"><HelpCircle className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Support Center</span>
+            {tickets.length > 0 && <span className="bg-white/20 text-white font-mono font-black text-[10px] sm:text-xs px-2 py-0.5 rounded-full shrink-0">{tickets.length}</span>}
           </button>
 
           <button
             onClick={() => { handleTabChange('settings'); markNotificationsRead(); }}
-            className={`w-full flex items-center gap-3.5 px-5 py-4 rounded-xl text-base sm:text-lg font-black tracking-wide transition-all font-display cursor-pointer ${
+            className={`shrink-0 lg:w-full flex items-center gap-2 sm:gap-3.5 px-4 sm:px-5 py-3 sm:py-4 rounded-xl text-xs sm:text-base lg:text-lg font-black tracking-wide transition-all font-display cursor-pointer whitespace-nowrap ${
               activeTab === 'settings' ? 'bg-cyan-950/60 text-cyan-300 border-l-4 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.2)]' : 'text-zinc-300 hover:text-white hover:bg-white/[0.03]'
             }`}
           >
-            <Settings className="h-5 w-5 sm:h-6 sm:w-6 stroke-[2.5]" /> Account Settings
+            <Settings className="h-4 w-4 sm:h-6 sm:w-6 stroke-[2.5] shrink-0" /> Account Settings
           </button>
         </div>
 
         {/* WORKSPACE AREA */}
-        <div className="lg:col-span-3 bg-white/[0.01] border border-white/5 rounded-2xl p-8 backdrop-blur-md shadow-2xl min-h-[500px]" id="dash-workspace">
+        <div className="lg:col-span-3 bg-white/[0.01] border border-white/5 rounded-2xl p-4 sm:p-6 lg:p-8 backdrop-blur-md shadow-2xl min-h-[500px]" id="dash-workspace">
           
           {/* UNREAD ADMIN MESSAGE ALERT BANNER */}
           {unreadMsgCount > 0 && activeTab !== 'messages' && (

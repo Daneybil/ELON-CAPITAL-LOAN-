@@ -76,28 +76,28 @@ export default function Hero({
       <div className="absolute top-1/2 right-1/4 w-[500px] h-[500px] bg-white/[0.01] rounded-full blur-[130px] pointer-events-none" />
 
       {/* ----------------- 1. HERO SECTION ----------------- */}
-      <div className="max-w-7xl mx-auto px-6 pt-24 pb-16 lg:pt-32 lg:pb-20 select-none animate-fade-in">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-10 sm:pb-16 lg:pt-32 lg:pb-20 select-none animate-fade-in">
         
         {/* NEW ERA HAS BEGUN. BRING YOUR DREAM TO LIFE - BOLD, VERY BIG, CAPITAL SUBHEADING RIGHT UP */}
-        <div className="text-center mb-16" id="hero-subheading-top">
-          <span className="text-cyan-400 font-black text-2xl sm:text-4xl lg:text-5xl tracking-[0.18em] uppercase block leading-tight drop-shadow-[0_4px_20px_rgba(34,211,238,0.25)] font-display">
+        <div className="text-center mb-8 sm:mb-12 lg:mb-16" id="hero-subheading-top">
+          <span className="text-cyan-400 font-black text-xl sm:text-4xl lg:text-5xl tracking-[0.18em] uppercase block leading-tight drop-shadow-[0_4px_20px_rgba(34,211,238,0.25)] font-display">
             NEW ERA HAS BEGUN.
           </span>
-          <span className="text-white font-black text-xl sm:text-3xl lg:text-4xl tracking-[0.18em] uppercase block mt-3 font-display">
+          <span className="text-white font-black text-lg sm:text-3xl lg:text-4xl tracking-[0.18em] uppercase block mt-2 sm:mt-3 font-display">
             BRING YOUR DREAM TO LIFE.
           </span>
-          <div className="h-[2px] w-32 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent mx-auto mt-6" />
+          <div className="h-[2px] w-24 sm:w-32 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent mx-auto mt-4 sm:mt-6" />
         </div>
 
         {/* 2-Column Grid Layout: Text on Left, Astronaut Image on Right */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center mb-16 lg:mb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 items-center mb-8 sm:mb-12 lg:mb-20">
           
           {/* Left Column: Headlines */}
-          <div className="lg:col-span-6 flex flex-col justify-center text-left space-y-6">
-            <h1 className="font-display text-5xl sm:text-7xl lg:text-[85px] font-black tracking-tight text-white uppercase leading-[0.95]" id="hero-title">
+          <div className="lg:col-span-6 flex flex-col justify-center text-left space-y-4 sm:space-y-6">
+            <h1 className="font-display text-4xl sm:text-7xl lg:text-[85px] font-black tracking-tight text-white uppercase leading-[0.95]" id="hero-title">
               <span className="block drop-shadow-[0_4px_20px_rgba(255,255,255,0.05)]">Build Bigger.</span>
               <span className="block drop-shadow-[0_4px_20px_rgba(255,255,255,0.05)]">Grow Faster.</span>
-              <span className="text-cyan-400 block drop-shadow-[0_4px_25px_rgba(34,211,238,0.15)] text-3xl sm:text-5xl lg:text-[64px] tracking-tight leading-[0.95] font-black mt-4">
+              <span className="text-cyan-400 block drop-shadow-[0_4px_25px_rgba(34,211,238,0.15)] text-2xl sm:text-5xl lg:text-[64px] tracking-tight leading-[0.95] font-black mt-2 sm:mt-4">
                 Borrow from $1,000 to $500,000,000
               </span>
             </h1>
@@ -105,7 +105,7 @@ export default function Hero({
 
           {/* Right Column: Astronaut Image facing right */}
           <div className="lg:col-span-6 relative w-full flex justify-center lg:justify-end">
-            <div className="relative w-full rounded-2xl border border-white/20 overflow-hidden bg-zinc-950 p-2 shadow-[0_30px_80px_rgba(0,0,0,0.95)] group hover:border-cyan-400/40 transition-all duration-500">
+            <div className="relative w-full rounded-2xl border border-white/20 overflow-hidden bg-zinc-950 p-1.5 sm:p-2 shadow-[0_30px_80px_rgba(0,0,0,0.95)] group hover:border-cyan-400/40 transition-all duration-500">
               {/* Ambient cyan backdrop shadow */}
               <div className="absolute -inset-3 bg-gradient-to-r from-cyan-500/15 to-transparent rounded-2xl blur-2xl opacity-75 pointer-events-none" />
               
@@ -118,7 +118,7 @@ export default function Hero({
                   target.onerror = null;
                   target.src = 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1200&q=80';
                 }}
-                className="w-full h-[320px] sm:h-[650px] lg:h-[900px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.015] animate-space-moon-rotate"
+                className="w-full h-[260px] sm:h-[500px] lg:h-[900px] object-cover rounded-xl transition-all duration-700 scale-100 group-hover:scale-[1.015] animate-space-moon-rotate"
               />
             </div>
           </div>
@@ -126,12 +126,12 @@ export default function Hero({
         </div>
 
         {/* Professional, comprehensive, targeted tagline */}
-        <p className="text-base sm:text-lg text-white font-semibold leading-relaxed max-w-4xl mx-auto mb-16 tracking-wide text-center bg-black/95 border-2 border-white/15 rounded-2xl p-6 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.9)]" id="hero-desc">
+        <p className="text-sm sm:text-lg text-white font-semibold leading-relaxed max-w-4xl mx-auto mb-8 sm:mb-12 lg:mb-16 tracking-wide text-center bg-black/95 border-2 border-white/15 rounded-2xl p-4 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.9)]" id="hero-desc">
           Elon Capital Loan is engineered because traditional bank gatekeepers refuse to support the dreamers of tomorrow. Whether you are an ambitious builder starting with <strong className="text-cyan-400 font-extrabold">zero initial capital</strong>, a high-growth startup, an independent entrepreneur, a cryptocurrency trader seeking leverage, a Web3 developer, a Forex specialist, or an expanding small business—this platform is built for you. We eliminate archaic financial barriers to dispatch instant liquidity, transforming your vision into actionable reality.
         </p>
 
         {/* 5 PREMIUM GIANT HERO ACTIONS IN CLASSICAL 3D FORM */}
-        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 max-w-5xl mx-auto mb-16" id="hero-buttons">
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 lg:gap-6 max-w-5xl mx-auto mb-8 sm:mb-12 lg:mb-16" id="hero-buttons">
           {/* Button 1: Apply for Funding */}
           <button
             onClick={onApplyClick}

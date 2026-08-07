@@ -55,19 +55,19 @@ export default function Features() {
   ];
 
   return (
-    <div className="bg-black py-28 border-t border-white/5" id="services">
+    <div className="bg-black py-12 sm:py-20 lg:py-28 border-t border-white/5" id="services">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
-        <div className="max-w-2xl mb-20">
-          <h2 className="font-mono text-[10px] uppercase tracking-widest text-cyan-400 mb-4">Structured Capital</h2>
-          <h3 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight uppercase">
+        <div className="max-w-2xl mb-10 sm:mb-14 lg:mb-20">
+          <h2 className="font-mono text-[10px] uppercase tracking-widest text-cyan-400 mb-3 sm:mb-4">Structured Capital</h2>
+          <h3 className="font-display text-2xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight uppercase">
             High-Capacity Liquidity Lines
           </h3>
         </div>
 
         {/* Feature Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-16" id="features-grid">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10 sm:gap-y-12 lg:gap-y-16" id="features-grid">
           {fundingSolutions.map((solution, idx) => (
             <FeatureCard 
               key={idx}

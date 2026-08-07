@@ -759,28 +759,28 @@ export default function AdminDashboard({
         );
       })()}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
         
         {/* Navigation Sidebar */}
-        <div className="lg:col-span-1 space-y-1.5" id="admin-sidebar">
+        <div className="lg:col-span-1 flex flex-row lg:flex-col overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0 gap-1.5 lg:gap-0 lg:space-y-1.5 scrollbar-none" id="admin-sidebar">
           <button
             onClick={() => setAdminTab('stats')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+            className={`shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
               adminTab === 'stats' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <Activity className="h-4 w-4" /> Dashboard
+            <Activity className="h-4 w-4 shrink-0" /> Dashboard
           </button>
 
           <button
             onClick={() => setAdminTab('kyc')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
               adminTab === 'kyc' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <span className="flex items-center gap-3"><ShieldCheck className="h-4 w-4" /> KYC Applications</span>
+            <span className="flex items-center gap-2 sm:gap-3"><ShieldCheck className="h-4 w-4 shrink-0" /> KYC Applications</span>
             {kycRequests.filter(k => k.status === 'Pending').length > 0 && (
-              <span className="bg-yellow-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full">
+              <span className="bg-yellow-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full shrink-0">
                 {kycRequests.filter(k => k.status === 'Pending').length}
               </span>
             )}
@@ -788,13 +788,13 @@ export default function AdminDashboard({
 
           <button
             onClick={() => setAdminTab('loans')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
               adminTab === 'loans' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <span className="flex items-center gap-3"><FileText className="h-4 w-4" /> Loan Applications</span>
+            <span className="flex items-center gap-2 sm:gap-3"><FileText className="h-4 w-4 shrink-0" /> Loan Applications</span>
             {loans.filter(l => l.status === 'Pending').length > 0 && (
-              <span className="bg-cyan-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full">
+              <span className="bg-cyan-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full shrink-0">
                 {loans.filter(l => l.status === 'Pending').length}
               </span>
             )}
@@ -802,13 +802,13 @@ export default function AdminDashboard({
 
           <button
             onClick={() => setAdminTab('payments')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
               adminTab === 'payments' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <span className="flex items-center gap-3"><Lock className="h-4 w-4" /> Payments</span>
+            <span className="flex items-center gap-2 sm:gap-3"><Lock className="h-4 w-4 shrink-0" /> Payments</span>
             {loans.filter(l => l.collateralPaid && !l.disbursed).length > 0 && (
-              <span className="bg-green-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full">
+              <span className="bg-green-500 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full shrink-0">
                 {loans.filter(l => l.collateralPaid && !l.disbursed).length}
               </span>
             )}
@@ -816,13 +816,13 @@ export default function AdminDashboard({
 
           <button
             onClick={() => setAdminTab('messages')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
               adminTab === 'messages' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <span className="flex items-center gap-3"><MessageSquare className="h-4 w-4" /> Direct Messages</span>
+            <span className="flex items-center gap-2 sm:gap-3"><MessageSquare className="h-4 w-4 shrink-0" /> Direct Messages</span>
             {adminMessages.filter(m => !m.isRead && m.senderRole !== 'admin').length > 0 && (
-              <span className="bg-cyan-400 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full">
+              <span className="bg-cyan-400 text-black font-mono font-bold text-[9px] px-2 py-0.5 rounded-full shrink-0">
                 {adminMessages.filter(m => !m.isRead && m.senderRole !== 'admin').length}
               </span>
             )}
@@ -830,13 +830,13 @@ export default function AdminDashboard({
 
           <button
             onClick={() => setAdminTab('tickets')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+            className={`shrink-0 lg:w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
               adminTab === 'tickets' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <span className="flex items-center gap-3"><HelpCircle className="h-4 w-4" /> Support Tickets</span>
+            <span className="flex items-center gap-2 sm:gap-3"><HelpCircle className="h-4 w-4 shrink-0" /> Support Tickets</span>
             {tickets.filter(t => t.status === 'Open' || (t.replies && t.replies.length > 0 && t.replies[t.replies.length - 1].senderRole === 'user')).length > 0 && (
-              <span className="bg-red-500 text-white font-mono font-bold text-[9px] px-2.5 py-0.5 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]">
+              <span className="bg-red-500 text-white font-mono font-bold text-[9px] px-2.5 py-0.5 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)] shrink-0">
                 {tickets.filter(t => t.status === 'Open' || (t.replies && t.replies.length > 0 && t.replies[t.replies.length - 1].senderRole === 'user')).length} NEW
               </span>
             )}
@@ -844,20 +844,20 @@ export default function AdminDashboard({
 
           <button
             onClick={() => setAdminTab('users')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+            className={`shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
               adminTab === 'users' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <Users className="h-4 w-4" /> Users
+            <Users className="h-4 w-4 shrink-0" /> Users
           </button>
 
           <button
             onClick={() => setAdminTab('logs')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+            className={`shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all whitespace-nowrap ${
               adminTab === 'logs' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
             }`}
           >
-            <Download className="h-4 w-4" /> Reports / Audit Log
+            <Download className="h-4 w-4 shrink-0" /> Reports / Audit Log
           </button>
 
           <button

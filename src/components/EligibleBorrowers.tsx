@@ -9,11 +9,11 @@ export default function EligibleBorrowers() {
   ];
 
   return (
-    <div className="bg-black py-20 border-t border-white/5" id="borrowers">
+    <div className="bg-black py-12 sm:py-16 lg:py-20 border-t border-white/5" id="borrowers">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 sm:mb-12 lg:mb-16 gap-6">
           <div className="max-w-2xl">
             <h2 className="font-mono text-xs uppercase tracking-widest text-cyan-400 mb-3">Institutional Compliance</h2>
             <h3 className="font-display text-3xl sm:text-4xl font-bold text-white tracking-tight">

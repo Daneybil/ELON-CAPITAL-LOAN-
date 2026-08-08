@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Percent, ArrowLeft, ArrowRight, HelpCircle, AlertTriangle, ShieldCheck, Clock } from 'lucide-react';
 
 interface LoanCalculatorPageProps {
@@ -14,6 +15,7 @@ export default function LoanCalculatorPage({
   onBackToHome,
   onApplyClick,
 }: LoanCalculatorPageProps) {
+  const { t } = useTranslation();
   const [amount, setAmount] = React.useState<number>(initialAmount);
   const [amountInput, setAmountInput] = React.useState<string>(initialAmount.toString());
   const [term, setTerm] = React.useState<number>(initialTerm);
@@ -101,19 +103,19 @@ export default function LoanCalculatorPage({
           id="btn-back-home"
         >
           <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
-          Back to Homepage
+          {t('nav.backToHome', 'Back to Homepage')}
         </button>
 
         {/* Headline */}
         <div className="text-center sm:text-left mb-12">
           <span className="px-3 py-1 text-[10px] sm:text-xs font-mono font-black uppercase tracking-widest text-cyan-400 bg-cyan-950/40 border border-cyan-500/20 rounded-full inline-block mb-4">
-            Official Amortization Pipeline
+            {t('calculator.pipeline', 'Official Amortization Pipeline')}
           </span>
           <h1 className="font-display text-4xl sm:text-6xl font-black text-white tracking-tight uppercase leading-none">
-            Elon Capital Dispatch Engine
+            {t('calculator.title', 'Elon Capital Dispatch Engine')}
           </h1>
           <p className="text-sm sm:text-lg text-zinc-100 mt-4 font-black uppercase tracking-wide leading-relaxed">
-            Configure your institutional funding package with absolute mathematical certainty. Transparency is our core protocol—no compounding traps, no fine print.
+            {t('calculator.subtitle', 'Configure your institutional funding package with absolute mathematical certainty. Transparency is our core protocol—no compounding traps, no fine print.')}
           </p>
         </div>
 

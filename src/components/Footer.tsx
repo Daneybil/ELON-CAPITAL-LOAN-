@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
 
 interface FooterProps {
@@ -16,6 +17,7 @@ export default function Footer({
   onGovernmentWarningClick,
   onSupportClick 
 }: FooterProps) {
+  const { t } = useTranslation();
   const handlePrivacy = () => {
     if (onLoanTransparencyClick) {
       onLoanTransparencyClick();
@@ -93,25 +95,25 @@ export default function Footer({
             onClick={handlePrivacy} 
             className="hover:text-cyan-400 transition-colors cursor-pointer"
           >
-            Privacy Policy
+            {t('footer.privacyPolicy')}
           </button>
           <button 
             onClick={handleTerms} 
             className="hover:text-cyan-400 transition-colors cursor-pointer"
           >
-            Terms
+            {t('footer.terms')}
           </button>
           <button 
             onClick={handleSupport} 
             className="hover:text-cyan-400 transition-colors cursor-pointer"
           >
-            Support
+            {t('nav.support')}
           </button>
           <button 
             onClick={handleContact} 
             className="hover:text-cyan-400 transition-colors cursor-pointer"
           >
-            Contact
+            {t('footer.contact')}
           </button>
         </div>
       </div>

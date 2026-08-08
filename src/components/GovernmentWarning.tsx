@@ -1,7 +1,10 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ShieldAlert, Scale, HelpCircle, Check, Info } from 'lucide-react';
 
 export default function GovernmentWarning() {
+  const { t } = useTranslation();
+
   return (
     <div className="w-full bg-black py-20 border-t border-b border-red-500/10" id="government-warning-section">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -13,15 +16,15 @@ export default function GovernmentWarning() {
           </div>
           
           <span className="font-mono text-xs uppercase tracking-widest text-red-400 font-black block mb-3">
-            INTERNATIONAL ENFORCEMENT & ASSET SEIZURE PROTOCOL
+            {t('warning.badge', 'INTERNATIONAL ENFORCEMENT & ASSET SEIZURE PROTOCOL')}
           </span>
           
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black text-white uppercase tracking-tight leading-none">
-            GLOBAL GOVERNMENT WARNING
+            {t('warning.title', 'GLOBAL GOVERNMENT WARNING')}
           </h2>
           
           <p className="text-red-400 mt-4 text-sm sm:text-base font-extrabold uppercase tracking-wider">
-            PREVENTATIVE WARNING AGAINST INTENTIONAL NON-PAYMENT & FINANCIAL FRAUD
+            {t('warning.subtitle', 'PREVENTATIVE WARNING AGAINST INTENTIONAL NON-PAYMENT & FINANCIAL FRAUD')}
           </p>
         </div>
 
@@ -34,7 +37,7 @@ export default function GovernmentWarning() {
           <div className="relative space-y-8 z-10 text-left">
             
             <p className="text-sm sm:text-base text-zinc-100 font-extrabold leading-relaxed uppercase tracking-wide">
-              Elon Capital Loan is a highly regulated, internationally aligned sovereign liquidity vehicle. We work in direct coordination with global central banking associations, national tax agencies, Interpol, federal recovery courts, and international asset tracing tribunals. 
+              {t('warning.p1', 'Elon Capital Loan is a highly regulated, internationally aligned sovereign liquidity vehicle. We work in direct coordination with global central banking associations, national tax agencies, Interpol, federal recovery courts, and international asset tracing tribunals.')}
             </p>
 
             <div className="border-t border-red-500/20 my-6" />
@@ -46,11 +49,11 @@ export default function GovernmentWarning() {
                 <div className="flex items-center gap-2">
                   <Scale className="h-5 w-5 text-red-500" />
                   <h4 className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
-                    ASSET SEIZURE & SYSTEM COMPLIANCE
+                    {t('warning.assetTitle', 'ASSET SEIZURE & SYSTEM COMPLIANCE')}
                   </h4>
                 </div>
                 <p className="text-xs sm:text-sm text-zinc-200 font-black leading-relaxed uppercase">
-                  Any individual, developer, or business entity that attempts to secure funds from this platform with the intent to default, escape, or hide assets will be met with immediate, absolute worldwide recovery actions. This includes the legal freezing and seizure of all local bank accounts, real estate holdings, vehicle titles, corporate holdings, and physical assets.
+                  {t('warning.assetDesc', 'Any individual, developer, or business entity that attempts to secure funds from this platform with the intent to default, escape, or hide assets will be met with immediate, absolute worldwide recovery actions. This includes the legal freezing and seizure of all local bank accounts, real estate holdings, vehicle titles, corporate holdings, and physical assets.')}
                 </p>
               </div>
 
@@ -59,11 +62,11 @@ export default function GovernmentWarning() {
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="h-5 w-5 text-red-500" />
                   <h4 className="text-sm sm:text-base font-black text-white uppercase tracking-wide">
-                    LEDGER & CRYPTO RECOVERY
+                    {t('warning.ledgerTitle', 'LEDGER & CRYPTO RECOVERY')}
                   </h4>
                 </div>
                 <p className="text-xs sm:text-sm text-zinc-200 font-black leading-relaxed uppercase">
-                  Our advanced smart contract ledgers track transactions on-chain. If necessary, our partner government agencies will seize and lock connected digital wallets, cold storage ledger hardware, intellectual property domains, active servers, and decentralized assets until full restitution is settled.
+                  {t('warning.ledgerDesc', 'Our advanced smart contract ledgers track transactions on-chain. If necessary, our partner government agencies will seize and lock connected digital wallets, cold storage ledger hardware, intellectual property domains, active servers, and decentralized assets until full restitution is settled.')}
                 </p>
               </div>
 
@@ -73,10 +76,10 @@ export default function GovernmentWarning() {
 
             <div className="bg-red-950/20 border border-red-500/30 rounded-xl p-6 sm:p-8 space-y-4">
               <h4 className="text-sm sm:text-base font-black text-red-400 uppercase tracking-widest text-center">
-                ⚠️ THE CRITICAL COMPLIANCE DIRECTIVE
+                ⚠️ {t('warning.directiveTitle', 'THE CRITICAL COMPLIANCE DIRECTIVE')}
               </h4>
               <p className="text-xs sm:text-sm text-zinc-100 font-black text-center leading-relaxed uppercase tracking-wide">
-                Our approach is simple: BORROW TO INVEST AND PAY BACK. If you know you cannot or do not intend to repay, do not apply. Intentionally borrowing and running away is a felony crime. You will lose everything you have worked for all your life. Borrow responsibly, build successfully, and return the capital according to your contract parameters.
+                {t('warning.directiveDesc', 'Our approach is simple: BORROW TO INVEST AND PAY BACK. If you know you cannot or do not intend to repay, do not apply. Intentionally borrowing and running away is a felony crime. You will lose everything you have worked for all your life. Borrow responsibly, build successfully, and return the capital according to your contract parameters.')}
               </p>
             </div>
 

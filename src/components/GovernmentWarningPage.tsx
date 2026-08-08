@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Scale, ShieldAlert, Check, HelpCircle } from 'lucide-react';
 
 interface GovernmentWarningPageProps {
@@ -6,6 +7,8 @@ interface GovernmentWarningPageProps {
 }
 
 export default function GovernmentWarningPage({ onBackToHome }: GovernmentWarningPageProps) {
+  const { t } = useTranslation();
+
   // Scroll to top on page load
   React.useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -23,7 +26,7 @@ export default function GovernmentWarningPage({ onBackToHome }: GovernmentWarnin
             id="btn-government-warning-back"
           >
             <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
-            Back to Home Page
+            {t('nav.backToHome', 'Back to Home Page')}
           </button>
         </div>
 
@@ -34,15 +37,15 @@ export default function GovernmentWarningPage({ onBackToHome }: GovernmentWarnin
           </div>
           
           <span className="font-mono text-xs sm:text-sm uppercase tracking-widest text-red-400 font-black block mb-3">
-            INTERNATIONAL ENFORCEMENT & ASSET SEIZURE PROTOCOL
+            {t('warning.badge', 'INTERNATIONAL ENFORCEMENT & ASSET SEIZURE PROTOCOL')}
           </span>
           
           <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-black text-white uppercase tracking-tight leading-none">
-            GLOBAL GOVERNMENT WARNING
+            {t('warning.title', 'GLOBAL GOVERNMENT WARNING')}
           </h1>
           
           <p className="text-red-400 mt-6 text-sm sm:text-lg font-black uppercase tracking-wider leading-relaxed">
-            PREVENTATIVE WARNING AGAINST INTENTIONAL NON-PAYMENT, FINTECH DEFAULT & COGNITIVE FRAUD
+            {t('warning.subtitle', 'PREVENTATIVE WARNING AGAINST INTENTIONAL NON-PAYMENT & FINANCIAL FRAUD')}
           </p>
         </div>
 
@@ -55,7 +58,7 @@ export default function GovernmentWarningPage({ onBackToHome }: GovernmentWarnin
           <div className="relative space-y-10 z-10 text-left font-sans">
             
             <p className="text-sm sm:text-lg text-zinc-100 font-black leading-relaxed uppercase tracking-wide">
-              Elon Capital Loan is a highly regulated, internationally aligned sovereign liquidity vehicle. We work in direct coordination with global central banking associations, national tax agencies (IRS, HMRC, ATO, etc.), Interpol, federal recovery courts, and international asset tracing tribunals. 
+              {t('warning.p1', 'Elon Capital Loan is a highly regulated, internationally aligned sovereign liquidity vehicle. We work in direct coordination with global central banking associations, national tax agencies, Interpol, federal recovery courts, and international asset tracing tribunals.')}
             </p>
 
             <div className="border-t border-red-500/20 my-8" />

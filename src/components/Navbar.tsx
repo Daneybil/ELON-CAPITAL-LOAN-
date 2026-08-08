@@ -1,5 +1,6 @@
 import React from 'react';
 import { Menu, X, ArrowUpRight, ShieldCheck, User as UserIcon, LogOut } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { User } from '../types';
 import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
 import LanguageSelector from './LanguageSelector';
@@ -35,6 +36,7 @@ export default function Navbar({
   onGovernmentWarningClick,
   onLoanTransparencyClick,
 }: NavbarProps) {
+  const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(true);
   const [lastScrollY, setLastScrollY] = React.useState(0);
@@ -108,7 +110,7 @@ export default function Navbar({
           {/* Center: Tagline */}
           <div className="hidden lg:flex items-center justify-center max-w-md xl:max-w-xl mx-4">
             <p className="text-[10px] text-gray-400 font-light tracking-wide text-center truncate">
-              Funding entrepreneurs, startups, and growing businesses with a simple application process.
+              {t('nav.tagline')}
             </p>
           </div>
 
@@ -118,56 +120,56 @@ export default function Navbar({
               onClick={onNavigateToHome}
               className="font-medium text-gray-400 hover:text-white transition-colors cursor-pointer"
             >
-              Home
+              {t('nav.home')}
             </button>
             <button 
               onClick={onHowItWorksClick}
               className="font-semibold text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
             >
-              How It Works
+              {t('nav.howItWorks')}
             </button>
             <button 
               onClick={onLoanTransparencyClick}
               className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
               id="btn-nav-transparency"
             >
-              Transparency
+              {t('nav.transparency')}
             </button>
             <button 
               onClick={onEligibilityClick}
               className="font-semibold text-yellow-400 hover:text-yellow-300 transition-colors cursor-pointer"
             >
-              Check Eligibility
+              {t('nav.eligibility')}
             </button>
             <button 
               onClick={onApplyClick}
               className="font-medium text-gray-400 hover:text-white transition-colors cursor-pointer"
             >
-              Apply
+              {t('nav.apply')}
             </button>
             <button 
               onClick={onCalculatorClick}
               className="font-medium text-gray-400 hover:text-white transition-colors cursor-pointer"
             >
-              Calculator
+              {t('nav.calculator')}
             </button>
             <button 
               onClick={onNavigateToDashboard}
               className="font-medium text-gray-400 hover:text-white transition-colors cursor-pointer"
             >
-              Dashboard
+              {t('nav.dashboard')}
             </button>
             <button 
               onClick={onSupportClick}
               className="font-medium text-gray-400 hover:text-white transition-colors cursor-pointer"
             >
-              Support
+              {t('nav.support')}
             </button>
             <button 
               onClick={onGovernmentWarningClick}
               className="font-bold text-red-500 hover:text-red-400 transition-colors cursor-pointer"
             >
-              ⚠️ Global Warning
+              {t('nav.globalWarning')}
             </button>
           </div>
 
@@ -182,14 +184,14 @@ export default function Navbar({
                   </span>
                 ) : (
                   <span className="text-[10px] text-gray-400 tracking-wider">
-                    Hi, <span className="text-white font-sans font-medium">{user.name.split(' ')[0]}</span>
+                    {t('nav.hi')}, <span className="text-white font-sans font-medium">{user.name.split(' ')[0]}</span>
                   </span>
                 )}
 
                 <button 
                   onClick={onLogout}
                   className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-white/5 rounded transition-all flex items-center gap-1 cursor-pointer"
-                  title="Logout"
+                  title={t('nav.logout')}
                   id="btn-navbar-logout"
                 >
                   <LogOut className="h-3 w-3" />
@@ -202,14 +204,14 @@ export default function Navbar({
                   className="px-3 py-1.5 text-gray-400 hover:text-white transition-colors font-medium cursor-pointer"
                   id="btn-navbar-login"
                 >
-                  Login
+                  {t('nav.login')}
                 </button>
                 <button 
                   onClick={() => onOpenAuth('register')}
                   className="px-4 py-1.5 font-medium text-black bg-white hover:bg-cyan-400 transition-all rounded cursor-pointer"
                   id="btn-navbar-register"
                 >
-                  Register
+                  {t('nav.register')}
                 </button>
               </div>
             )}
@@ -246,55 +248,55 @@ export default function Navbar({
               onClick={() => { setMobileMenuOpen(false); onNavigateToHome(); }}
               className="text-left text-base font-medium text-gray-400 hover:text-white transition-colors"
             >
-              Home
+              {t('nav.home')}
             </button>
             <button 
               onClick={() => { setMobileMenuOpen(false); onHowItWorksClick(); }}
               className="text-left text-base font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
             >
-              How It Works
+              {t('nav.howItWorks')}
             </button>
             <button 
               onClick={() => { setMobileMenuOpen(false); onLoanTransparencyClick?.(); }}
               className="text-left text-base font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
             >
-              Loan Terms & Transparency
+              {t('nav.transparency')}
             </button>
             <button 
               onClick={() => { setMobileMenuOpen(false); onEligibilityClick(); }}
               className="text-left text-base font-bold text-yellow-400 hover:text-yellow-300 transition-colors"
             >
-              Check Eligibility
+              {t('nav.eligibility')}
             </button>
             <button 
               onClick={() => { setMobileMenuOpen(false); onApplyClick(); }}
               className="text-left text-base font-medium text-gray-400 hover:text-white transition-colors"
             >
-              Apply
+              {t('nav.apply')}
             </button>
             <button 
               onClick={() => { setMobileMenuOpen(false); onCalculatorClick(); }}
               className="text-left text-base font-medium text-gray-400 hover:text-white transition-colors"
             >
-              Calculator
+              {t('nav.calculator')}
             </button>
             <button 
               onClick={() => { setMobileMenuOpen(false); onNavigateToDashboard(); }}
               className="text-left text-base font-medium text-gray-400 hover:text-white transition-colors"
             >
-              Dashboard
+              {t('nav.dashboard')}
             </button>
             <button 
               onClick={() => { setMobileMenuOpen(false); onSupportClick(); }}
               className="text-left text-base font-medium text-gray-400 hover:text-white transition-colors"
             >
-              Support
+              {t('nav.support')}
             </button>
             <button 
               onClick={() => { setMobileMenuOpen(false); onGovernmentWarningClick(); }}
               className="text-left text-base font-bold text-red-500 hover:text-red-400 transition-colors"
             >
-              ⚠️ Global Warning
+              {t('nav.globalWarning')}
             </button>
           </div>
 
@@ -304,7 +306,7 @@ export default function Navbar({
             {user ? (
               <>
                 <div className="flex items-center justify-between text-xs font-mono text-gray-400 py-1">
-                  <span>Logged in as: {user.name}</span>
+                  <span>{t('nav.loggedInAs')}: {user.name}</span>
                   {user.role === 'admin' && <span className="text-cyan-400 font-bold uppercase">ADMIN</span>}
                 </div>
                 <button 
@@ -314,7 +316,7 @@ export default function Navbar({
                   }}
                   className="w-full py-3 text-center text-sm font-medium text-black bg-white rounded-lg"
                 >
-                  Go to Dashboard
+                  {t('nav.goToDashboard')}
                 </button>
                 <button 
                   onClick={() => {
@@ -323,7 +325,7 @@ export default function Navbar({
                   }}
                   className="w-full py-3 text-center text-sm font-medium text-red-400 border border-red-500/20 bg-red-950/20 rounded-lg"
                 >
-                  Logout
+                  {t('nav.logout')}
                 </button>
               </>
             ) : (
@@ -335,7 +337,7 @@ export default function Navbar({
                   }}
                   className="w-full py-3 text-center text-sm font-medium text-gray-300 border border-white/10 rounded-lg"
                 >
-                  Login
+                  {t('nav.login')}
                 </button>
                 <button 
                   onClick={() => {
@@ -344,7 +346,7 @@ export default function Navbar({
                   }}
                   className="w-full py-3 text-center text-sm font-medium text-black bg-white rounded-lg"
                 >
-                  Register
+                  {t('nav.register')}
                 </button>
               </>
             )}

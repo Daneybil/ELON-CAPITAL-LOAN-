@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, Check, Info, ShieldAlert } from 'lucide-react';
 import GovernmentWarning from './GovernmentWarning';
 
@@ -8,6 +9,8 @@ interface HowItWorksPageProps {
 }
 
 export default function HowItWorksPage({ onBackToHome, onCalculatorClick }: HowItWorksPageProps) {
+  const { t } = useTranslation();
+
   // Scroll to top on page load
   React.useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -25,20 +28,20 @@ export default function HowItWorksPage({ onBackToHome, onCalculatorClick }: HowI
             id="btn-how-it-works-back"
           >
             <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
-            Back to Home Page
+            {t('nav.backToHome', 'Back to Home Page')}
           </button>
         </div>
 
         {/* Header Title Section */}
         <div className="text-center max-w-4xl mx-auto mb-20">
           <span className="font-mono text-xs sm:text-sm uppercase tracking-widest text-blue-400 font-black block mb-3">
-            Sovereign Funding Operations
+            {t('howItWorks.badge', 'Sovereign Funding Operations')}
           </span>
           <h1 className="font-display text-4xl sm:text-6xl lg:text-7xl font-black text-white uppercase tracking-tight leading-none mb-6">
-            HOW ELON CAPITAL LOAN WORKS
+            {t('howItWorks.title', 'HOW ELON CAPITAL LOAN WORKS')}
           </h1>
           <p className="text-zinc-200 mt-4 text-sm sm:text-xl font-extrabold uppercase tracking-wide max-w-2xl mx-auto">
-            A simple, highly structured, transparent process from application to rapid funding.
+            {t('howItWorks.subtitle', 'A simple, highly structured, transparent process from application to rapid funding.')}
           </p>
         </div>
 

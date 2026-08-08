@@ -1834,8 +1834,50 @@ app.post('/api/kyc/upload', authenticateToken, (req, res) => {
     loanDuration
   } = req.body;
 
-  if (!idCardUrl || !selfieUrl) {
-    res.status(400).json({ error: 'Government ID and Selfie files are required for KYC submission.' });
+  if (!fullName || typeof fullName !== 'string' || fullName.trim().split(/\s+/).length < 2) {
+    res.status(400).json({ error: 'Full legal name (first and last name) is required.' });
+    return;
+  }
+
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || typeof email !== 'string' || !emailPattern.test(email.trim())) {
+    res.status(400).json({ error: 'A valid email address is required.' });
+    return;
+  }
+
+  if (!phone || typeof phone !== 'string' || phone.trim().replace(/\D/g, '').length < 7) {
+    res.status(400).json({ error: 'A valid telephone contact number is required.' });
+    return;
+  }
+
+  if (!dob) {
+    res.status(400).json({ error: 'Date of birth is required.' });
+    return;
+  }
+  const dobDate = new Date(dob);
+  const ageYears = (Date.now() - dobDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+  if (isNaN(dobDate.getTime()) || ageYears < 18) {
+    res.status(400).json({ error: 'Applicant must be at least 18 years of age.' });
+    return;
+  }
+
+  if (!residentialAddress || typeof residentialAddress !== 'string' || residentialAddress.trim().length < 5) {
+    res.status(400).json({ error: 'A valid residential address is required.' });
+    return;
+  }
+
+  if (!idCardUrl || typeof idCardUrl !== 'string' || !idCardUrl.trim()) {
+    res.status(400).json({ error: 'Government identity document front scan is required.' });
+    return;
+  }
+
+  if (!selfieUrl || typeof selfieUrl !== 'string' || !selfieUrl.trim()) {
+    res.status(400).json({ error: 'Biometric selfie photo is required.' });
+    return;
+  }
+
+  if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.trim()) {
+    res.status(400).json({ error: 'Recorded video verification statement is required.' });
     return;
   }
 

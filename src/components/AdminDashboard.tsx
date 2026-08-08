@@ -56,6 +56,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { getApiUrl } from '../utils/api';
+import { useTranslation } from 'react-i18next';
 
 interface AdminDashboardProps {
   adminUser: User;
@@ -68,6 +69,7 @@ export default function AdminDashboard({
   token,
   onLogout,
 }: AdminDashboardProps) {
+  const { t } = useTranslation();
   // Enforce strict Admin Access Guard
   if (!adminUser || adminUser.role !== 'admin') {
     return (
@@ -640,9 +642,8 @@ export default function AdminDashboard({
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-black border border-white/5 focus:border-cyan-500/50 rounded-xl text-sm text-white focus:outline-none"
-                placeholder="e.g. admin123"
+                placeholder="••••••••"
               />
-              <span className="text-[10px] text-gray-500 font-mono mt-2 block">*Demo credentials password is: <span className="text-white">admin123</span></span>
             </div>
 
             <button

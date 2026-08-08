@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, ShieldCheck, Mail, Lock, User as UserIcon, Phone, Globe, ArrowRight, RefreshCw, Key, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { User } from '../types';
 import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
@@ -31,6 +32,7 @@ export default function AuthModal({
   onClose,
   onAuthSuccess,
 }: AuthModalProps) {
+  const { t } = useTranslation();
   const [mode, setMode] = React.useState<'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'completeProfile'>(initialMode);
   
   // Registration States

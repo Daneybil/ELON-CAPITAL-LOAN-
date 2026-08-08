@@ -38,6 +38,7 @@ import LoanCalculatorPage from './LoanCalculatorPage';
 import { auth } from '../firebase';
 import { updatePassword, verifyBeforeUpdateEmail } from 'firebase/auth';
 import { getApiUrl } from '../utils/api';
+import { useTranslation } from 'react-i18next';
 
 const getInterestRateFromPreference = (prefStr?: string): number => {
   if (!prefStr) return 15;
@@ -78,6 +79,7 @@ export default function UserDashboard({
   prefilledTerm,
   onClearPrefilled,
 }: UserDashboardProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = React.useState<'account' | 'overview' | 'apply' | 'loans' | 'repayment' | 'kyc' | 'calculator' | 'messages' | 'support' | 'settings'>(defaultTab || 'account');
 
   React.useEffect(() => {
@@ -313,69 +315,6 @@ export default function UserDashboard({
   const handleLockDestination = (loanId: string) => {
     setDisbursementLocked(prev => ({ ...prev, [loanId]: true }));
     triggerAlert('success', 'Disbursement destination coordinates locked & secured for routing release.');
-  };
-
-  // Demo auto-fill helper functions for easy testing
-  const handleAutoFillPage1 = () => {
-    setKycFullName("Johnathan Alexander Doe");
-    setKycEmail(user.email || "john.doe@corporate.com");
-    setKycPhone("+1 (555) 019-2834");
-    setKycCountry("United States");
-
-    setLoanPersonal({
-      dob: "1988-06-15",
-      marital: "Married",
-      address: "742 Evergreen Terrace, Springfield, OR 97477"
-    });
-    setKycDob("1988-06-15");
-    setKycMaritalStatus("Married");
-    setKycAddressText("742 Evergreen Terrace, Springfield, OR 97477");
-
-    setLoanEmployment({
-      status: "Small Business Owner",
-      employer: "Apex Trading Solutions LLC",
-      income: "15000",
-      years: "5"
-    });
-    setKycEmploymentStatus("Small Business Owner");
-
-    setLoanFunding({
-      purpose: "Business Expansion",
-      amount: "100000",
-      preference: "Monthly structured / 24 months",
-      description: "Requesting capital facility to scale commercial operations, acquire high-performance infrastructure, and support inventory expansion."
-    });
-    setKycLoanPurpose("Business Expansion");
-    setKycLoanDescription("Requesting capital facility to scale commercial operations, acquire high-performance infrastructure, and support inventory expansion.");
-
-    triggerAlert('success', '✨ Page 1 demo data auto-filled! Click "Continue to Security & Biometrics →" to proceed.');
-  };
-
-  const handleAutoFillPage2 = () => {
-    setIsUsResident(true);
-    setKycCountry("United States");
-    setKycIdType("Driver's License");
-    setComplianceSsn("987-65-4321");
-    setKycIdCard("approved_us_driver_license_front.png");
-    setKycIdCardBack("approved_us_driver_license_back.png");
-    setKycBusiness("llc_formation_certificate_active.pdf");
-    setSocialPlatform("Twitter / X");
-    setSingleSocialHandle("@johndoe_trader");
-    setTwitterUsername("@johndoe_trader");
-    setLinkedinUsername("johndoe_corporate");
-    setTiktokUsername("@johndoe_official");
-    setFacebookUsername("john.doe.trader");
-    setYoutubeUsername("@JohnDoeFinance");
-
-    setKycSelfie("https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=180&h=180&q=80");
-    setIsWebcamActive(true);
-    setWebcamCountdown(0);
-
-    setKycVideoUrl("liveness_video_recording_8821.mp4");
-    setKycDeclaresAccuracy(true);
-    setKycSignature(user.name);
-
-    triggerAlert('success', '✨ Page 2 demo data auto-filled! Credentials, ID scan, selfie, video proof, and signature populated. Ready to submit!');
   };
 
   // Fetch all user state elements
@@ -1002,15 +941,76 @@ export default function UserDashboard({
       return;
     }
 
+    // Comprehensive Page 1 & Page 2 Validations
+    if (!kycFullName.trim() || kycFullName.trim().split(/\s+/).length < 2) {
+      triggerAlert('error', 'Please enter your full legal name (first and last name).');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!kycEmail.trim() || !emailRegex.test(kycEmail.trim())) {
+      triggerAlert('error', 'Please enter a valid email address.');
+      return;
+    }
+    if (!kycPhone.trim() || kycPhone.trim().replace(/\D/g, '').length < 7) {
+      triggerAlert('error', 'Please enter a valid phone number.');
+      return;
+    }
+    if (!loanPersonal.dob) {
+      triggerAlert('error', 'Please enter a valid date of birth.');
+      return;
+    }
+    const dobDate = new Date(loanPersonal.dob);
+    const ageYears = (Date.now() - dobDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+    if (isNaN(dobDate.getTime()) || ageYears < 18) {
+      triggerAlert('error', 'Applicant must be at least 18 years of age to apply for credit facility.');
+      return;
+    }
+    if (!loanPersonal.address.trim() || loanPersonal.address.trim().length < 5) {
+      triggerAlert('error', 'Please enter your full residential address.');
+      return;
+    }
+    const incomeVal = Number(loanEmployment.income);
+    if (isNaN(incomeVal) || incomeVal <= 0) {
+      triggerAlert('error', 'Please enter a valid positive monthly income amount.');
+      return;
+    }
+    const amountVal = Number(loanFunding.amount);
+    if (isNaN(amountVal) || amountVal < 100) {
+      triggerAlert('error', 'Please enter a valid funding amount (minimum $100).');
+      return;
+    }
+    if (!loanFunding.description.trim() || loanFunding.description.trim().length < 10) {
+      triggerAlert('error', 'Please provide a detailed purpose or project scope description.');
+      return;
+    }
+
     // SSN validation for United States residents
-    if (kycCountry === 'United States' && !complianceSsn.trim()) {
-      triggerAlert('error', 'Social Security Number (SSN) is required for United States residents.');
+    if (kycCountry === 'United States') {
+      const cleanSsn = complianceSsn.replace(/\D/g, '');
+      if (!complianceSsn.trim() || cleanSsn.length !== 9) {
+        triggerAlert('error', 'Please enter a valid 9-digit Social Security Number (SSN) for United States verification.');
+        return;
+      }
+    }
+
+    if (!kycIdCard || !kycIdCard.trim()) {
+      triggerAlert('error', 'Please upload your government-issued identity document scan.');
+      return;
+    }
+
+    if (!kycSelfie || !kycSelfie.trim()) {
+      triggerAlert('error', 'Please upload or capture your biometric selfie photo.');
+      return;
+    }
+
+    if (!kycVideoUrl || !kycVideoUrl.trim()) {
+      triggerAlert('error', 'Please upload your recorded video verification statement.');
       return;
     }
 
     // Mandatory Declaration checkbox validation
     if (!kycDeclaresAccuracy) {
-      triggerAlert('error', '⚠️ Action Required: You must check the declaration box confirming the legal undertaking ("I confirm and accept the legal undertaking...") before submitting your loan application.');
+      triggerAlert('error', '⚠️ Action Required: You must check the declaration box confirming the legal undertaking before submitting your loan application.');
       return;
     }
 
@@ -1019,30 +1019,34 @@ export default function UserDashboard({
       triggerAlert('error', 'Please type your full legal name as your electronic signature.');
       return;
     }
+    if (kycSignature.trim().toLowerCase() !== kycFullName.trim().toLowerCase()) {
+      triggerAlert('error', `Your electronic signature ("${kycSignature.trim()}") must match your full legal name ("${kycFullName.trim()}").`);
+      return;
+    }
 
     setActionLoading(true);
 
     try {
       // 1. Submit KYC Portfolio
       const kycPayload = {
-        idCardUrl: kycIdCard || 'passport_digital.png',
-        selfieUrl: kycSelfie || 'verification_selfie_latest.png',
-        addressProofUrl: kycProofOfAddress || 'proof_of_address_utility.png',
-        businessDocUrl: kycBusiness || 'certificate_of_good_standing.pdf',
-        fullName: kycFullName,
+        idCardUrl: kycIdCard.trim(),
+        selfieUrl: kycSelfie.trim(),
+        addressProofUrl: kycProofOfAddress.trim() || '',
+        businessDocUrl: kycBusiness.trim() || '',
+        fullName: kycFullName.trim(),
         dob: loanPersonal.dob,
-        phone: kycPhone,
-        email: kycEmail,
+        phone: kycPhone.trim(),
+        email: kycEmail.trim(),
         country: kycCountry,
-        residentialAddress: loanPersonal.address,
-        proofOfAddressUrl: kycProofOfAddress || 'proof_of_address_utility.png',
+        residentialAddress: loanPersonal.address.trim(),
+        proofOfAddressUrl: kycProofOfAddress.trim() || '',
         employmentStatus: loanEmployment.status,
         maritalStatus: loanPersonal.marital,
         loanPurpose: loanFunding.purpose,
-        loanDescription: loanFunding.description || 'Sovereign institutional capital facility allocation request.',
-        socialHandles: [singleSocialHandle || twitterUsername, linkedinUsername].filter(Boolean).map(u => u.trim()).join(', ') || kycSocialHandles || 'N/A',
+        loanDescription: loanFunding.description.trim(),
+        socialHandles: [singleSocialHandle || twitterUsername, linkedinUsername].filter(Boolean).map(u => u.trim()).join(', ') || 'N/A',
         idType: kycIdType,
-        videoUrl: kycVideoUrl || 'liveness_video_proof.mp4'
+        videoUrl: kycVideoUrl.trim()
       };
 
       const kycRes = await fetch(getApiUrl('/api/kyc/upload'), {
@@ -2467,26 +2471,6 @@ export default function UserDashboard({
               {/* PAGE 1: CORE PROFILE */}
               {wizardStep === 1 && (
                 <div className="space-y-8 animate-fade-in text-left" id="apply-page-1">
-                  {/* Page 1 Quick Demo Auto-Fill Banner */}
-                  <div className="bg-gradient-to-r from-amber-500/20 via-cyan-500/20 to-amber-500/20 border-2 border-amber-400/50 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_20px_rgba(251,191,36,0.15)]">
-                    <div className="text-left space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">⚡</span>
-                        <h5 className="font-display font-black text-amber-300 text-base uppercase tracking-wider">Demo Auto-Fill (Page 1)</h5>
-                      </div>
-                      <p className="text-xs font-extrabold text-zinc-100">
-                        Click this button to automatically populate all required Page 1 personal, address, and financial funding fields for instant testing.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAutoFillPage1}
-                      className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_0_15px_rgba(251,191,36,0.4)] active:scale-95 cursor-pointer flex-shrink-0 font-display"
-                    >
-                      ✨ Auto-Fill Page 1
-                    </button>
-                  </div>
-
                   {/* Identity Section */}
                   <div className="bg-black/40 border-2 border-white/10 p-8 rounded-3xl space-y-6">
                     <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight border-b-2 border-cyan-400/40 pb-4">
@@ -2763,8 +2747,45 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => {
-                        if (!kycFullName || !kycEmail || !kycPhone || !loanPersonal.dob || !loanPersonal.address || !loanEmployment.income || !loanFunding.amount || !loanFunding.description) {
-                          triggerAlert('error', 'Please complete all required fields on Page 1 before proceeding.');
+                        if (!kycFullName.trim() || kycFullName.trim().split(/\s+/).length < 2) {
+                          triggerAlert('error', 'Please enter your full legal name (first and last name).');
+                          return;
+                        }
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!kycEmail.trim() || !emailRegex.test(kycEmail.trim())) {
+                          triggerAlert('error', 'Please enter a valid email address.');
+                          return;
+                        }
+                        if (!kycPhone.trim() || kycPhone.trim().replace(/\D/g, '').length < 7) {
+                          triggerAlert('error', 'Please enter a valid phone number.');
+                          return;
+                        }
+                        if (!loanPersonal.dob) {
+                          triggerAlert('error', 'Please enter a valid date of birth.');
+                          return;
+                        }
+                        const dobDate = new Date(loanPersonal.dob);
+                        const ageYears = (Date.now() - dobDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+                        if (isNaN(dobDate.getTime()) || ageYears < 18) {
+                          triggerAlert('error', 'Applicant must be at least 18 years of age to apply for credit facility.');
+                          return;
+                        }
+                        if (!loanPersonal.address.trim() || loanPersonal.address.trim().length < 5) {
+                          triggerAlert('error', 'Please enter your full residential address.');
+                          return;
+                        }
+                        const incomeVal = Number(loanEmployment.income);
+                        if (isNaN(incomeVal) || incomeVal <= 0) {
+                          triggerAlert('error', 'Please enter a valid positive monthly income amount.');
+                          return;
+                        }
+                        const amountVal = Number(loanFunding.amount);
+                        if (isNaN(amountVal) || amountVal < 100) {
+                          triggerAlert('error', 'Please enter a valid funding amount (minimum $100).');
+                          return;
+                        }
+                        if (!loanFunding.description.trim() || loanFunding.description.trim().length < 10) {
+                          triggerAlert('error', 'Please provide a detailed purpose or project scope description.');
                           return;
                         }
                         setWizardStep(2);
@@ -2784,26 +2805,6 @@ export default function UserDashboard({
               {/* PAGE 2: SECURITY, LIVENESS PROOF & DECLARATION */}
               {wizardStep === 2 && (
                 <div className="space-y-8 animate-fade-in text-left" id="apply-page-2">
-                  {/* Page 2 Quick Demo Auto-Fill Banner */}
-                  <div className="bg-gradient-to-r from-amber-500/20 via-cyan-500/20 to-amber-500/20 border-2 border-amber-400/50 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_20px_rgba(251,191,36,0.15)]">
-                    <div className="text-left space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">⚡</span>
-                        <h5 className="font-display font-black text-amber-300 text-base uppercase tracking-wider">Demo Auto-Fill (Page 2)</h5>
-                      </div>
-                      <p className="text-xs font-extrabold text-zinc-100">
-                        Click this button to automatically populate SSN/ID, sample document paths, biometric selfie, video statement, and matching typed signature.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleAutoFillPage2}
-                      className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-[0_0_15px_rgba(251,191,36,0.4)] active:scale-95 cursor-pointer flex-shrink-0 font-display"
-                    >
-                      ✨ Auto-Fill Page 2
-                    </button>
-                  </div>
-
                   {/* Top noticeable 3D Back button */}
                   <div className="flex justify-start">
                     <button
@@ -3327,16 +3328,6 @@ export default function UserDashboard({
                           >
                             📁 Upload Selfie Photo from Device Gallery
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setKycSelfie("https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=180&h=180&q=80");
-                              triggerAlert('success', 'Sample biometric selfie photo loaded.');
-                            }}
-                            className="px-5 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-mono font-black text-white uppercase tracking-wider transition cursor-pointer"
-                          >
-                            Sample Photo
-                          </button>
                         </div>
                       </div>
                     </div>
@@ -3396,16 +3387,6 @@ export default function UserDashboard({
                               className="px-6 py-3.5 bg-cyan-400 hover:bg-cyan-300 text-black text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.2)] font-display"
                             >
                               📁 Upload Recorded Video File
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setKycVideoUrl("liveness_video_recording_8821.mp4");
-                                triggerAlert('success', 'Sample video statement loaded.');
-                              }}
-                              className="px-4 py-3.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-mono font-bold text-white transition cursor-pointer"
-                            >
-                              Sample Video
                             </button>
                           </div>
                         </div>

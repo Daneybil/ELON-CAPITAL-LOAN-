@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
 import { 
   ArrowLeft, 
@@ -25,6 +26,8 @@ interface LoanTransparencyPageProps {
 }
 
 export default function LoanTransparencyPage({ onBackToHome, onApplyClick }: LoanTransparencyPageProps) {
+  const { t } = useTranslation();
+
   // Scroll to top when page mounts
   React.useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -42,7 +45,7 @@ export default function LoanTransparencyPage({ onBackToHome, onApplyClick }: Loa
             id="btn-loan-transparency-back"
           >
             <ArrowLeft className="h-5 w-5 sm:h-6 sm:w-6 transition-transform group-hover:-translate-x-1 stroke-[3]" />
-            Back to Home Page
+            {t('nav.backToHome', 'Back to Home Page')}
           </button>
 
           {onApplyClick && (

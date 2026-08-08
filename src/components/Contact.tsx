@@ -1,7 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Mail, Phone, MapPin, Send, ShieldAlert } from 'lucide-react';
 
 export default function Contact() {
+  const { t } = useTranslation();
   const [formData, setFormData] = React.useState({
     name: '',
     email: '',
@@ -35,12 +37,12 @@ export default function Contact() {
           
           {/* Info Block */}
           <div id="contact-info">
-            <h2 className="font-mono text-xs uppercase tracking-widest text-cyan-400 mb-3">Secure Communications</h2>
+            <h2 className="font-mono text-xs uppercase tracking-widest text-cyan-400 mb-3">{t('contact.secureCommunications')}</h2>
             <h3 className="font-display text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
-              Initiate Funding Dialogue
+              {t('contact.title')}
             </h3>
             <p className="text-gray-400 mt-4 text-sm font-light max-w-lg mb-10 leading-relaxed">
-              Have specific capital requirements? Reach out to our liquidity desks. All channels are monitored via secure enterprise-grade systems.
+              {t('contact.subtitle')}
             </p>
 
             <div className="space-y-6" id="contact-channels">

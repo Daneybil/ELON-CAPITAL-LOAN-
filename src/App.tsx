@@ -534,35 +534,12 @@ interface AdminLoginSectionProps {
 
 function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
   const [mode, setMode] = React.useState<'login' | 'register'>('login');
-  const [name, setName] = React.useState('System Administrator');
-  const [email, setEmail] = React.useState('admin@spaceloan.space');
-  const [password, setPassword] = React.useState('admin123');
+  const [name, setName] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
   const [successMsg, setSuccessMsg] = React.useState('');
-
-  const handleInstantAdminLogin = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/register-admin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'Master System Admin',
-          email: 'admin@spaceloan.space',
-          password: 'admin123'
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Instant access failed.');
-      onAuthSuccess(data.token, data.user);
-    } catch (err: any) {
-      setError(err.message || 'Quick login failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -620,20 +597,6 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
         </div>
         <h2 className="font-display text-lg font-bold uppercase tracking-wider text-white">Security Clearance Terminal</h2>
         <p className="font-mono text-[10px] text-gray-400 uppercase tracking-widest mt-1">Administrator Control Desk</p>
-      </div>
-
-      {/* Instant 1-Click Access Button */}
-      <div className="mb-6 p-3 bg-cyan-950/40 border border-cyan-500/30 rounded-xl text-center space-y-2">
-        <p className="text-[11px] text-cyan-300 font-sans">Need instant access to inspect the Admin Dashboard?</p>
-        <button
-          type="button"
-          onClick={handleInstantAdminLogin}
-          disabled={loading}
-          className="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs uppercase tracking-wider rounded-lg transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
-          id="btn-instant-admin-access"
-        >
-          <ShieldAlert className="h-4 w-4" /> ⚡ Instant 1-Click Admin Access
-        </button>
       </div>
 
       {/* Mode Switcher Tabs */}
@@ -723,7 +686,6 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
             <label className="font-mono text-[10px] text-gray-400 uppercase tracking-widest block">
               {mode === 'register' ? 'Set Admin Password' : 'Security Passphrase'}
             </label>
-            {mode === 'login' && <span className="text-[10px] text-cyan-400 font-mono">Demo Password: admin123</span>}
           </div>
           <div className="relative">
             <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />

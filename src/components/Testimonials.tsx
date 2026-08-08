@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Quote, Star, MapPin, ChevronLeft, ChevronRight, MessageSquarePlus, CheckCircle2 } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -14,6 +15,7 @@ interface Testimonial {
 }
 
 export default function Testimonials() {
+  const { t } = useTranslation();
   const allReviews: Testimonial[] = [
     {
       quote: "Elon Capital Loan solved our series startup liquidity puzzle. After the loan application was approved and we paid the 25% refundable collateral fee, our loan was disbursed under 24 hours directly. This is unbelievable, crazy fast, and I'm so happy. Thanks, Elon Musk!",

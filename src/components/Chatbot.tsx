@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageSquare, X, Send, User, ArrowRight, ShieldAlert, Sparkles, Maximize2, Minimize2, AlertCircle, RefreshCw } from 'lucide-react';
 import { User as UserType } from '../types';
 import { getApiUrl } from '../utils/api';
@@ -51,6 +52,7 @@ const FAQ_DATABASE = [
 ];
 
 export default function Chatbot({ user, token, onOpenAuth }: ChatbotProps) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = React.useState(false);
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [hasUnreadReply, setHasUnreadReply] = React.useState(false);

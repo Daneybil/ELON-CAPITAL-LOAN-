@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation, Trans } from 'react-i18next';
 import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
 import { 
   ArrowRight, 
@@ -51,6 +52,7 @@ export default function Hero({
   onGovernmentWarningClick,
   onLoanTransparencyClick
 }: HeroProps) {
+  const { t } = useTranslation();
   // Modal / Drawer states
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [howItWorksOpen, setHowItWorksOpen] = React.useState(false);
@@ -81,10 +83,10 @@ export default function Hero({
         {/* NEW ERA HAS BEGUN. BRING YOUR DREAM TO LIFE - BOLD, VERY BIG, CAPITAL SUBHEADING RIGHT UP */}
         <div className="text-center mb-8 sm:mb-12 lg:mb-16" id="hero-subheading-top">
           <span className="text-cyan-400 font-black text-xl sm:text-4xl lg:text-5xl tracking-[0.18em] uppercase block leading-tight drop-shadow-[0_4px_20px_rgba(34,211,238,0.25)] font-display">
-            NEW ERA HAS BEGUN.
+            {t('hero.newEra')}
           </span>
           <span className="text-white font-black text-lg sm:text-3xl lg:text-4xl tracking-[0.18em] uppercase block mt-2 sm:mt-3 font-display">
-            BRING YOUR DREAM TO LIFE.
+            {t('hero.bringDream')}
           </span>
           <div className="h-[2px] w-24 sm:w-32 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent mx-auto mt-4 sm:mt-6" />
         </div>
@@ -95,10 +97,10 @@ export default function Hero({
           {/* Left Column: Headlines */}
           <div className="lg:col-span-6 flex flex-col justify-center text-left space-y-4 sm:space-y-6">
             <h1 className="font-display text-4xl sm:text-7xl lg:text-[85px] font-black tracking-tight text-white uppercase leading-[0.95]" id="hero-title">
-              <span className="block drop-shadow-[0_4px_20px_rgba(255,255,255,0.05)]">Build Bigger.</span>
-              <span className="block drop-shadow-[0_4px_20px_rgba(255,255,255,0.05)]">Grow Faster.</span>
+              <span className="block drop-shadow-[0_4px_20px_rgba(255,255,255,0.05)]">{t('hero.buildBigger')}</span>
+              <span className="block drop-shadow-[0_4px_20px_rgba(255,255,255,0.05)]">{t('hero.growFaster')}</span>
               <span className="text-cyan-400 block drop-shadow-[0_4px_25px_rgba(34,211,238,0.15)] text-2xl sm:text-5xl lg:text-[64px] tracking-tight leading-[0.95] font-black mt-2 sm:mt-4">
-                Borrow from $1,000 to $500,000,000
+                {t('hero.borrowRange')}
               </span>
             </h1>
           </div>
@@ -127,7 +129,7 @@ export default function Hero({
 
         {/* Professional, comprehensive, targeted tagline */}
         <p className="text-sm sm:text-lg text-white font-semibold leading-relaxed max-w-4xl mx-auto mb-8 sm:mb-12 lg:mb-16 tracking-wide text-center bg-black/95 border-2 border-white/15 rounded-2xl p-4 sm:p-8 shadow-[0_12px_40px_rgba(0,0,0,0.9)]" id="hero-desc">
-          Elon Capital Loan is engineered because traditional bank gatekeepers refuse to support the dreamers of tomorrow. Whether you are an ambitious builder starting with <strong className="text-cyan-400 font-extrabold">zero initial capital</strong>, a high-growth startup, an independent entrepreneur, a cryptocurrency trader seeking leverage, a Web3 developer, a Forex specialist, or an expanding small business—this platform is built for you. We eliminate archaic financial barriers to dispatch instant liquidity, transforming your vision into actionable reality.
+          <Trans i18nKey="hero.description" components={{ strong0: <strong className="text-cyan-400 font-extrabold" /> }} />
         </p>
 
         {/* 5 PREMIUM GIANT HERO ACTIONS IN CLASSICAL 3D FORM */}
@@ -140,7 +142,7 @@ export default function Hero({
           >
             <span className="absolute inset-0 rounded-2xl bg-cyan-900/90 translate-y-2 block"></span>
             <span className="relative flex items-center justify-center gap-2.5 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-cyan-400 text-black text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_20px_rgba(34,211,238,0.25)] border border-cyan-500/35 font-display">
-              Apply for Funding
+              {t('hero.applyFunding')}
               <ArrowRight className="h-4.5 w-4.5 text-black stroke-[3]" />
             </span>
           </button>
@@ -153,7 +155,7 @@ export default function Hero({
           >
             <span className="absolute inset-0 rounded-2xl bg-blue-900 translate-y-2 block"></span>
             <span className="relative flex items-center justify-center gap-2 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-white text-black text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_20px_rgba(255,255,255,0.1)] border-2 border-blue-500 font-display">
-              Get Started
+              {t('hero.getStarted')}
             </span>
           </button>
 
@@ -166,7 +168,7 @@ export default function Hero({
             <span className="absolute inset-0 rounded-2xl bg-emerald-900 translate-y-2 block"></span>
             <span className="relative flex items-center justify-center gap-2.5 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-emerald-400 text-black text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_25px_rgba(52,211,153,0.35)] border-2 border-emerald-300 font-display">
               <ShieldCheck className="h-4.5 w-4.5 text-black stroke-[3]" />
-              Loan Terms & Transparency
+              {t('nav.transparency')}
             </span>
           </button>
 
@@ -178,7 +180,7 @@ export default function Hero({
           >
             <span className="absolute inset-0 rounded-2xl bg-blue-950 translate-y-2 block"></span>
             <span className="relative flex items-center justify-center gap-2 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-blue-600 text-white text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 border-2 border-blue-400 font-display">
-              How It Works
+              {t('nav.howItWorks')}
             </span>
           </button>
 
@@ -202,7 +204,7 @@ export default function Hero({
           >
             <span className="absolute inset-0 rounded-2xl bg-red-950 translate-y-2 block"></span>
             <span className="relative flex items-center justify-center gap-2 px-5 sm:px-8 lg:px-12 py-4 sm:py-5 lg:py-6 rounded-2xl bg-red-600 text-white hover:text-red-300 text-xs sm:text-sm font-black uppercase tracking-widest -translate-y-2 group-hover:-translate-y-1 group-active:translate-y-0 transition-all duration-150 shadow-[0_8px_30px_rgba(239,68,68,0.35)] border border-red-500 font-display">
-              ⚠️ Global Warning
+              {t('nav.globalWarning')}
             </span>
           </button>
 

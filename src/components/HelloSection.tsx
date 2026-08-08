@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ShieldCheck, Rocket, Zap, Globe, ArrowRight } from 'lucide-react';
 
 interface HelloSectionProps {
@@ -6,6 +7,8 @@ interface HelloSectionProps {
 }
 
 export default function HelloSection({ onApplyClick }: HelloSectionProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="w-full max-w-5xl mx-auto px-4 mb-28" id="hello-image-section">
       <div className="relative min-h-[480px] w-full rounded-2xl border-2 border-white/10 bg-black/95 p-8 sm:p-12 shadow-[0_30px_70px_rgba(0,0,0,0.95)] group hover:border-cyan-500/30 transition-all duration-500 overflow-hidden flex flex-col lg:flex-row items-center justify-between gap-12">
@@ -19,16 +22,16 @@ export default function HelloSection({ onApplyClick }: HelloSectionProps) {
         <div className="flex-1 text-left z-10 max-w-xl">
           
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white uppercase leading-tight mb-4">
-            Hello, Welcome to <br />
+            {t('hello.greeting', 'Hello, Welcome to')} <br />
             <span className="text-cyan-400">Elon Capital Loan</span>
           </h2>
           
           <h3 className="font-mono text-xs uppercase tracking-widest text-gray-400 font-bold mb-6">
-            Secure Fast Loan & Change Your Life
+            {t('hello.tagline', 'Secure Fast Loan & Change Your Life')}
           </h3>
           
           <p className="text-sm sm:text-base text-gray-200 font-semibold leading-relaxed mb-8">
-            This platform is built directly in synchronization with the forward-looking technological expansion of our decade. We believe traditional banking gatekeepers are actively holding back the dreamers, the developers, and the builders of the future. By locking decentralized capital facilities up to <strong className="text-cyan-400">$500,000,000</strong>, we back ventures in aerospace, layer-1 blockchain networks, AI research, off-grid infrastructure, and professional crypto trading. 
+            {t('hello.description', 'This platform is built directly in synchronization with the forward-looking technological expansion of our decade. We believe traditional banking gatekeepers are actively holding back the dreamers, the developers, and the builders of the future. By locking decentralized capital facilities up to $500,000,000, we back ventures in aerospace, layer-1 blockchain networks, AI research, off-grid infrastructure, and professional crypto trading.')}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4">
@@ -38,7 +41,7 @@ export default function HelloSection({ onApplyClick }: HelloSectionProps) {
             >
               <span className="absolute inset-0 rounded-xl bg-cyan-800 translate-y-1 block"></span>
               <span className="relative flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-cyan-400 text-black text-xs font-extrabold uppercase tracking-widest -translate-y-1 group-hover:-translate-y-0.5 group-active:translate-y-0 transition-all duration-150 font-display">
-                Apply for Funding
+                {t('hero.applyFunding', 'Apply for Funding')}
                 <ArrowRight className="h-4 w-4 text-black stroke-[2.5]" />
               </span>
             </button>

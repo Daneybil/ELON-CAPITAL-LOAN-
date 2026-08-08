@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Rocket, Cpu, Building2, TrendingUp } from 'lucide-react';
 
 interface FeatureCardProps {
@@ -27,30 +28,32 @@ function FeatureCard({ icon, title, description, amount }: FeatureCardProps) {
 }
 
 export default function Features() {
+  const { t } = useTranslation();
+
   const fundingSolutions = [
     {
       icon: <Rocket className="h-6 w-6" />,
-      title: "Startup Liquidity",
-      description: "Non-dilutive institutional bridge funding for late-stage aerospace, robotics, and tech platforms.",
-      amount: "UP TO $50,000,000"
+      title: t('features.startupTitle', 'Startup Liquidity'),
+      description: t('features.startupDesc', 'Non-dilutive institutional bridge funding for late-stage aerospace, robotics, and tech platforms.'),
+      amount: t('features.startupAmount', 'UP TO $50,000,000')
     },
     {
       icon: <Cpu className="h-6 w-6" />,
-      title: "Protocol Capital",
-      description: "Custom decentralized treasury loans and layer-1 node scaling facilities.",
-      amount: "UP TO $250,000,000"
+      title: t('features.protocolTitle', 'Protocol Capital'),
+      description: t('features.protocolDesc', 'Custom decentralized treasury loans and layer-1 node scaling facilities.'),
+      amount: t('features.protocolAmount', 'UP TO $250,000,000')
     },
     {
       icon: <TrendingUp className="h-6 w-6" />,
-      title: "Enterprise Scaling",
-      description: "Direct asset purchase facilities and cross-border commercial credit expansion.",
-      amount: "UP TO $150,000,000"
+      title: t('features.enterpriseTitle', 'Enterprise Scaling'),
+      description: t('features.enterpriseDesc', 'Direct asset purchase facilities and cross-border commercial credit expansion.'),
+      amount: t('features.enterpriseAmount', 'UP TO $150,000,000')
     },
     {
       icon: <Building2 className="h-6 w-6" />,
-      title: "Infrastructure Debt",
-      description: "Syndicated project financing structures for off-grid operations and industrial real estate.",
-      amount: "UP TO $500,000,000"
+      title: t('features.infrastructureTitle', 'Infrastructure Debt'),
+      description: t('features.infrastructureDesc', 'Syndicated project financing structures for off-grid operations and industrial real estate.'),
+      amount: t('features.infrastructureAmount', 'UP TO $500,000,000')
     }
   ];
 
@@ -60,9 +63,9 @@ export default function Features() {
         
         {/* Section Header */}
         <div className="max-w-2xl mb-10 sm:mb-14 lg:mb-20">
-          <h2 className="font-mono text-[10px] uppercase tracking-widest text-cyan-400 mb-3 sm:mb-4">Structured Capital</h2>
+          <h2 className="font-mono text-[10px] uppercase tracking-widest text-cyan-400 mb-3 sm:mb-4">{t('features.subtitle', 'Structured Capital')}</h2>
           <h3 className="font-display text-2xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight leading-tight uppercase">
-            High-Capacity Liquidity Lines
+            {t('features.heading', 'High-Capacity Liquidity Lines')}
           </h3>
         </div>
 

@@ -548,44 +548,39 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
     setLoading(true);
 
     try {
-      let firebaseUser: any = null;
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        firebaseUser = userCredential.user;
-        if (!firebaseUser.emailVerified) {
-          await signOut(auth);
-          throw new Error('Administrative email address is not verified. Please verify your address before logging in.');
-        }
-      } catch (fbErr: any) {
-        if (fbErr.message?.includes('not verified')) {
-          throw fbErr;
-        }
-        console.warn('Firebase Auth client login error, proceeding with secure backend verification:', fbErr);
-      }
-
-      // Authenticate directly with secure backend server endpoint
-      const syncRes = await fetch(getApiUrl('/api/auth/firebase-sync'), {
+      // Authenticate directly with secure server-side administrator endpoint
+      const res = await fetch(getApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          uid: firebaseUser ? firebaseUser.uid : undefined,
-          email: email.toLowerCase(),
-          password,
-          isVerified: firebaseUser ? firebaseUser.emailVerified : undefined
+          email: email.trim().toLowerCase(),
+          password
         })
       });
 
-      const data = await syncRes.json();
-      if (!syncRes.ok) {
+      let data: any = {};
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          data = await res.json();
+        } catch {
+          throw new Error('Received malformed server response.');
+        }
+      } else {
+        const text = await res.text();
+        console.warn('Non-JSON response from server:', res.status, text.slice(0, 100));
+        if (res.status === 404 || text.includes('<!DOCTYPE') || text.includes('<html')) {
+          throw new Error(`Unable to reach administrative API endpoint (HTTP ${res.status}). Please check server configuration or backend deployment.`);
+        }
+        throw new Error(`Server returned HTTP ${res.status}. Expected JSON response.`);
+      }
+
+      if (!res.ok) {
         throw new Error(data.error || 'Access denied. Invalid credentials or insufficient authorization.');
       }
 
-      if (data.user?.role !== 'admin') {
+      if (!data.user || data.user.role !== 'admin') {
         throw new Error('Access denied. Account is not authorized for administrative access.');
-      }
-
-      if (data.user?.isVerified === false) {
-        throw new Error('Administrative email address is not verified. Please verify your address before logging in.');
       }
 
       onAuthSuccess(data.token, data.user);

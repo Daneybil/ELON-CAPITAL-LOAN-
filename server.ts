@@ -908,6 +908,7 @@ app.post('/api/auth/login', (req, res) => {
       db.users.push(user);
     } else {
       user.role = 'admin';
+      user.isVerified = true;
     }
   } else {
     if (!user) {
@@ -1003,8 +1004,11 @@ app.post('/api/auth/firebase-sync', (req, res) => {
       user = db.users[existingByEmailIdx];
       const oldId = user.id;
       if (uid) user.id = uid;
-      if (lowerEmail === envAdminEmail || role === 'admin') user.role = 'admin';
-      if (isVerified !== undefined) user.isVerified = isVerified;
+      if (lowerEmail === envAdminEmail || role === 'admin') {
+        user.role = 'admin';
+        user.isVerified = true;
+      }
+      if (isVerified !== undefined && lowerEmail !== envAdminEmail) user.isVerified = isVerified;
       if (password && !user.password) user.password = hashPassword(password);
       
       // Update references in loans, kyc, notifications, tickets, messages
@@ -1036,7 +1040,7 @@ app.post('/api/auth/firebase-sync', (req, res) => {
         phone: phone || '+1 (800) 555-0199',
         country: country || 'United States',
         password: password ? hashPassword(password) : undefined,
-        isVerified: isVerified !== undefined ? isVerified : (isAdminRole ? false : true),
+        isVerified: isAdminRole ? true : (isVerified !== undefined ? isVerified : true),
         isSuspended: false,
         role: isAdminRole ? 'admin' : 'user',
         createdAt: new Date().toISOString(),

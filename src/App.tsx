@@ -560,10 +560,9 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Admin registration failed.');
-        setSuccessMsg('Administrator account registered successfully! Logging in...');
-        setTimeout(() => {
-          onAuthSuccess(data.token, data.user);
-        }, 1000);
+        setSuccessMsg(data.message || 'Administrator account registered! Please check your email to verify your address before signing in.');
+        setMode('login');
+        setPassword('');
       } else {
         const res = await fetch('/api/auth/login', {
           method: 'POST',

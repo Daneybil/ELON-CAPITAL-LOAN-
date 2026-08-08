@@ -92,7 +92,6 @@ export default function AdminDashboard({
   const [adminPassword, setAdminPassword] = React.useState('');
   const [mfaCode, setMfaCode] = React.useState('');
   const [mfaStep, setMfaStep] = React.useState(false);
-  const [demoMfaToken] = React.useState('842940');
 
   // Panel Tabs
   const [adminTab, setAdminTab] = React.useState<'stats' | 'users' | 'kyc' | 'loans' | 'payments' | 'repayments' | 'tickets' | 'messages' | 'announcements' | 'homepage' | 'logs'>('stats');
@@ -243,16 +242,51 @@ export default function AdminDashboard({
     }
   }, [selectedUserForMsg, isAuthorized, headers]);
 
-  // Auth administrative password check
-  const handleVerifyPassword = (e: React.FormEvent) => {
+  // Auth administrative password check & OTP dispatch
+  const handleVerifyPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setLoading(true);
 
-    if (adminPassword === 'admin123') {
+    try {
+      const res = await fetch(getApiUrl('/api/admin/send-otp'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ adminPassword })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Password verification failed.');
+
       setMfaStep(true);
-      triggerAlert('success', 'Credentials accepted. Input MFA secure code.');
-    } else {
-      triggerAlert('error', 'Invalid administrative access password.');
+      triggerAlert('success', data.message || 'Credentials accepted. Verification code sent to your registered admin email.');
+    } catch (err: any) {
+      triggerAlert('error', err.message || 'Invalid administrative access password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Auth administrative OTP resend
+  const handleResendOtp = async () => {
+    setErrorMsg('');
+    setLoading(true);
+
+    try {
+      const res = await fetch(getApiUrl('/api/admin/send-otp'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ adminPassword })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to resend verification code.');
+
+      triggerAlert('success', data.message || 'A new verification code has been sent to your admin email address.');
+    } catch (err: any) {
+      triggerAlert('error', err.message || 'Resend request failed.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -648,20 +682,20 @@ export default function AdminDashboard({
 
             <button
               type="submit"
-              className="w-full py-3.5 text-xs font-semibold text-black bg-white hover:bg-cyan-400 rounded-xl transition-all"
+              disabled={loading}
+              className="w-full py-3.5 text-xs font-semibold text-black bg-white hover:bg-cyan-400 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              Verify Master Password
+              {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Verify Master Password"}
             </button>
           </form>
         ) : (
           <form onSubmit={handleVerifyMfa} className="space-y-4" id="form-admin-mfa">
-            {/* Show code directly to evaluation agent */}
-            <div className="p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-lg text-xs text-center font-mono text-gray-400">
-              MFA Security Token generated: <span className="text-white font-bold select-all">{demoMfaToken}</span>
+            <div className="p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-lg text-xs text-center font-mono text-cyan-300">
+              A 6-digit security code has been sent to your verified administrative email address.
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-gray-500 uppercase mb-2">6-Digit 2FA Authenticator Token</label>
+              <label className="block text-xs font-mono text-gray-500 uppercase mb-2">6-Digit Email Verification Code</label>
               <input 
                 type="text" 
                 maxLength={6}
@@ -676,10 +710,21 @@ export default function AdminDashboard({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 text-xs font-semibold text-black bg-cyan-400 hover:bg-cyan-300 rounded-xl transition-all flex items-center justify-center gap-2"
+              className="w-full py-3.5 text-xs font-semibold text-black bg-cyan-400 hover:bg-cyan-300 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : "Unlock Administration Desk"}
             </button>
+
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleResendOtp}
+                className="text-[11px] font-mono text-cyan-400 hover:underline cursor-pointer disabled:opacity-50"
+              >
+                Did not receive the code? Resend OTP
+              </button>
+            </div>
           </form>
         )}
       </div>

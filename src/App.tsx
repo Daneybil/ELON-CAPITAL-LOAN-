@@ -533,111 +533,64 @@ interface AdminLoginSectionProps {
 }
 
 function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
-  const [mode, setMode] = React.useState<'login' | 'register'>('login');
-  const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
-  const [successMsg, setSuccessMsg] = React.useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError('Email and password are required.');
+      setError('Administrative email/identifier and security passphrase are required.');
       return;
     }
     setError('');
-    setSuccessMsg('');
     setLoading(true);
 
     try {
-      if (mode === 'register') {
-        let firebaseUser: any = null;
-        try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          firebaseUser = userCredential.user;
-          await sendEmailVerification(firebaseUser);
-        } catch (fbErr: any) {
-          console.warn('Firebase Auth client createUser error:', fbErr);
-          if (fbErr.code === 'auth/email-already-in-use') {
-            throw new Error('This email address is already registered in our secure archives.');
-          } else if (fbErr.code === 'auth/weak-password') {
-            throw new Error('Security protocols require a password of at least 6 characters.');
-          } else if (fbErr.code === 'auth/invalid-email') {
-            throw new Error('The specified email address format is invalid.');
-          }
-        }
-
-        // Sync administrator profile on backend with role: 'admin' and isVerified: false
-        const syncRes = await fetch(getApiUrl('/api/auth/firebase-sync'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            uid: firebaseUser ? firebaseUser.uid : `admin_${Date.now()}`,
-            email: email.toLowerCase(),
-            name: name || 'System Administrator',
-            role: 'admin',
-            isVerified: false,
-            password
-          })
-        });
-
-        const syncData = await syncRes.json();
-        if (!syncRes.ok) throw new Error(syncData.error || 'Failed to sync administrator profile.');
-
-        if (firebaseUser) {
+      let firebaseUser: any = null;
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        firebaseUser = userCredential.user;
+        if (!firebaseUser.emailVerified) {
           await signOut(auth);
+          throw new Error('Administrative email address is not verified. Please verify your address before logging in.');
         }
-
-        setSuccessMsg('Administrator account registered! A Firebase verification email has been sent to your email address. Please check your inbox and click the verification link before logging in.');
-        setMode('login');
-        setPassword('');
-      } else {
-        let firebaseUser: any = null;
-        try {
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          firebaseUser = userCredential.user;
-          if (!firebaseUser.emailVerified) {
-            await signOut(auth);
-            throw new Error('Administrative email address is not verified. Please check your inbox and click the verification link before logging in.');
-          }
-        } catch (fbErr: any) {
-          if (fbErr.message?.includes('not verified')) {
-            throw fbErr;
-          }
-          console.warn('Firebase Auth client login error, attempting server fallback:', fbErr);
+      } catch (fbErr: any) {
+        if (fbErr.message?.includes('not verified')) {
+          throw fbErr;
         }
-
-        // Authenticate / sync with backend
-        const syncRes = await fetch(getApiUrl('/api/auth/firebase-sync'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            uid: firebaseUser ? firebaseUser.uid : undefined,
-            email: email.toLowerCase(),
-            password,
-            isVerified: firebaseUser ? firebaseUser.emailVerified : undefined
-          })
-        });
-
-        const data = await syncRes.json();
-        if (!syncRes.ok) {
-          throw new Error(data.error || 'Access denied.');
-        }
-
-        if (data.user?.role !== 'admin') {
-          throw new Error('This account is not designated as an administrator.');
-        }
-
-        if (data.user?.isVerified === false) {
-          throw new Error('Administrative email address is not verified. Please check your inbox and click the verification link before logging in.');
-        }
-
-        onAuthSuccess(data.token, data.user);
+        console.warn('Firebase Auth client login error, proceeding with secure backend verification:', fbErr);
       }
+
+      // Authenticate directly with secure backend server endpoint
+      const syncRes = await fetch(getApiUrl('/api/auth/firebase-sync'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: firebaseUser ? firebaseUser.uid : undefined,
+          email: email.toLowerCase(),
+          password,
+          isVerified: firebaseUser ? firebaseUser.emailVerified : undefined
+        })
+      });
+
+      const data = await syncRes.json();
+      if (!syncRes.ok) {
+        throw new Error(data.error || 'Access denied. Invalid credentials or insufficient authorization.');
+      }
+
+      if (data.user?.role !== 'admin') {
+        throw new Error('Access denied. Account is not authorized for administrative access.');
+      }
+
+      if (data.user?.isVerified === false) {
+        throw new Error('Administrative email address is not verified. Please verify your address before logging in.');
+      }
+
+      onAuthSuccess(data.token, data.user);
     } catch (err: any) {
-      setError(err.message || 'System verification failed.');
+      setError(err.message || 'Access denied. Invalid credentials or insufficient clearance.');
     } finally {
       setLoading(false);
     }
@@ -649,78 +602,21 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
         <div className="h-12 w-12 rounded-xl bg-cyan-950/80 border border-cyan-500/30 flex items-center justify-center mx-auto mb-3 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
           <ShieldAlert className="h-6 w-6 animate-pulse" />
         </div>
-        <h2 className="font-display text-lg font-bold uppercase tracking-wider text-white">Security Clearance Terminal</h2>
-        <p className="font-mono text-[10px] text-gray-400 uppercase tracking-widest mt-1">Administrator Control Desk</p>
-      </div>
-
-      {/* Mode Switcher Tabs */}
-      <div className="flex border border-white/10 rounded-xl p-1 bg-black/40 mb-6 font-mono text-xs">
-        <button
-          type="button"
-          onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); }}
-          className={`flex-1 py-2 rounded-lg transition-all font-bold ${
-            mode === 'login' ? 'bg-cyan-500 text-black shadow-md' : 'text-gray-400 hover:text-white'
-          }`}
-          id="tab-admin-signin"
-        >
-          Admin Sign In
-        </button>
-        <button
-          type="button"
-          onClick={() => { setMode('register'); setError(''); setSuccessMsg(''); }}
-          className={`flex-1 py-2 rounded-lg transition-all font-bold ${
-            mode === 'register' ? 'bg-cyan-500 text-black shadow-md' : 'text-gray-400 hover:text-white'
-          }`}
-          id="tab-admin-signup"
-        >
-          Create Admin Account
-        </button>
+        <h2 className="font-display text-lg font-bold uppercase tracking-wider text-white">Administrator Portal</h2>
+        <p className="font-mono text-[10px] text-gray-400 uppercase tracking-widest mt-1">Authorized Personnel Only</p>
       </div>
 
       {error && (
         <div className="mb-6 p-4 border border-red-500/30 bg-red-950/30 text-red-300 text-xs rounded-xl flex items-start gap-2.5 font-sans" id="admin-login-error">
           <ShieldAlert className="h-4 w-4 flex-shrink-0 text-red-400 mt-0.5" />
-          <div>
-            <span>{error}</span>
-            {mode === 'login' && (
-              <button
-                type="button"
-                onClick={() => setMode('register')}
-                className="block mt-2 text-cyan-400 underline font-bold text-[11px]"
-              >
-                → Click here to Register a new Admin Account instead
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {successMsg && (
-        <div className="mb-6 p-4 border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 text-xs rounded-xl font-sans" id="admin-login-success">
-          {successMsg}
+          <span>{error}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4" id="admin-login-form">
-        {mode === 'register' && (
-          <div className="space-y-1.5">
-            <label className="font-mono text-[10px] text-gray-400 uppercase tracking-widest block">Administrator Full Name</label>
-            <div className="relative">
-              <input 
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:border-cyan-500/50 outline-none transition font-sans"
-                placeholder="e.g. Master Administrator"
-                required
-              />
-            </div>
-          </div>
-        )}
-
         <div className="space-y-1.5">
           <label className="font-mono text-[10px] text-gray-400 uppercase tracking-widest block">
-            {mode === 'register' ? 'Admin Email Address' : 'Administrative Identifier'}
+            Administrative Identifier
           </label>
           <div className="relative">
             <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -729,7 +625,7 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:border-cyan-500/50 outline-none transition font-sans"
-              placeholder="admin@spaceloan.space"
+              placeholder="admin@eloncapitalloan.com"
               required
             />
           </div>
@@ -738,7 +634,7 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="font-mono text-[10px] text-gray-400 uppercase tracking-widest block">
-              {mode === 'register' ? 'Set Admin Password' : 'Security Passphrase'}
+              Security Passphrase
             </label>
           </div>
           <div className="relative">
@@ -761,13 +657,9 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
         >
           {loading ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
-          ) : mode === 'register' ? (
-            <>
-              Register & Access Admin Portal <ArrowUpRight className="h-4 w-4" />
-            </>
           ) : (
             <>
-              Sign In to Admin Portal <ArrowUpRight className="h-4 w-4" />
+              Authenticate & Access Portal <ArrowUpRight className="h-4 w-4" />
             </>
           )}
         </button>

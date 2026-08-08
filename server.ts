@@ -16,15 +16,31 @@ function hashPassword(password: string): string {
 
 function verifyPassword(password: string, hash?: string): boolean {
   if (!hash) return false;
-  if (hash === 'admin123' || hash === 'password123' || hash === password) {
-    return true;
-  }
+  // First check direct match or PBKDF2 salt hash match
+  if (password === hash) return true;
   const computed = hashPassword(password);
   try {
     return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(hash));
   } catch {
     return computed === hash;
   }
+}
+
+// In-memory rate limiting map for authentication attempts (IP -> { count, resetAt })
+const loginRateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function checkLoginRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = loginRateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    loginRateLimitMap.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 }); // 15 minute window
+    return true;
+  }
+  if (entry.count >= 15) {
+    return false; // Exceeded max attempts
+  }
+  entry.count += 1;
+  return true;
 }
 
 // Server-side Admin Email Sender Helper
@@ -750,67 +766,9 @@ app.post('/api/auth/register', (req, res) => {
   });
 });
 
-// 2b. AUTH ADMIN REGISTRATION
-app.post('/api/auth/register-admin', (req, res) => {
-  const { name, email, password } = req.body;
-
-  if (!email || !password) {
-    res.status(400).json({ error: 'Email and password are required.' });
-    return;
-  }
-
-  if (password.length < 8) {
-    res.status(400).json({ error: 'Password must be at least 8 characters long.' });
-    return;
-  }
-
-  const db = getDB();
-  const lowerEmail = email.toLowerCase();
-  const existingUser = db.users.find(u => u.email.toLowerCase() === lowerEmail);
-
-  if (existingUser) {
-    res.status(400).json({ error: 'An account with this email address already exists.' });
-    return;
-  }
-
-  const verificationCode = crypto.randomInt(100000, 999999).toString();
-  const hashedPassword = hashPassword(password);
-
-  const newAdmin: User & { otpHash?: string; otpExpiresAt?: number; otpAttempts?: number } = {
-    id: generateId(),
-    name: name || 'System Administrator',
-    email: lowerEmail,
-    password: hashedPassword,
-    phone: '+1 (800) 555-0199',
-    country: 'United States',
-    isVerified: false, // Must verify email address!
-    verificationCode,
-    isSuspended: false,
-    role: 'admin',
-    createdAt: new Date().toISOString(),
-    activityHistory: [
-      { id: generateId(), action: "Admin registration initiated", timestamp: new Date().toISOString(), ipAddress: req.ip || "127.0.0.1" }
-    ]
-  };
-
-  db.users.push(newAdmin);
-  saveDB(db);
-
-  logAction("Admin Registration", `Admin registration initiated for ${lowerEmail}`, { id: newAdmin.id, email: newAdmin.email }, req.ip);
-
-  // Send verification email
-  sendAdminEmail({
-    to: lowerEmail,
-    subject: 'SpaceLoan Admin Account Email Verification',
-    text: `Welcome, Administrator. Your email verification code is: ${verificationCode}\n\nPlease enter this code to verify your administrative account.`,
-    html: `<p>Welcome, Administrator.</p><p>Your email verification code is: <strong>${verificationCode}</strong></p>`
-  });
-
-  res.json({ 
-    message: 'Administrator account registered successfully. A verification code has been sent to your email address. Please verify your email before logging in.', 
-    email: lowerEmail,
-    verificationCode // Optional: returned in API for seamless testing/verification
-  });
+// 2b. AUTH ADMIN REGISTRATION (DISABLED - PRIVATE ADMIN SYSTEM)
+app.post('/api/auth/register-admin', (_req, res) => {
+  res.status(403).json({ error: 'Public administrator registration is disabled.' });
 });
 
 // 3. AUTH EMAIL VERIFICATION
@@ -897,7 +855,13 @@ app.post('/api/auth/reset-password', (req, res) => {
 
 // 4. AUTH LOGIN
 app.post('/api/auth/login', (req, res) => {
-  const { email, password, rememberMe } = req.body;
+  const ip = req.ip || '127.0.0.1';
+  if (!checkLoginRateLimit(ip)) {
+    res.status(429).json({ error: 'Too many authentication attempts. Please try again in 15 minutes.' });
+    return;
+  }
+
+  const { email, password } = req.body;
 
   if (!email || !password) {
     res.status(400).json({ error: 'Email and password are required.' });
@@ -905,20 +869,58 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   const db = getDB();
-  const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  const lowerEmail = email.toLowerCase();
+  const envAdminEmail = (process.env.ADMIN_LOGIN_EMAIL || 'admin@eloncapitalloan.com').toLowerCase();
 
-  if (!user) {
-    res.status(401).json({ error: 'Invalid email or password.' });
-    return;
+  let user = db.users.find(u => u.email.toLowerCase() === lowerEmail);
+
+  // Check if logging in as Admin
+  if (lowerEmail === envAdminEmail || (user && user.role === 'admin')) {
+    let validAdminPassword = false;
+
+    if (process.env.ADMIN_PASSWORD_HASH) {
+      validAdminPassword = verifyPassword(password, process.env.ADMIN_PASSWORD_HASH);
+    } else if (process.env.ADMIN_PASSWORD) {
+      validAdminPassword = password === process.env.ADMIN_PASSWORD || verifyPassword(password, hashPassword(process.env.ADMIN_PASSWORD));
+    } else if (user && user.password) {
+      validAdminPassword = verifyPassword(password, user.password);
+    }
+
+    if (!validAdminPassword) {
+      res.status(401).json({ error: 'Access denied. Invalid credentials or insufficient clearance.' });
+      return;
+    }
+
+    if (!user) {
+      user = {
+        id: 'admin-1',
+        name: 'System Administrator',
+        email: envAdminEmail,
+        phone: '+1 (800) 555-0199',
+        country: 'United States',
+        password: hashPassword(password),
+        isVerified: true,
+        isSuspended: false,
+        role: 'admin',
+        createdAt: new Date().toISOString(),
+        activityHistory: []
+      };
+      db.users.push(user);
+    } else {
+      user.role = 'admin';
+    }
+  } else {
+    if (!user) {
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
+    }
+
+    if (!verifyPassword(password, user.password)) {
+      res.status(401).json({ error: 'Invalid email or password.' });
+      return;
+    }
   }
 
-  // Enforce password verification
-  if (!verifyPassword(password, user.password)) {
-    res.status(401).json({ error: 'Invalid email or password.' });
-    return;
-  }
-
-  // Automatically migrate legacy plaintext password to secure salt hash on successful auth
   if (user.password && !user.password.includes(':') && user.password.length < 64) {
     user.password = hashPassword(password);
   }
@@ -928,32 +930,38 @@ app.post('/api/auth/login', (req, res) => {
     return;
   }
 
-  if (user.role === 'admin' && !user.isVerified) {
+  if (user.role === 'admin' && user.isVerified === false) {
     res.status(403).json({ error: 'Administrative email address is not verified. Please check your inbox and verify your email before logging in.' });
     return;
   }
 
-  // In a simulated database we allow valid login
-  user.activityHistory?.unshift({
+  if (!user.activityHistory) user.activityHistory = [];
+  user.activityHistory.unshift({
     id: generateId(),
     action: "User logged in",
     timestamp: new Date().toISOString(),
-    ipAddress: req.ip || "127.0.0.1"
+    ipAddress: ip
   });
 
   saveDB(db);
 
-  logAction("User Login", `Successful login for ${email}`, { id: user.id, email: user.email }, req.ip);
+  logAction("User Login", `Successful login for ${email}`, { id: user.id, email: user.email }, ip);
 
   res.json({
     message: 'Login successful.',
-    token: user.id, // User ID acts as our Bearer token for simulated sessions
+    token: user.id,
     user
   });
 });
 
 // 4b. AUTH FIREBASE SYNC
 app.post('/api/auth/firebase-sync', (req, res) => {
+  const ip = req.ip || '127.0.0.1';
+  if (!checkLoginRateLimit(ip)) {
+    res.status(429).json({ error: 'Too many authentication attempts. Please try again in 15 minutes.' });
+    return;
+  }
+
   const { uid, email, name, phone, country, isVerified, role, password } = req.body;
 
   if (!email) {
@@ -963,9 +971,29 @@ app.post('/api/auth/firebase-sync', (req, res) => {
 
   const db = getDB();
   const lowerEmail = email.toLowerCase();
+  const envAdminEmail = (process.env.ADMIN_LOGIN_EMAIL || 'admin@eloncapitalloan.com').toLowerCase();
   
   // 1. Try to find user by id === uid
   let user = uid ? db.users.find(u => u.id === uid) : undefined;
+
+  // Check if this is an admin authentication/sync attempt
+  if (lowerEmail === envAdminEmail || (user && user.role === 'admin') || role === 'admin') {
+    if (password) {
+      let validAdminPassword = false;
+      if (process.env.ADMIN_PASSWORD_HASH) {
+        validAdminPassword = verifyPassword(password, process.env.ADMIN_PASSWORD_HASH);
+      } else if (process.env.ADMIN_PASSWORD) {
+        validAdminPassword = password === process.env.ADMIN_PASSWORD || verifyPassword(password, hashPassword(process.env.ADMIN_PASSWORD));
+      } else if (user && user.password) {
+        validAdminPassword = verifyPassword(password, user.password);
+      }
+
+      if (!validAdminPassword) {
+        res.status(401).json({ error: 'Access denied. Invalid credentials or insufficient clearance.' });
+        return;
+      }
+    }
+  }
   
   if (!user) {
     // 2. Try to find user by email
@@ -975,7 +1003,7 @@ app.post('/api/auth/firebase-sync', (req, res) => {
       user = db.users[existingByEmailIdx];
       const oldId = user.id;
       if (uid) user.id = uid;
-      if (role === 'admin') user.role = 'admin';
+      if (lowerEmail === envAdminEmail || role === 'admin') user.role = 'admin';
       if (isVerified !== undefined) user.isVerified = isVerified;
       if (password && !user.password) user.password = hashPassword(password);
       
@@ -996,11 +1024,11 @@ app.post('/api/auth/firebase-sync', (req, res) => {
         id: generateId(),
         action: "Account mapped to Firebase credentials",
         timestamp: new Date().toISOString(),
-        ipAddress: req.ip || "127.0.0.1"
+        ipAddress: ip
       });
     } else {
       // 3. Create a new user record in database.json
-      const isAdminRole = role === 'admin' || lowerEmail === 'admin@eloncapitalloan.com';
+      const isAdminRole = lowerEmail === envAdminEmail || role === 'admin';
       user = {
         id: uid || generateId(),
         name: name || lowerEmail.split('@')[0],
@@ -1018,14 +1046,14 @@ app.post('/api/auth/firebase-sync', (req, res) => {
           securityAlerts: true
         },
         activityHistory: [
-          { id: generateId(), action: "Account created via Firebase Auth", timestamp: new Date().toISOString(), ipAddress: req.ip || "127.0.0.1" }
+          { id: generateId(), action: "Account created via Firebase Auth", timestamp: new Date().toISOString(), ipAddress: ip }
         ]
       };
       db.users.push(user);
     }
   } else {
     // User already exists by UID
-    if (role === 'admin') user.role = 'admin';
+    if (lowerEmail === envAdminEmail || role === 'admin') user.role = 'admin';
     if (isVerified !== undefined) user.isVerified = isVerified;
     if (password && !user.password) user.password = hashPassword(password);
   }
@@ -1045,12 +1073,12 @@ app.post('/api/auth/firebase-sync', (req, res) => {
     id: generateId(),
     action: "User logged in (Firebase Auth)",
     timestamp: new Date().toISOString(),
-    ipAddress: req.ip || "127.0.0.1"
+    ipAddress: ip
   });
 
   saveDB(db);
 
-  logAction("Firebase Sync/Login", `User ${email} synchronized via Firebase Auth`, { id: user.id, email: user.email }, req.ip);
+  logAction("Firebase Sync/Login", `User ${email} synchronized via Firebase Auth`, { id: user.id, email: user.email }, ip);
 
   res.json({
     message: 'Synchronization successful.',

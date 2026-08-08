@@ -17,7 +17,7 @@ import GovernmentWarningPage from './components/GovernmentWarningPage';
 import LoanTransparencyPage from './components/LoanTransparencyPage';
 import Chatbot from './components/Chatbot';
 import { Megaphone, X, ShieldAlert, Lock, Mail, ArrowUpRight, RefreshCw } from 'lucide-react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth } from './firebase';
 import { getApiUrl } from './utils/api';
 
@@ -553,30 +553,85 @@ function AdminLoginSection({ onAuthSuccess }: AdminLoginSectionProps) {
 
     try {
       if (mode === 'register') {
-        const res = await fetch('/api/auth/register-admin', {
+        let firebaseUser: any = null;
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          firebaseUser = userCredential.user;
+          await sendEmailVerification(firebaseUser);
+        } catch (fbErr: any) {
+          console.warn('Firebase Auth client createUser error:', fbErr);
+          if (fbErr.code === 'auth/email-already-in-use') {
+            throw new Error('This email address is already registered in our secure archives.');
+          } else if (fbErr.code === 'auth/weak-password') {
+            throw new Error('Security protocols require a password of at least 6 characters.');
+          } else if (fbErr.code === 'auth/invalid-email') {
+            throw new Error('The specified email address format is invalid.');
+          }
+        }
+
+        // Sync administrator profile on backend with role: 'admin' and isVerified: false
+        const syncRes = await fetch(getApiUrl('/api/auth/firebase-sync'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password }),
+          body: JSON.stringify({
+            uid: firebaseUser ? firebaseUser.uid : `admin_${Date.now()}`,
+            email: email.toLowerCase(),
+            name: name || 'System Administrator',
+            role: 'admin',
+            isVerified: false,
+            password
+          })
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Admin registration failed.');
-        setSuccessMsg(data.message || 'Administrator account registered! Please check your email to verify your address before signing in.');
+
+        const syncData = await syncRes.json();
+        if (!syncRes.ok) throw new Error(syncData.error || 'Failed to sync administrator profile.');
+
+        if (firebaseUser) {
+          await signOut(auth);
+        }
+
+        setSuccessMsg('Administrator account registered! A Firebase verification email has been sent to your email address. Please check your inbox and click the verification link before logging in.');
         setMode('login');
         setPassword('');
       } else {
-        const res = await fetch('/api/auth/login', {
+        let firebaseUser: any = null;
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          firebaseUser = userCredential.user;
+          if (!firebaseUser.emailVerified) {
+            await signOut(auth);
+            throw new Error('Administrative email address is not verified. Please check your inbox and click the verification link before logging in.');
+          }
+        } catch (fbErr: any) {
+          if (fbErr.message?.includes('not verified')) {
+            throw fbErr;
+          }
+          console.warn('Firebase Auth client login error, attempting server fallback:', fbErr);
+        }
+
+        // Authenticate / sync with backend
+        const syncRes = await fetch(getApiUrl('/api/auth/firebase-sync'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({
+            uid: firebaseUser ? firebaseUser.uid : undefined,
+            email: email.toLowerCase(),
+            password,
+            isVerified: firebaseUser ? firebaseUser.emailVerified : undefined
+          })
         });
 
-        const data = await res.json();
-        if (!res.ok) {
+        const data = await syncRes.json();
+        if (!syncRes.ok) {
           throw new Error(data.error || 'Access denied.');
         }
 
         if (data.user?.role !== 'admin') {
           throw new Error('This account is not designated as an administrator.');
+        }
+
+        if (data.user?.isVerified === false) {
+          throw new Error('Administrative email address is not verified. Please check your inbox and click the verification link before logging in.');
         }
 
         onAuthSuccess(data.token, data.user);

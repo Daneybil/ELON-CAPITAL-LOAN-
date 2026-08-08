@@ -954,37 +954,42 @@ app.post('/api/auth/login', (req, res) => {
 
 // 4b. AUTH FIREBASE SYNC
 app.post('/api/auth/firebase-sync', (req, res) => {
-  const { uid, email, name, phone, country, isVerified } = req.body;
+  const { uid, email, name, phone, country, isVerified, role, password } = req.body;
 
-  if (!uid || !email) {
-    res.status(400).json({ error: 'UID and Email are required for synchronization.' });
+  if (!email) {
+    res.status(400).json({ error: 'Email is required for synchronization.' });
     return;
   }
 
   const db = getDB();
+  const lowerEmail = email.toLowerCase();
   
   // 1. Try to find user by id === uid
-  let user = db.users.find(u => u.id === uid);
+  let user = uid ? db.users.find(u => u.id === uid) : undefined;
   
   if (!user) {
     // 2. Try to find user by email
-    const existingByEmailIdx = db.users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+    const existingByEmailIdx = db.users.findIndex(u => u.email.toLowerCase() === lowerEmail);
     if (existingByEmailIdx !== -1) {
-      // Migrate existing user to use the Firebase uid as their local id!
+      // Migrate existing user
       user = db.users[existingByEmailIdx];
       const oldId = user.id;
-      user.id = uid;
-      user.isVerified = isVerified !== undefined ? isVerified : user.isVerified;
+      if (uid) user.id = uid;
+      if (role === 'admin') user.role = 'admin';
+      if (isVerified !== undefined) user.isVerified = isVerified;
+      if (password && !user.password) user.password = hashPassword(password);
       
       // Update references in loans, kyc, notifications, tickets, messages
-      db.loans.forEach(l => { if (l.userId === oldId) l.userId = uid; });
-      db.kyc.forEach(k => { if (k.userId === oldId) k.userId = uid; });
-      db.notifications.forEach(n => { if (n.userId === oldId) n.userId = uid; });
-      db.tickets.forEach(t => { if (t.userId === oldId) t.userId = uid; });
-      db.messages.forEach(m => {
-        if (m.senderId === oldId) m.senderId = uid;
-        if (m.receiverId === oldId) m.receiverId = uid;
-      });
+      if (uid && oldId !== uid) {
+        db.loans.forEach(l => { if (l.userId === oldId) l.userId = uid; });
+        db.kyc.forEach(k => { if (k.userId === oldId) k.userId = uid; });
+        db.notifications.forEach(n => { if (n.userId === oldId) n.userId = uid; });
+        db.tickets.forEach(t => { if (t.userId === oldId) t.userId = uid; });
+        db.messages.forEach(m => {
+          if (m.senderId === oldId) m.senderId = uid;
+          if (m.receiverId === oldId) m.receiverId = uid;
+        });
+      }
       
       if (!user.activityHistory) user.activityHistory = [];
       user.activityHistory.unshift({
@@ -995,15 +1000,17 @@ app.post('/api/auth/firebase-sync', (req, res) => {
       });
     } else {
       // 3. Create a new user record in database.json
+      const isAdminRole = role === 'admin' || lowerEmail === 'admin@eloncapitalloan.com';
       user = {
-        id: uid,
-        name: name || email.split('@')[0],
-        email: email.toLowerCase(),
-        phone: phone || '',
+        id: uid || generateId(),
+        name: name || lowerEmail.split('@')[0],
+        email: lowerEmail,
+        phone: phone || '+1 (800) 555-0199',
         country: country || 'United States',
-        isVerified: isVerified !== undefined ? isVerified : true,
+        password: password ? hashPassword(password) : undefined,
+        isVerified: isVerified !== undefined ? isVerified : (isAdminRole ? false : true),
         isSuspended: false,
-        role: email.toLowerCase() === 'admin@eloncapitalloan.com' ? 'admin' : 'user',
+        role: isAdminRole ? 'admin' : 'user',
         createdAt: new Date().toISOString(),
         notificationPreferences: {
           emailUpdates: true,
@@ -1011,20 +1018,25 @@ app.post('/api/auth/firebase-sync', (req, res) => {
           securityAlerts: true
         },
         activityHistory: [
-          { id: generateId(), action: "Account created via Firebase", timestamp: new Date().toISOString(), ipAddress: req.ip || "127.0.0.1" }
+          { id: generateId(), action: "Account created via Firebase Auth", timestamp: new Date().toISOString(), ipAddress: req.ip || "127.0.0.1" }
         ]
       };
       db.users.push(user);
     }
   } else {
-    // User already exists by UID, just make sure verification status is synced
-    if (isVerified && !user.isVerified) {
-      user.isVerified = true;
-    }
+    // User already exists by UID
+    if (role === 'admin') user.role = 'admin';
+    if (isVerified !== undefined) user.isVerified = isVerified;
+    if (password && !user.password) user.password = hashPassword(password);
   }
 
   if (user.isSuspended) {
     res.status(403).json({ error: 'Your account has been suspended. Please contact Support.' });
+    return;
+  }
+
+  if (user.role === 'admin' && user.isVerified === false) {
+    res.status(403).json({ error: 'Administrative email address is not verified. Please check your inbox and click the verification link before logging in.' });
     return;
   }
 

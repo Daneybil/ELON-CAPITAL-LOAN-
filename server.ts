@@ -3163,6 +3163,8 @@ const startServer = async () => {
     console.error('[Core] Initial background Firestore sync failed:', err);
   });
 
+  app.use(express.static(path.join(process.cwd(), 'public')));
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -3172,7 +3174,6 @@ const startServer = async () => {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.use(express.static(path.join(process.cwd(), 'public')));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });

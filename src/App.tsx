@@ -32,7 +32,7 @@ export default function App() {
   const [prefilledLoanTerm, setPrefilledLoanTerm] = React.useState<number | undefined>(undefined);
 
   // User Dashboard active tab state (for deep-linking and global controls)
-  const [userDashboardTab, setUserDashboardTab] = React.useState<'account' | 'overview' | 'apply' | 'loans' | 'kyc' | 'calculator' | 'messages' | 'support' | 'settings'>('account');
+  const [userDashboardTab, setUserDashboardTab] = React.useState<'menu' | 'account' | 'overview' | 'apply' | 'loans' | 'repayment' | 'kyc' | 'calculator' | 'messages' | 'support' | 'settings'>('menu');
 
   // Router View toggles (Sync on startup with window.location.pathname)
   const [dashboardView, setDashboardView] = React.useState<'landing' | 'user' | 'admin' | 'calculator' | 'how-it-works' | 'government-warning' | 'loan-transparency'>(() => {
@@ -240,7 +240,7 @@ export default function App() {
         window.history.pushState({}, '', '/calculator');
         setDashboardView('calculator');
       } else {
-        setUserDashboardTab('account');
+        setUserDashboardTab('menu');
         window.history.pushState({}, '', '/dashboard');
         setDashboardView('user');
       }
@@ -309,7 +309,7 @@ export default function App() {
       window.history.pushState({}, '', '/2020loan');
       setDashboardView('admin');
     } else {
-      setUserDashboardTab('account');
+      setUserDashboardTab('menu');
       window.history.pushState({}, '', '/dashboard');
       setDashboardView('user');
     }
@@ -437,7 +437,7 @@ export default function App() {
 
         {/* 2. PROTECTED BORROWER WORKSPACE */}
         {dashboardView === 'user' && user && token && (
-          <div id="view-user-dashboard" className="animate-fade-in">
+          <div id="view-user-dashboard" className="animate-fade-in bg-[#fbf9f4] text-zinc-900 min-h-screen">
             <UserDashboard 
               user={user}
               token={token}

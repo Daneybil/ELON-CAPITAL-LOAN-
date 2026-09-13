@@ -89,6 +89,7 @@ export interface LoanApplication {
   ssnBvn?: string;
   nationalId?: string;
   passportNumber?: string;
+  updatedAt?: string;
   createdAt: string;
 }
 

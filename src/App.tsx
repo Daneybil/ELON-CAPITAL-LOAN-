@@ -437,7 +437,7 @@ export default function App() {
 
         {/* 2. PROTECTED BORROWER WORKSPACE */}
         {dashboardView === 'user' && user && token && (
-          <div id="view-user-dashboard" className="animate-fade-in bg-[#fbf9f4] text-zinc-900 min-h-screen">
+          <div id="view-user-dashboard" className="animate-fade-in bg-[#181715] text-zinc-100 min-h-screen">
             <UserDashboard 
               user={user}
               token={token}

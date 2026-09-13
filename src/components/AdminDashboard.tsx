@@ -1208,15 +1208,22 @@ export default function AdminDashboard({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      {/* Left Column: ID documents, Video, Selfie */}
+                      {/* Left Column: ID documents, Proof of Address, Business Documents, Video, Selfie */}
                       <div className="space-y-4">
                         <h5 className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-bold">1. VERIFIED ATTACHMENTS & MEDIA</h5>
                         
+                        {/* 1. Government ID */}
                         <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-3">
-                          <span className="text-[10px] font-mono text-gray-500 uppercase block">Government-Issued Photo ID ({activeKycDoc.idType || 'Passport'})</span>
+                          <span className="text-[10px] font-mono text-gray-500 uppercase block">1. Government-Issued Photo ID ({activeKycDoc.idType || 'Passport'})</span>
                           <div className="h-28 bg-black border border-white/5 rounded-lg flex flex-col items-center justify-center text-xs text-cyan-400 font-mono p-4">
-                            <span className="text-xl mb-1">📄</span>
-                            <span className="text-[10px] text-zinc-300 font-mono text-center truncate w-full">{activeKycDoc.idCardUrl}</span>
+                            {activeKycDoc.idCardUrl && (activeKycDoc.idCardUrl.startsWith('http') || activeKycDoc.idCardUrl.startsWith('data:image')) ? (
+                              <img src={activeKycDoc.idCardUrl} alt="Government ID" className="h-20 w-auto max-w-full rounded object-contain border border-cyan-400/30 mb-1" referrerPolicy="no-referrer" />
+                            ) : (
+                              <>
+                                <span className="text-xl mb-1">📄</span>
+                                <span className="text-[10px] text-zinc-300 font-mono text-center truncate w-full">{activeKycDoc.idCardUrl || 'No file provided'}</span>
+                              </>
+                            )}
                             <span className="text-[9px] text-zinc-500 font-mono mt-1">Security AES-256 Encrypted</span>
                           </div>
                           <div className="flex gap-2">
@@ -1230,8 +1237,61 @@ export default function AdminDashboard({
                           </div>
                         </div>
 
+                        {/* 2. Proof of Residential Address */}
                         <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-3">
-                          <span className="text-[10px] font-mono text-gray-500 uppercase block">Applicant Biometric Face Selfie</span>
+                          <span className="text-[10px] font-mono text-gray-500 uppercase block">2. Proof of Residential Address</span>
+                          <div className="h-28 bg-black border border-white/5 rounded-lg flex flex-col items-center justify-center text-xs text-cyan-400 font-mono p-4">
+                            {(activeKycDoc.proofOfAddressUrl || activeKycDoc.addressProofUrl) && ((activeKycDoc.proofOfAddressUrl || activeKycDoc.addressProofUrl).startsWith('http') || (activeKycDoc.proofOfAddressUrl || activeKycDoc.addressProofUrl).startsWith('data:image')) ? (
+                              <img src={activeKycDoc.proofOfAddressUrl || activeKycDoc.addressProofUrl} alt="Proof of Address" className="h-20 w-auto max-w-full rounded object-contain border border-cyan-400/30 mb-1" referrerPolicy="no-referrer" />
+                            ) : (
+                              <>
+                                <span className="text-xl mb-1">🏠</span>
+                                <span className="text-[10px] text-zinc-300 font-mono text-center truncate w-full">{activeKycDoc.proofOfAddressUrl || activeKycDoc.addressProofUrl || 'No address proof file'}</span>
+                              </>
+                            )}
+                            <span className="text-[9px] text-zinc-500 font-mono mt-1">Residential Address Verification</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              disabled={!(activeKycDoc.proofOfAddressUrl || activeKycDoc.addressProofUrl)}
+                              onClick={() => setPreviewAssetModal({ name: 'Proof of Residential Address', url: activeKycDoc.proofOfAddressUrl || activeKycDoc.addressProofUrl, type: 'Proof of Address' })}
+                              className="flex-1 py-1.5 px-2 bg-white/5 hover:bg-white/10 disabled:opacity-40 text-cyan-400 text-[10px] font-bold font-mono rounded flex items-center justify-center gap-1 border border-cyan-500/20 cursor-pointer"
+                            >
+                              <ZoomIn className="h-3 w-3" /> View / Zoom
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 3. Supporting Business Documents (Optional) */}
+                        <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-3">
+                          <span className="text-[10px] font-mono text-gray-500 uppercase block">3. Supporting Business Documents (Optional)</span>
+                          <div className="h-28 bg-black border border-white/5 rounded-lg flex flex-col items-center justify-center text-xs text-cyan-400 font-mono p-4">
+                            {activeKycDoc.businessDocUrl && (activeKycDoc.businessDocUrl.startsWith('http') || activeKycDoc.businessDocUrl.startsWith('data:image')) ? (
+                              <img src={activeKycDoc.businessDocUrl} alt="Business Document" className="h-20 w-auto max-w-full rounded object-contain border border-cyan-400/30 mb-1" referrerPolicy="no-referrer" />
+                            ) : (
+                              <>
+                                <span className="text-xl mb-1">🏢</span>
+                                <span className="text-[10px] text-zinc-300 font-mono text-center truncate w-full">{activeKycDoc.businessDocUrl || 'None Attached (Optional)'}</span>
+                              </>
+                            )}
+                            <span className="text-[9px] text-zinc-500 font-mono mt-1">Commercial / Corporate Filing</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              disabled={!activeKycDoc.businessDocUrl}
+                              onClick={() => setPreviewAssetModal({ name: 'Supporting Business Document', url: activeKycDoc.businessDocUrl, type: 'Business Document' })}
+                              className="flex-1 py-1.5 px-2 bg-white/5 hover:bg-white/10 disabled:opacity-40 text-cyan-400 text-[10px] font-bold font-mono rounded flex items-center justify-center gap-1 border border-cyan-500/20 cursor-pointer"
+                            >
+                              <ZoomIn className="h-3 w-3" /> View / Zoom
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 4. Applicant Biometric Face Selfie */}
+                        <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-3">
+                          <span className="text-[10px] font-mono text-gray-500 uppercase block">4. Applicant Biometric Face Selfie</span>
                           <div className="h-28 bg-black border border-white/5 rounded-lg flex flex-col items-center justify-center text-xs text-cyan-400 font-mono p-4">
                             {activeKycDoc.selfieUrl && (activeKycDoc.selfieUrl.startsWith('http') || activeKycDoc.selfieUrl.startsWith('data:image')) ? (
                               <img src={activeKycDoc.selfieUrl} alt="Selfie" className="h-16 w-16 rounded-full object-cover border border-cyan-400/30 mb-1" referrerPolicy="no-referrer" />
@@ -1251,8 +1311,9 @@ export default function AdminDashboard({
                           </div>
                         </div>
 
+                        {/* 5. Video Verification Statement */}
                         <div className="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-3">
-                          <span className="text-[10px] font-mono text-gray-500 uppercase block">Video Verification Proof</span>
+                          <span className="text-[10px] font-mono text-gray-500 uppercase block">5. Video Verification Statement</span>
                           <div className="h-28 bg-black border border-white/5 rounded-lg flex flex-col items-center justify-center text-xs text-cyan-400 font-mono p-4">
                             <span className="text-xl mb-1">📹</span>
                             <span className="text-[10px] text-zinc-300 font-mono text-center truncate w-full">{activeKycDoc.videoUrl || 'live_face_scan_video.mp4'}</span>
@@ -1628,135 +1689,170 @@ export default function AdminDashboard({
                       </div>
 
                       {/* Section 3: Identity Assets & Verification Documents */}
-                      <div className="p-4 bg-black/50 border border-white/10 rounded-xl space-y-3">
-                        <h5 className="font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
-                          <ShieldCheck className="h-4 w-4" /> 3. Uploaded KYC Documents & Identity Assets
-                        </h5>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-white/5">
-                          {/* Government Issued ID */}
-                          <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
-                            <div>
-                              <span className="text-gray-500 block text-[10px] uppercase font-mono">Government Issued ID</span>
-                              <span className="text-white font-medium text-xs">Identity Document Scan</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const docUrl = activeLoanView.documents?.find(d => d.name.toLowerCase().includes('id') || d.name.toLowerCase().includes('government') || d.type.toLowerCase().includes('id'))?.url || activeLoanView.documents?.[0]?.url;
-                                  setPreviewAssetModal({
-                                    name: `Government ID - ${activeLoanView.userName}`,
-                                    url: docUrl,
-                                    type: 'Government Identity Document'
-                                  });
-                                }}
-                                className="px-2.5 py-1 bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1"
-                              >
-                                <Eye className="h-3 w-3" /> View ID
-                              </button>
-                            </div>
-                          </div>
+                      {(() => {
+                        const applicantKyc = kycRequests.find(k => k.userId === activeLoanView.userId || (k.userEmail && k.userEmail.toLowerCase() === activeLoanView.userEmail?.toLowerCase()));
+                        const idDocUrl = activeLoanView.documents?.find(d => d.name?.toLowerCase().includes('id') || d.type?.toLowerCase().includes('id') || d.name?.toLowerCase().includes('government'))?.url || applicantKyc?.idCardUrl;
+                        const addressDocUrl = activeLoanView.documents?.find(d => d.name?.toLowerCase().includes('address') || d.type?.toLowerCase().includes('address') || d.name?.toLowerCase().includes('utility'))?.url || applicantKyc?.proofOfAddressUrl || applicantKyc?.addressProofUrl;
+                        const selfieDocUrl = activeLoanView.documents?.find(d => d.name?.toLowerCase().includes('selfie') || d.type?.toLowerCase().includes('facial') || d.type?.toLowerCase().includes('biometric'))?.url || applicantKyc?.selfieUrl;
+                        const videoDocUrl = activeLoanView.documents?.find(d => d.name?.toLowerCase().includes('video') || d.type?.toLowerCase().includes('video') || d.type?.toLowerCase().includes('liveness'))?.url || applicantKyc?.videoUrl;
+                        const businessDocUrl = activeLoanView.documents?.find(d => d.name?.toLowerCase().includes('business') || d.type?.toLowerCase().includes('commercial') || d.type?.toLowerCase().includes('business'))?.url || applicantKyc?.businessDocUrl;
 
-                          {/* Proof of Address */}
-                          <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
-                            <div>
-                              <span className="text-gray-500 block text-[10px] uppercase font-mono">Proof of Address</span>
-                              <span className="text-white font-medium text-xs">Utility / Bank Statement</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const docUrl = activeLoanView.documents?.find(d => d.name.toLowerCase().includes('address') || d.name.toLowerCase().includes('utility') || d.type.toLowerCase().includes('address'))?.url || activeLoanView.documents?.[1]?.url;
-                                  setPreviewAssetModal({
-                                    name: `Proof of Address - ${activeLoanView.userName}`,
-                                    url: docUrl,
-                                    type: 'Utility Bill / Bank Statement'
-                                  });
-                                }}
-                                className="px-2.5 py-1 bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1"
-                              >
-                                <Eye className="h-3 w-3" /> View Doc
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Biometric Selfie Photo */}
-                          <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
-                            <div>
-                              <span className="text-gray-500 block text-[10px] uppercase font-mono">Biometric Selfie Photo</span>
-                              <span className="text-white font-medium text-xs">Live Selfie Capture</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const docUrl = activeLoanView.documents?.find(d => d.name.toLowerCase().includes('selfie') || d.type.toLowerCase().includes('facial'))?.url || activeLoanView.documents?.[2]?.url;
-                                  setPreviewAssetModal({
-                                    name: `Biometric Selfie - ${activeLoanView.userName}`,
-                                    url: docUrl,
-                                    type: 'Facial Biometric Photo'
-                                  });
-                                }}
-                                className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1"
-                              >
-                                <Eye className="h-3 w-3" /> View Selfie
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Verification Video */}
-                          <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
-                            <div>
-                              <span className="text-gray-500 block text-[10px] uppercase font-mono">Verification Video</span>
-                              <span className="text-white font-medium text-xs">Liveness Video Verification</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const docUrl = activeLoanView.documents?.find(d => d.name.toLowerCase().includes('video') || d.type.toLowerCase().includes('video'))?.url || activeLoanView.documents?.[4]?.url;
-                                  setPreviewAssetModal({
-                                    name: `Liveness Video Scan - ${activeLoanView.userName}`,
-                                    url: docUrl,
-                                    type: 'Liveness Video Recording'
-                                  });
-                                }}
-                                className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1"
-                              >
-                                <Play className="h-3 w-3" /> Play Video
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {activeLoanView.documents.length > 0 && (
-                          <div className="pt-2 border-t border-white/5 space-y-1.5">
-                            <span className="text-gray-500 block text-[10px] uppercase font-mono">Attached Supporting Documentation</span>
-                            {activeLoanView.documents.map((doc, idx) => (
-                              <div key={idx} className="p-2.5 bg-zinc-900/80 rounded border border-white/5 font-mono text-[11px] text-gray-300 flex justify-between items-center">
-                                <span>📎 {doc.name} ({doc.type})</span>
-                                <div className="flex items-center gap-2">
+                        return (
+                          <div className="p-4 bg-black/50 border border-white/10 rounded-xl space-y-3">
+                            <h5 className="font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                              <ShieldCheck className="h-4 w-4" /> 3. Uploaded KYC Documents & Identity Assets
+                            </h5>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                              {/* 1. Government Issued ID */}
+                              <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
+                                <div>
+                                  <span className="text-gray-500 block text-[10px] uppercase font-mono">1. Government Issued ID</span>
+                                  <span className="text-white font-medium text-xs">{idDocUrl ? 'Identity Scan Available' : 'No ID File'}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
                                   <button
                                     type="button"
+                                    disabled={!idDocUrl}
                                     onClick={() => {
                                       setPreviewAssetModal({
-                                        name: doc.name,
-                                        url: doc.url,
-                                        type: doc.type
+                                        name: `Government ID - ${activeLoanView.userName}`,
+                                        url: idDocUrl,
+                                        type: 'Government Identity Document'
                                       });
                                     }}
-                                    className="px-2 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-500/30 text-[10px] font-bold rounded hover:bg-cyan-400 hover:text-black transition-all cursor-pointer flex items-center gap-1"
+                                    className="px-2.5 py-1 bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1 disabled:opacity-40"
                                   >
-                                    <Eye className="h-3 w-3" /> Open
+                                    <Eye className="h-3 w-3" /> View ID
                                   </button>
                                 </div>
                               </div>
-                            ))}
+
+                              {/* 2. Proof of Address */}
+                              <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
+                                <div>
+                                  <span className="text-gray-500 block text-[10px] uppercase font-mono">2. Proof of Address</span>
+                                  <span className="text-white font-medium text-xs">{addressDocUrl ? 'Utility / Bank Statement' : 'No Address Proof'}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    disabled={!addressDocUrl}
+                                    onClick={() => {
+                                      setPreviewAssetModal({
+                                        name: `Proof of Address - ${activeLoanView.userName}`,
+                                        url: addressDocUrl,
+                                        type: 'Utility Bill / Bank Statement'
+                                      });
+                                    }}
+                                    className="px-2.5 py-1 bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1 disabled:opacity-40"
+                                  >
+                                    <Eye className="h-3 w-3" /> View Doc
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* 3. Supporting Business Documents (Optional) */}
+                              <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
+                                <div>
+                                  <span className="text-gray-500 block text-[10px] uppercase font-mono">3. Supporting Business Docs (Optional)</span>
+                                  <span className="text-white font-medium text-xs">{businessDocUrl ? 'Commercial Filing Attached' : 'None Attached (Optional)'}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    disabled={!businessDocUrl}
+                                    onClick={() => {
+                                      setPreviewAssetModal({
+                                        name: `Supporting Business Doc - ${activeLoanView.userName}`,
+                                        url: businessDocUrl,
+                                        type: 'Business Document'
+                                      });
+                                    }}
+                                    className="px-2.5 py-1 bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1 disabled:opacity-40"
+                                  >
+                                    <Eye className="h-3 w-3" /> View Doc
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* 4. Biometric Selfie Photo */}
+                              <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2">
+                                <div>
+                                  <span className="text-gray-500 block text-[10px] uppercase font-mono">4. Biometric Selfie Photo</span>
+                                  <span className="text-white font-medium text-xs">{selfieDocUrl ? 'Facial Verification' : 'No Selfie File'}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    disabled={!selfieDocUrl}
+                                    onClick={() => {
+                                      setPreviewAssetModal({
+                                        name: `Biometric Selfie - ${activeLoanView.userName}`,
+                                        url: selfieDocUrl,
+                                        type: 'Facial Biometric Photo'
+                                      });
+                                    }}
+                                    className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1 disabled:opacity-40"
+                                  >
+                                    <Eye className="h-3 w-3" /> View Selfie
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* 5. Verification Video */}
+                              <div className="p-3 bg-zinc-900 rounded-lg border border-white/5 flex items-center justify-between gap-2 sm:col-span-2">
+                                <div>
+                                  <span className="text-gray-500 block text-[10px] uppercase font-mono">5. Video Verification Statement</span>
+                                  <span className="text-white font-medium text-xs">{videoDocUrl ? 'Liveness Video Recording' : 'No Video File'}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <button
+                                    type="button"
+                                    disabled={!videoDocUrl}
+                                    onClick={() => {
+                                      setPreviewAssetModal({
+                                        name: `Liveness Video Scan - ${activeLoanView.userName}`,
+                                        url: videoDocUrl,
+                                        type: 'Liveness Video Recording'
+                                      });
+                                    }}
+                                    className="px-2.5 py-1 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-400 hover:text-black font-mono text-[10px] font-bold rounded transition-all cursor-pointer flex items-center gap-1 disabled:opacity-40"
+                                  >
+                                    <Play className="h-3 w-3" /> Play Video
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {activeLoanView.documents.length > 0 && (
+                              <div className="pt-2 border-t border-white/5 space-y-1.5">
+                                <span className="text-gray-500 block text-[10px] uppercase font-mono">Attached Supporting Documentation</span>
+                                {activeLoanView.documents.map((doc, idx) => (
+                                  <div key={idx} className="p-2.5 bg-zinc-900/80 rounded border border-white/5 font-mono text-[11px] text-gray-300 flex justify-between items-center">
+                                    <span>📎 {doc.name} ({doc.type})</span>
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setPreviewAssetModal({
+                                            name: doc.name,
+                                            url: doc.url,
+                                            type: doc.type
+                                          });
+                                        }}
+                                        className="px-2 py-0.5 bg-cyan-950 text-cyan-400 border border-cyan-500/30 text-[10px] font-bold rounded hover:bg-cyan-400 hover:text-black transition-all cursor-pointer flex items-center gap-1"
+                                      >
+                                        <Eye className="h-3 w-3" /> Open
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        );
+                      })()}
 
                       {/* Section 4: Collateral & Fee Settlement Review */}
                       <div className="p-4 bg-black/50 border border-white/10 rounded-xl space-y-4">

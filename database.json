@@ -102,6 +102,48 @@
           "ipAddress": "127.0.0.1"
         }
       ]
+    },
+    {
+      "id": "X74mbrrEa1V3JfBnTn5PvwvxZNP2",
+      "name": "zengopay",
+      "email": "zengopay@gmail.com",
+      "phone": "+1 (800) 555-0199",
+      "country": "United States",
+      "isVerified": true,
+      "isSuspended": false,
+      "role": "user",
+      "createdAt": "2026-09-13T10:45:51.949Z",
+      "notificationPreferences": {
+        "emailUpdates": true,
+        "applicationAlerts": true,
+        "securityAlerts": true
+      },
+      "activityHistory": [
+        {
+          "id": "5me5pl06b",
+          "action": "User logged in (Firebase Auth)",
+          "timestamp": "2026-09-13T11:05:36.221Z",
+          "ipAddress": "127.0.0.1"
+        },
+        {
+          "id": "jhfezp3xr",
+          "action": "User logged in (Firebase Auth)",
+          "timestamp": "2026-09-13T10:45:51.961Z",
+          "ipAddress": "127.0.0.1"
+        },
+        {
+          "id": "t02ttck0q",
+          "action": "User logged in (Firebase Auth)",
+          "timestamp": "2026-09-13T10:45:51.949Z",
+          "ipAddress": "127.0.0.1"
+        },
+        {
+          "id": "lx580mif0",
+          "action": "Account created via Firebase Auth",
+          "timestamp": "2026-09-13T10:45:51.949Z",
+          "ipAddress": "127.0.0.1"
+        }
+      ]
     }
   ],
   "loans": [
@@ -140,20 +182,7 @@
       },
       "status": "Approved",
       "requiresEnhancedVerification": false,
-      "documents": [
-        {
-          "name": "incorporation_doc.pdf",
-          "type": "Business Registration",
-          "url": "#",
-          "uploadedAt": "2026-07-18T00:32:45.253Z"
-        },
-        {
-          "name": "financial_statements.pdf",
-          "type": "Financial Record",
-          "url": "#",
-          "uploadedAt": "2026-07-18T00:32:45.253Z"
-        }
-      ],
+      "documents": [],
       "createdAt": "2026-07-18T00:32:45.253Z"
     },
     {
@@ -191,14 +220,7 @@
       },
       "status": "Pending",
       "requiresEnhancedVerification": true,
-      "documents": [
-        {
-          "name": "liquidity_report_q2.pdf",
-          "type": "Investment Memorandum",
-          "url": "#",
-          "uploadedAt": "2026-07-27T00:32:45.253Z"
-        }
-      ],
+      "documents": [],
       "createdAt": "2026-07-27T00:32:45.253Z"
     }
   ],
@@ -294,6 +316,33 @@
   ],
   "logs": [
     {
+      "id": "mi6m44dan",
+      "action": "Firebase Sync/Login",
+      "details": "User zengopay@gmail.com synchronized via Firebase Auth",
+      "userId": "X74mbrrEa1V3JfBnTn5PvwvxZNP2",
+      "userEmail": "zengopay@gmail.com",
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-09-13T11:05:36.222Z"
+    },
+    {
+      "id": "hjz7xt0hs",
+      "action": "Firebase Sync/Login",
+      "details": "User zengopay@gmail.com synchronized via Firebase Auth",
+      "userId": "X74mbrrEa1V3JfBnTn5PvwvxZNP2",
+      "userEmail": "zengopay@gmail.com",
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-09-13T10:45:51.962Z"
+    },
+    {
+      "id": "8ke4v9k4e",
+      "action": "Firebase Sync/Login",
+      "details": "User zengopay@gmail.com synchronized via Firebase Auth",
+      "userId": "X74mbrrEa1V3JfBnTn5PvwvxZNP2",
+      "userEmail": "zengopay@gmail.com",
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-09-13T10:45:51.951Z"
+    },
+    {
       "id": "u4661l2ap",
       "action": "User Registration",
       "details": "Account initiated for daneybil2020@gmail.com",
@@ -316,5 +365,6 @@
     "statTotalFunded": "$1,480,240,000+",
     "statActiveBorrowers": "14,820+",
     "statGlobalProjects": "112"
-  }
+  },
+  "payments": []
 }

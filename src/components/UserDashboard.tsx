@@ -152,12 +152,18 @@ export default function UserDashboard({
   const [loanFinancial, setLoanFinancial] = React.useState({ debts: '', creditScore: '750', assetsValue: '' });
   const [uploadedLoanDocs, setUploadedLoanDocs] = React.useState<{ name: string; type: string; url: string }[]>([]);
 
-  // KYC Upload form State
-  const [kycIdCard, setKycIdCard] = React.useState('passport_digital.png');
-  const [kycIdCardBack, setKycIdCardBack] = React.useState('passport_digital_back.png');
-  const [kycSelfie, setKycSelfie] = React.useState('verification_selfie_latest.png');
-  const [kycAddress, setKycAddress] = React.useState('utility_bill_copy.pdf');
-  const [kycBusiness, setKycBusiness] = React.useState('certificate_of_good_standing.pdf');
+  // KYC Upload form State (Real User Uploads - No hardcoded sample assets)
+  const [kycIdCard, setKycIdCard] = React.useState('');
+  const [kycIdCardBack, setKycIdCardBack] = React.useState('');
+  const [kycSelfie, setKycSelfie] = React.useState('');
+  const [kycAddress, setKycAddress] = React.useState('');
+  const [kycBusiness, setKycBusiness] = React.useState('');
+  const [idCardFileName, setIdCardFileName] = React.useState('');
+  const [idCardBackFileName, setIdCardBackFileName] = React.useState('');
+  const [proofOfAddressFileName, setProofOfAddressFileName] = React.useState('');
+  const [businessDocFileName, setBusinessDocFileName] = React.useState('');
+  const [selfieFileName, setSelfieFileName] = React.useState('');
+  const [videoFileName, setVideoFileName] = React.useState('');
 
   // Enhanced KYC Flow State
   const [kycCountry, setKycCountry] = React.useState(user.country || 'United States');
@@ -174,7 +180,7 @@ export default function UserDashboard({
   const [kycDob, setKycDob] = React.useState('');
   const [kycPhone, setKycPhone] = React.useState(user.phone || '');
   const [kycEmail, setKycEmail] = React.useState(user.email || '');
-  const [kycProofOfAddress, setKycProofOfAddress] = React.useState('proof_of_address_utility.png');
+  const [kycProofOfAddress, setKycProofOfAddress] = React.useState('');
   const [kycEmploymentStatus, setKycEmploymentStatus] = React.useState('Employed');
   const [kycMaritalStatus, setKycMaritalStatus] = React.useState('Single');
   const [kycLoanPurpose, setKycLoanPurpose] = React.useState('Personal / Business Expansion');
@@ -183,13 +189,13 @@ export default function UserDashboard({
   const [complianceSsn, setComplianceSsn] = React.useState('');
   const [isUsResident, setIsUsResident] = React.useState(true);
   const [socialPlatform, setSocialPlatform] = React.useState('Twitter / X');
-  const [singleSocialHandle, setSingleSocialHandle] = React.useState('@johndoe_trader');
+  const [singleSocialHandle, setSingleSocialHandle] = React.useState('');
   const [twitterUsername, setTwitterUsername] = React.useState('');
   const [linkedinUsername, setLinkedinUsername] = React.useState('');
   const [tiktokUsername, setTiktokUsername] = React.useState('');
   const [facebookUsername, setFacebookUsername] = React.useState('');
   const [youtubeUsername, setYoutubeUsername] = React.useState('');
-  const [kycVideoUrl, setKycVideoUrl] = React.useState('liveness_video_proof.mp4');
+  const [kycVideoUrl, setKycVideoUrl] = React.useState('');
   const [isVideoRecording, setIsVideoRecording] = React.useState(false);
   const [videoCountdown, setVideoCountdown] = React.useState(0);
   const [kycBvn, setKycBvn] = React.useState('');
@@ -825,9 +831,14 @@ export default function UserDashboard({
       if (!res.ok) throw new Error(data.error || 'Failed to initialize Stripe payment.');
 
       if (data.url) {
-        window.location.href = data.url;
-      } else if (data.isTestMode) {
-        // Stripe API key test simulation
+        const stripeWindow = window.open(data.url, '_blank');
+        if (!stripeWindow || stripeWindow.closed || typeof stripeWindow.closed === 'undefined') {
+          window.location.href = data.url;
+        } else {
+          triggerAlert('info', '💳 Redirecting to 256-Bit SSL Encrypted Stripe Checkout window...');
+        }
+      } else if (data.isTestMode || data.sessionId) {
+        // Instant verified checkout simulation
         const verifyRes = await fetch(getApiUrl('/api/payments/verify-stripe-session'), {
           method: 'POST',
           headers: {
@@ -846,7 +857,7 @@ export default function UserDashboard({
         const verifyData = await verifyRes.json();
         if (!verifyRes.ok) throw new Error(verifyData.error || 'Card verification failed.');
 
-        triggerAlert('success', '🎉 Card Payment verified and confirmed successfully!');
+        triggerAlert('success', '🎉 Stripe Card Payment verified & authorized successfully! Collateral deposit confirmed.');
         setPayingCollateralLoan(null);
         setCollateralTxIdInput('');
         await fetchAllData();
@@ -927,17 +938,17 @@ export default function UserDashboard({
   const handleUnifiedSubmit = async () => {
     setErrorMsg('');
 
-    // Check for existing active loan application (excluding finished, declined, disbursed, or completed loans)
+    // Check for existing active loan application (excluding finished, declined, disbursed, completed, or pending updateable loans)
     const hasActiveLoan = loans.some(l => 
-      !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled', 'Disbursed', 'Completed'].includes(l.status) &&
+      !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled', 'Disbursed', 'Completed', 'Pending'].includes(l.status) &&
       !l.disbursed
     );
     if (hasActiveLoan) {
       const activeLoan = loans.find(l => 
-        !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled', 'Disbursed', 'Completed'].includes(l.status) &&
+        !['Declined', 'Rejected', 'Closed', 'Repaid', 'Settled', 'Disbursed', 'Completed', 'Pending'].includes(l.status) &&
         !l.disbursed
       );
-      triggerAlert('error', `You already have an active loan application (${activeLoan?.id || 'pending'}). Please wait until your active application is completed, rejected, or fully settled before submitting a new application.`);
+      triggerAlert('error', `You already have an active loan facility (${activeLoan?.id || 'active'}). Please wait until your active facility is completed or settled before submitting a new application.`);
       return;
     }
 
@@ -998,8 +1009,13 @@ export default function UserDashboard({
       return;
     }
 
+    if (!kycProofOfAddress || !kycProofOfAddress.trim()) {
+      triggerAlert('error', 'Please upload your proof of residential address document.');
+      return;
+    }
+
     if (!kycSelfie || !kycSelfie.trim()) {
-      triggerAlert('error', 'Please upload or capture your biometric selfie photo.');
+      triggerAlert('error', 'Please upload your biometric selfie photo.');
       return;
     }
 
@@ -1027,11 +1043,13 @@ export default function UserDashboard({
     setActionLoading(true);
 
     try {
-      // 1. Submit KYC Portfolio
+      // 1. Submit KYC Portfolio with real user uploads
       const kycPayload = {
         idCardUrl: kycIdCard.trim(),
+        idCardBackUrl: kycIdCardBack.trim() || '',
         selfieUrl: kycSelfie.trim(),
         addressProofUrl: kycProofOfAddress.trim() || '',
+        proofOfAddressUrl: kycProofOfAddress.trim() || '',
         businessDocUrl: kycBusiness.trim() || '',
         fullName: kycFullName.trim(),
         dob: loanPersonal.dob,
@@ -1039,7 +1057,6 @@ export default function UserDashboard({
         email: kycEmail.trim(),
         country: kycCountry,
         residentialAddress: loanPersonal.address.trim(),
-        proofOfAddressUrl: kycProofOfAddress.trim() || '',
         employmentStatus: loanEmployment.status,
         maritalStatus: loanPersonal.marital,
         loanPurpose: loanFunding.purpose,
@@ -1059,7 +1076,20 @@ export default function UserDashboard({
       });
       const kycData = await kycRes.json();
       if (!kycRes.ok) throw new Error(kycData.error || 'Identity portfolio compliance submission failed.');
-      setKycStatus(kycData.kyc);
+      if (kycData.kyc) {
+        setKycStatus(kycData.kyc);
+      }
+
+      // Compile all 5 real document categories for the loan portfolio
+      const allAttachedDocs = [
+        { name: `Government ID (${kycIdType})`, type: 'Government Identity Document', url: kycIdCard.trim(), uploadedAt: new Date().toISOString() },
+        ...(kycIdCardBack.trim() ? [{ name: `Government ID Back (${kycIdType})`, type: 'Government ID Back', url: kycIdCardBack.trim(), uploadedAt: new Date().toISOString() }] : []),
+        { name: 'Proof of Residential Address', type: 'Utility / Bank Statement', url: kycProofOfAddress.trim(), uploadedAt: new Date().toISOString() },
+        ...(kycBusiness.trim() ? [{ name: 'Supporting Business Document', type: 'Business Document', url: kycBusiness.trim(), uploadedAt: new Date().toISOString() }] : []),
+        { name: 'Biometric Selfie Photo', type: 'Facial Biometric Photo', url: kycSelfie.trim(), uploadedAt: new Date().toISOString() },
+        { name: 'Video Verification Statement', type: 'Liveness Video Recording', url: kycVideoUrl.trim(), uploadedAt: new Date().toISOString() },
+        ...uploadedLoanDocs
+      ].filter(d => !!d.url && d.url.trim() !== '');
 
       // 2. Submit Loan Application
       const loanPayload = {
@@ -1070,7 +1100,7 @@ export default function UserDashboard({
         },
         employmentInfo: {
           status: loanEmployment.status,
-          employerName: loanEmployment.employer || 'Sovereign Capitalist',
+          employerName: loanEmployment.employer || 'Self-Employed / Institutional',
           monthlyIncome: Number(loanEmployment.income) || 12000,
           yearsEmployed: Number(loanEmployment.years) || 5
         },
@@ -1080,23 +1110,23 @@ export default function UserDashboard({
           industry: loanBusiness.industry || 'Asset Management',
           annualRevenue: Number(loanBusiness.revenue) || Number(loanEmployment.income) * 12
         } : {
-          companyName: 'Sovereign Treasury',
+          companyName: 'Institutional Treasury Portfolio',
           registrationNumber: 'N/A',
-          industry: 'Investment and Financial Market Trading',
+          industry: 'Investment and Commercial Finance',
           annualRevenue: Number(loanEmployment.income) * 12
         },
         fundingDetails: {
           purpose: loanFunding.purpose,
           requestedAmount: Number(loanFunding.amount || 100000),
           repaymentPreference: loanFunding.preference,
-          description: loanFunding.description || 'Sovereign institutional capital facility allocation request.'
+          description: loanFunding.description || 'Institutional capital facility allocation request.'
         },
         financialInfo: {
           existingDebts: Number(loanFinancial.debts) || 0,
           creditScore: Number(loanFinancial.creditScore) || 750,
           assetsValue: Number(loanFinancial.assetsValue) || 0
         },
-        documents: uploadedLoanDocs.length > 0 ? uploadedLoanDocs : (kycBusiness ? [{ name: 'business_incorporation_compliance.pdf', type: 'Sovereign Document', url: '#' }] : [])
+        documents: allAttachedDocs
       };
 
       const loanRes = await fetch(getApiUrl('/api/loans/apply'), {
@@ -1110,8 +1140,17 @@ export default function UserDashboard({
       const loanData = await loanRes.json();
       if (!loanRes.ok) throw new Error(loanData.error || 'Funding request submission failed.');
 
-      triggerAlert('success', `Underwriting and Compliance Portfolio Submitted. Credit Line ${loanData.application.id} Created.`);
-      setLoans(prev => [loanData.application, ...prev]);
+      triggerAlert('success', `Application and KYC documents successfully submitted. Loan Reference: ${loanData.application.id}`);
+      
+      setLoans(prev => {
+        const existingIdx = prev.findIndex(l => l.id === loanData.application.id);
+        if (existingIdx !== -1) {
+          const updated = [...prev];
+          updated[existingIdx] = loanData.application;
+          return updated;
+        }
+        return [loanData.application, ...prev];
+      });
 
       // Pop up submission confirmation modal
       setSubmittedLoanConfirmation({ 
@@ -1124,6 +1163,18 @@ export default function UserDashboard({
       setWizardStep(1);
       setKycDeclaresAccuracy(false);
       setKycSignature('');
+      setKycIdCard('');
+      setKycIdCardBack('');
+      setKycProofOfAddress('');
+      setKycBusiness('');
+      setKycSelfie('');
+      setKycVideoUrl('');
+      setIdCardFileName('');
+      setIdCardBackFileName('');
+      setProofOfAddressFileName('');
+      setBusinessDocFileName('');
+      setSelfieFileName('');
+      setVideoFileName('');
       
       // Navigate to loans list
       handleTabChange('loans');
@@ -1152,15 +1203,15 @@ export default function UserDashboard({
       )}
 
       {/* Dashboard Top Frame */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-10 pb-8 border-b-2 border-stone-300 gap-6">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-10 pb-8 border-b-2 border-stone-800 gap-6">
         <div>
-          <span className="text-xs font-mono tracking-[0.25em] text-cyan-700 font-black uppercase block mb-1.5">
+          <span className="text-xs font-mono tracking-[0.25em] text-cyan-400 font-black uppercase block mb-1.5">
             Elon Capital • Secured Sovereign Portal
           </span>
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black text-zinc-900 tracking-tight uppercase leading-none">
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight uppercase leading-none">
             {activeTab === 'menu' ? 'Command Menu' : 'Personal Dashboard'}
           </h1>
-          <p className="text-base sm:text-lg font-semibold text-zinc-600 mt-2.5 max-w-2xl leading-relaxed">
+          <p className="text-base sm:text-lg font-bold text-zinc-200 mt-2.5 max-w-2xl leading-relaxed">
             {activeTab === 'menu'
               ? 'Select a sovereign portal module below to manage your vault, compliance milestones, or liquidity facilities.'
               : 'Manage your sovereign credit facility, complete mandatory compliance checks, and track treasury disbursements.'}
@@ -1173,7 +1224,7 @@ export default function UserDashboard({
             {activeTab !== 'menu' && (
               <button
                 onClick={() => handleTabChange('menu')}
-                className="px-5 py-3.5 text-sm sm:text-base font-black uppercase tracking-wider text-cyan-800 bg-cyan-100 hover:bg-cyan-200 border-2 border-cyan-400 rounded-xl transition-all duration-300 flex items-center gap-2 shadow-sm cursor-pointer font-display"
+                className="px-5 py-3.5 text-sm sm:text-base font-black uppercase tracking-wider text-cyan-300 bg-black hover:bg-zinc-900 border-2 border-cyan-500/50 hover:border-cyan-400 rounded-xl transition-all duration-300 flex items-center gap-2 shadow-md cursor-pointer font-display"
                 id="btn-dash-back-menu-top"
               >
                 <ArrowLeft className="h-5 w-5 stroke-[3]" /> Back to Menu
@@ -1188,7 +1239,7 @@ export default function UserDashboard({
             </button>
             <button
               onClick={onLogout}
-              className="px-5 py-3.5 text-sm sm:text-base font-black text-stone-700 hover:text-red-600 bg-stone-200 hover:bg-stone-300 border-2 border-stone-300 hover:border-red-300 rounded-xl transition-all cursor-pointer font-display"
+              className="px-5 py-3.5 text-sm sm:text-base font-black text-zinc-300 hover:text-red-400 bg-black hover:bg-zinc-900 border-2 border-zinc-800 hover:border-red-500/50 rounded-xl transition-all cursor-pointer font-display shadow-md"
               id="btn-dash-logout"
             >
               Logout
@@ -1484,19 +1535,19 @@ export default function UserDashboard({
       {activeTab !== 'menu' && (
       <div className="w-full">
         {/* WORKSPACE AREA */}
-        <div className="w-full bg-[#fdfbf7] border border-amber-900/10 rounded-3xl p-5 sm:p-8 lg:p-10 shadow-xl min-h-[500px]" id="dash-workspace">
+        <div className="w-full bg-[#1a1916] border-2 border-stone-800 rounded-3xl p-5 sm:p-8 lg:p-10 shadow-2xl min-h-[500px] text-zinc-100" id="dash-workspace">
           
           {/* Top Back-To-Menu Header inside Workspace */}
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-amber-900/10">
+          <div className="flex items-center justify-between pb-4 mb-6 border-b-2 border-stone-800">
             <button
               onClick={() => handleTabChange('menu')}
-              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-mono font-bold text-cyan-700 hover:text-cyan-800 bg-cyan-50 hover:bg-cyan-100 border border-cyan-300 rounded-xl transition-all cursor-pointer shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-mono font-black text-cyan-300 hover:text-white bg-black hover:bg-zinc-900 border-2 border-cyan-500/50 hover:border-cyan-400 rounded-xl transition-all cursor-pointer shadow-md"
               id="tab-btn-back-menu"
             >
-              <ArrowLeft className="h-4 w-4 stroke-[2.5]" /> ← Back to Menu
+              <ArrowLeft className="h-4 w-4 stroke-[3]" /> ← Back to Menu
             </button>
-            <span className="text-xs font-mono text-zinc-600 uppercase tracking-widest font-black">
-              Current View: <span className="text-cyan-600">{activeTab.toUpperCase()}</span>
+            <span className="text-xs font-mono text-zinc-300 uppercase tracking-widest font-black">
+              Current View: <span className="text-cyan-400 font-black">{activeTab.toUpperCase()}</span>
             </span>
           </div>
 
@@ -1572,33 +1623,33 @@ export default function UserDashboard({
                 </div>
 
                 {/* 2. LOAN BALANCE & HUGE WITHDRAW BUTTON CARD */}
-                <div className="p-6 sm:p-8 bg-[#f5f1e8] border-2 border-stone-300 rounded-3xl space-y-6 text-left shadow-md" id="account-loan-balance-card">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-stone-300">
+                <div className="p-6 sm:p-8 bg-black border-2 border-zinc-800 rounded-3xl space-y-6 text-left shadow-2xl" id="account-loan-balance-card">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b-2 border-zinc-800">
                     <div className="space-y-3">
-                      <span className="text-xs font-mono font-black uppercase tracking-widest text-emerald-800 block flex items-center gap-2">
-                        <CreditCard className="h-4 w-4" /> DISBURSED CAPITAL BALANCE
+                      <span className="text-xs font-mono font-black uppercase tracking-widest text-emerald-400 block flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 stroke-[2.5]" /> DISBURSED CAPITAL BALANCE
                       </span>
-                      <h3 className="text-2xl sm:text-3xl font-black text-zinc-900 font-display uppercase tracking-tight">
+                      <h3 className="text-2xl sm:text-3xl font-black text-white font-display uppercase tracking-tight">
                         Borrowed Loan Balance
                       </h3>
-                      <div className="p-4 bg-cyan-50 border-2 border-cyan-300 rounded-2xl">
-                        <p className="text-base sm:text-lg font-black text-cyan-900 leading-snug font-display">
+                      <div className="p-4 bg-zinc-900 border-2 border-cyan-500/50 rounded-2xl">
+                        <p className="text-base sm:text-lg font-black text-cyan-300 leading-snug font-display">
                           This reflects the exact loan capital approved and allocated to your account by Elon Capital Loan.
                         </p>
                       </div>
                     </div>
 
-                    <div className="p-5 bg-white border-2 border-emerald-500 rounded-2xl shrink-0 text-center space-y-1 min-w-0 sm:min-w-[240px] w-full sm:w-auto shadow-sm">
-                      <span className="text-xs font-mono font-black text-emerald-800 uppercase tracking-wider block">LOAN BALANCE AMOUNT</span>
-                      <div className="text-3xl sm:text-4xl font-black font-mono text-zinc-900">
+                    <div className="p-5 bg-zinc-900 border-2 border-emerald-500 rounded-2xl shrink-0 text-center space-y-1 min-w-0 sm:min-w-[240px] w-full sm:w-auto shadow-md">
+                      <span className="text-xs font-mono font-black text-emerald-300 uppercase tracking-wider block">LOAN BALANCE AMOUNT</span>
+                      <div className="text-3xl sm:text-4xl font-black font-mono text-emerald-400">
                         ${withdrawableBalance.toLocaleString()} USD
                       </div>
                       {isLoanDebited ? (
-                        <span className="text-[10px] font-mono text-red-600 font-black uppercase block">State: Debited ($0 Remaining)</span>
+                        <span className="text-[10px] font-mono text-red-400 font-black uppercase block">State: Debited ($0 Remaining)</span>
                       ) : activeLoan ? (
-                        <span className="text-[10px] font-mono text-emerald-700 font-black uppercase block">State: Available for Instant Withdrawal</span>
+                        <span className="text-[10px] font-mono text-emerald-400 font-black uppercase block">State: Available for Instant Withdrawal</span>
                       ) : (
-                        <span className="text-[10px] font-mono text-zinc-500 font-black uppercase block">State: Pending Application</span>
+                        <span className="text-[10px] font-mono text-zinc-400 font-black uppercase block">State: Pending Application</span>
                       )}
                     </div>
                   </div>
@@ -1613,18 +1664,18 @@ export default function UserDashboard({
                           setWithdrawalSubmitted(false);
                           setWithdrawValidationError(null);
                         }}
-                        className="w-full py-5 sm:py-6 px-8 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:from-emerald-400 hover:to-teal-300 text-zinc-950 font-black text-lg sm:text-xl uppercase tracking-wider rounded-2xl transition-all cursor-pointer font-display shadow-lg hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 border-2 border-emerald-600"
+                        className="w-full py-5 sm:py-6 px-8 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:from-emerald-400 hover:to-teal-300 text-zinc-950 font-black text-lg sm:text-xl uppercase tracking-wider rounded-2xl transition-all cursor-pointer font-display shadow-lg hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3 border-2 border-emerald-400"
                         id="btn-huge-withdraw-loan"
                       >
                         <ArrowUpRight className="h-8 w-8 stroke-[3]" />
                         💸 WITHDRAW LOAN BALANCE NOW
                       </button>
                     ) : isLoanDebited ? (
-                      <div className="w-full p-6 bg-emerald-50 border-2 border-emerald-400 rounded-2xl text-center space-y-2">
-                        <span className="text-xs font-mono font-black uppercase tracking-wider text-emerald-800 block flex items-center justify-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-emerald-700 stroke-[3]" /> LOAN BALANCE FULLY DEBITED & TRANSFERRED
+                      <div className="w-full p-6 bg-zinc-900 border-2 border-emerald-500 rounded-2xl text-center space-y-2">
+                        <span className="text-xs font-mono font-black uppercase tracking-wider text-emerald-400 block flex items-center justify-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-400 stroke-[3]" /> LOAN BALANCE FULLY DEBITED & TRANSFERRED
                         </span>
-                        <p className="text-sm font-bold text-zinc-700">
+                        <p className="text-sm font-bold text-zinc-200">
                           Your loan balance has been debited and processed for release. If you have any questions regarding settlement, please contact Elon Capital Loan customer service.
                         </p>
                       </div>
@@ -1642,26 +1693,26 @@ export default function UserDashboard({
                 </div>
 
                 {/* 3. REFUNDABLE COLLATERAL VAULT BOX */}
-                <div className="p-6 sm:p-8 bg-[#fefbee] border-2 border-amber-300 rounded-3xl space-y-6 text-left shadow-md" id="account-refundable-collateral-box">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-amber-200">
+                <div className="p-6 sm:p-8 bg-black border-2 border-amber-500/50 rounded-3xl space-y-6 text-left shadow-2xl" id="account-refundable-collateral-box">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b-2 border-zinc-800">
                     <div className="space-y-1.5">
-                      <span className="text-xs font-mono font-black uppercase tracking-widest text-amber-800 block flex items-center gap-2">
-                        <Lock className="h-4 w-4" /> 100% REFUNDABLE COLLATERAL ESCROW
+                      <span className="text-xs font-mono font-black uppercase tracking-widest text-amber-400 block flex items-center gap-2">
+                        <Lock className="h-4 w-4 stroke-[2.5]" /> 100% REFUNDABLE COLLATERAL ESCROW
                       </span>
-                      <h3 className="text-2xl sm:text-3xl font-black text-zinc-900 font-display uppercase tracking-tight">
+                      <h3 className="text-2xl sm:text-3xl font-black text-white font-display uppercase tracking-tight">
                         Refundable Collateral Balance
                       </h3>
-                      <p className="text-xs sm:text-sm text-zinc-700 font-bold leading-relaxed max-w-xl">
-                        Your 25% security deposit is held in escrow by <strong className="text-amber-800">Elon Capital Loan</strong> and is 100% refundable upon loan repayment.
+                      <p className="text-xs sm:text-sm text-zinc-200 font-bold leading-relaxed max-w-xl">
+                        Your 25% security deposit is held in escrow by <strong className="text-amber-300 font-black">Elon Capital Loan</strong> and is 100% refundable upon loan repayment.
                       </p>
                     </div>
 
-                    <div className="p-4 bg-white border-2 border-amber-400 rounded-2xl shrink-0 text-center space-y-1 min-w-0 sm:min-w-[240px] w-full sm:w-auto shadow-sm">
-                      <span className="text-xs font-mono font-black text-amber-800 uppercase tracking-wider block">ESCROW COLLATERAL VALUE</span>
-                      <div className="text-3xl sm:text-4xl font-black font-mono text-amber-900">
+                    <div className="p-4 bg-zinc-900 border-2 border-amber-500 rounded-2xl shrink-0 text-center space-y-1 min-w-0 sm:min-w-[240px] w-full sm:w-auto shadow-md">
+                      <span className="text-xs font-mono font-black text-amber-300 uppercase tracking-wider block">ESCROW COLLATERAL VALUE</span>
+                      <div className="text-3xl sm:text-4xl font-black font-mono text-amber-300">
                         ${collateralAmount.toLocaleString()} USD
                       </div>
-                      <span className="text-[10px] font-mono text-amber-800 uppercase font-black block">🔒 Status: Held in Secured Escrow</span>
+                      <span className="text-[10px] font-mono text-amber-300 uppercase font-black block">🔒 Status: Held in Secured Escrow</span>
                     </div>
                   </div>
 
@@ -1676,32 +1727,32 @@ export default function UserDashboard({
                       WITHDRAW REFUNDABLE COLLATERAL
                     </button>
 
-                    <div className="text-xs font-mono font-bold text-amber-900 text-center sm:text-right">
+                    <div className="text-xs font-mono font-black text-amber-300 text-center sm:text-right">
                       🔒 Unlocks automatically upon 100% loan repayment at maturity
                     </div>
                   </div>
                 </div>
 
                 {/* 4. REAL-TIME ACCOUNT DEBIT & TRANSACTION HISTORY */}
-                <div className="p-6 bg-[#f5f1e8] border border-stone-300 rounded-3xl space-y-4 text-left" id="account-transaction-ledger">
-                  <div className="flex items-center justify-between pb-3 border-b border-stone-300">
+                <div className="p-6 bg-black border-2 border-zinc-800 rounded-3xl space-y-4 text-left shadow-2xl" id="account-transaction-ledger">
+                  <div className="flex items-center justify-between pb-3 border-b-2 border-zinc-800">
                     <div>
-                      <h4 className="text-xl font-black text-zinc-900 font-display uppercase tracking-tight">
+                      <h4 className="text-xl font-black text-white font-display uppercase tracking-tight">
                         USD Account Transaction History & Debit Ledger
                       </h4>
-                      <p className="text-xs text-zinc-600 font-bold font-mono">
+                      <p className="text-xs text-zinc-300 font-bold font-mono">
                         Real-time audit log for all credits, debits, and escrow deposits
                       </p>
                     </div>
-                    <span className="text-xs font-mono font-black text-cyan-800 uppercase bg-cyan-100 px-3 py-1 rounded-full border border-cyan-300">
+                    <span className="text-xs font-mono font-black text-cyan-300 uppercase bg-zinc-900 px-3 py-1 rounded-full border border-cyan-500/50">
                       LIVE ACCOUNT LEDGER
                     </span>
                   </div>
 
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left font-mono text-xs text-zinc-800">
+                    <table className="w-full text-left font-mono text-xs text-zinc-200">
                       <thead>
-                        <tr className="border-b border-stone-300 text-zinc-600 uppercase font-black text-[11px]">
+                        <tr className="border-b-2 border-zinc-800 text-zinc-400 uppercase font-black text-[11px]">
                           <th className="py-3 px-2">Date / Time</th>
                           <th className="py-3 px-2">Description</th>
                           <th className="py-3 px-2">Routing Method</th>
@@ -1709,16 +1760,16 @@ export default function UserDashboard({
                           <th className="py-3 px-2">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-stone-200">
+                      <tbody className="divide-y divide-zinc-800">
                         {/* Render custom debited transactions */}
                         {customTransactions.map(tx => (
-                          <tr key={tx.id} className="hover:bg-stone-200/50">
-                            <td className="py-3.5 px-2 font-bold text-zinc-900">{tx.date}</td>
-                            <td className="py-3.5 px-2 font-bold text-amber-800">{tx.description}</td>
-                            <td className="py-3.5 px-2 text-zinc-700">{tx.method}</td>
-                            <td className="py-3.5 px-2 font-black text-red-600 text-sm">-${tx.amount.toLocaleString()} USD</td>
+                          <tr key={tx.id} className="hover:bg-zinc-900/60">
+                            <td className="py-3.5 px-2 font-bold text-white">{tx.date}</td>
+                            <td className="py-3.5 px-2 font-black text-amber-400">{tx.description}</td>
+                            <td className="py-3.5 px-2 text-zinc-300 font-semibold">{tx.method}</td>
+                            <td className="py-3.5 px-2 font-black text-red-400 text-sm">-${tx.amount.toLocaleString()} USD</td>
                             <td className="py-3.5 px-2">
-                              <span className="px-2.5 py-1 bg-red-100 text-red-800 font-bold rounded-md border border-red-300 text-[10px]">
+                              <span className="px-2.5 py-1 bg-red-950 text-red-300 font-black rounded-md border border-red-500/50 text-[10px]">
                                 {tx.status}
                               </span>
                             </td>
@@ -1727,13 +1778,13 @@ export default function UserDashboard({
 
                         {/* Default Disbursed Loan Credit Record */}
                         {activeLoan && (
-                          <tr className="hover:bg-stone-200/50">
-                            <td className="py-3.5 px-2 font-bold text-zinc-900">{new Date(activeLoan.createdAt || Date.now()).toLocaleDateString()}</td>
-                            <td className="py-3.5 px-2 font-bold text-emerald-800">Disbursed Loan Capital Credit</td>
-                            <td className="py-3.5 px-2 text-zinc-700">Elon Capital Liquidity Pool</td>
-                            <td className="py-3.5 px-2 font-black text-emerald-700 text-sm">+${loanAmount.toLocaleString()} USD</td>
+                          <tr className="hover:bg-zinc-900/60">
+                            <td className="py-3.5 px-2 font-bold text-white">{new Date(activeLoan.createdAt || Date.now()).toLocaleDateString()}</td>
+                            <td className="py-3.5 px-2 font-black text-emerald-400">Disbursed Loan Capital Credit</td>
+                            <td className="py-3.5 px-2 text-zinc-300 font-semibold">Elon Capital Liquidity Pool</td>
+                            <td className="py-3.5 px-2 font-black text-emerald-400 text-sm">+${loanAmount.toLocaleString()} USD</td>
                             <td className="py-3.5 px-2">
-                              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold rounded-md border border-emerald-300 text-[10px]">
+                              <span className="px-2.5 py-1 bg-emerald-950 text-emerald-300 font-black rounded-md border border-emerald-500/50 text-[10px]">
                                 CREDITED & VERIFIED
                               </span>
                             </td>
@@ -1742,13 +1793,13 @@ export default function UserDashboard({
 
                         {/* Default Refundable Collateral Deposit Record */}
                         {activeLoan && (
-                          <tr className="hover:bg-stone-200/50">
-                            <td className="py-3.5 px-2 font-bold text-zinc-900">{new Date(activeLoan.createdAt || Date.now()).toLocaleDateString()}</td>
-                            <td className="py-3.5 px-2 font-bold text-amber-800">25% Refundable Collateral Deposit</td>
-                            <td className="py-3.5 px-2 text-zinc-700">Escrow Vault Custody</td>
-                            <td className="py-3.5 px-2 font-black text-amber-700 text-sm">+${collateralAmount.toLocaleString()} USD</td>
+                          <tr className="hover:bg-zinc-900/60">
+                            <td className="py-3.5 px-2 font-bold text-white">{new Date(activeLoan.createdAt || Date.now()).toLocaleDateString()}</td>
+                            <td className="py-3.5 px-2 font-black text-amber-400">25% Refundable Collateral Deposit</td>
+                            <td className="py-3.5 px-2 text-zinc-300 font-semibold">Escrow Vault Custody</td>
+                            <td className="py-3.5 px-2 font-black text-amber-300 text-sm">+${collateralAmount.toLocaleString()} USD</td>
                             <td className="py-3.5 px-2">
-                              <span className="px-2.5 py-1 bg-amber-100 text-amber-800 font-bold rounded-md border border-amber-300 text-[10px]">
+                              <span className="px-2.5 py-1 bg-amber-950 text-amber-300 font-black rounded-md border border-amber-500/50 text-[10px]">
                                 ESCROW LOCKED
                               </span>
                             </td>
@@ -1757,7 +1808,7 @@ export default function UserDashboard({
 
                         {!activeLoan && customTransactions.length === 0 && (
                           <tr>
-                            <td colSpan={5} className="py-8 text-center text-zinc-500 font-mono text-xs font-bold">
+                            <td colSpan={5} className="py-8 text-center text-zinc-400 font-mono text-xs font-bold">
                               No loan transactions recorded yet. Submit your loan application to unlock instant funding.
                             </td>
                           </tr>
@@ -1766,9 +1817,9 @@ export default function UserDashboard({
                     </table>
                   </div>
 
-                  <div className="p-3 bg-stone-200/70 rounded-xl border border-stone-300 text-xs font-mono text-zinc-700 flex flex-col sm:flex-row items-center justify-between gap-2">
-                    <span>💬 Direct Support Feedback:</span>
-                    <span className="text-cyan-800 font-bold">If you have any questions regarding your debited account, please contact customer service.</span>
+                  <div className="p-3.5 bg-zinc-900 rounded-xl border border-zinc-800 text-xs font-mono text-zinc-300 flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <span className="font-bold text-white">💬 Direct Support Feedback:</span>
+                    <span className="text-cyan-400 font-bold">If you have any questions regarding your debited account, please contact customer service.</span>
                   </div>
                 </div>
               </div>
@@ -1778,16 +1829,16 @@ export default function UserDashboard({
           {/* ---------------- 0.5. LOAN CALCULATOR TAB ---------------- */}
           {activeTab === 'calculator' && (
             <div className="space-y-6 animate-fade-in text-left" id="view-calculator-tab">
-              <div className="p-6 bg-cyan-50/80 border-2 border-cyan-400 rounded-3xl space-y-2">
+              <div className="p-6 bg-black border-2 border-zinc-800 rounded-3xl space-y-2 shadow-2xl">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-black text-cyan-800 uppercase tracking-widest bg-cyan-100 px-3 py-1 rounded-full border border-cyan-300">
+                  <span className="text-xs font-mono font-black text-cyan-300 uppercase tracking-widest bg-zinc-900 px-3 py-1 rounded-full border border-cyan-500/50">
                     INSTITUTIONAL LOAN CALCULATOR
                   </span>
                 </div>
-                <h2 className="font-display text-2xl sm:text-3xl font-black text-zinc-900 uppercase tracking-tight">
+                <h2 className="font-display text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
                   Calculate Loan Principal & Amortization
                 </h2>
-                <p className="text-xs sm:text-sm text-zinc-600 font-bold">
+                <p className="text-xs sm:text-sm text-zinc-200 font-bold">
                   Adjust loan principal and payback terms to compute instant monthly installments, interest rates, and payback totals.
                 </p>
               </div>
@@ -1815,50 +1866,50 @@ export default function UserDashboard({
             return (
               <div className="space-y-8" id="view-overview">
                 {/* 1. WELCOME CARD */}
-                <div className="p-6 bg-[#f5f1e8] border border-stone-300 rounded-2xl relative overflow-hidden shadow-sm" id="dash-welcome-card">
+                <div className="p-6 bg-black border-2 border-zinc-800 rounded-2xl relative overflow-hidden shadow-2xl" id="dash-welcome-card">
                   <div className="space-y-4 text-left">
                     <div>
-                      <h3 className="font-display text-2xl sm:text-3xl font-black text-zinc-900 uppercase tracking-wide">
+                      <h3 className="font-display text-2xl sm:text-3xl font-black text-white uppercase tracking-wide">
                         Welcome Back, {user.name}
                       </h3>
-                      <p className="text-sm sm:text-base font-bold text-zinc-700 mt-1.5 leading-relaxed">
+                      <p className="text-sm sm:text-base font-bold text-zinc-200 mt-1.5 leading-relaxed">
                         Your account is active. Complete the required operational milestones below to receive funding.
                       </p>
                     </div>
 
                     {/* Completion Checklist Checklist */}
-                    <div className="pt-2 border-t border-stone-300 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm font-black">
+                    <div className="pt-3 border-t-2 border-zinc-800 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm font-black">
                       <div className="flex items-center gap-2.5">
-                        <CheckCircle2 className="h-5 w-5 text-emerald-600 stroke-[3]" />
-                        <span className="text-zinc-900 font-black">Create Secure EMC Account</span>
+                        <CheckCircle2 className="h-5 w-5 text-emerald-400 stroke-[3]" />
+                        <span className="text-white font-black">Create Secure EMC Account</span>
                       </div>
                       <div className="flex items-center gap-2.5">
                         {(kycStatus?.status === 'Approved' || activeLoan?.status === 'Approved') ? (
-                          <CheckCircle2 className="h-5 w-5 text-emerald-600 stroke-[3]" />
+                          <CheckCircle2 className="h-5 w-5 text-emerald-400 stroke-[3]" />
                         ) : (
-                          <span className="h-5 w-5 rounded-full border-2 border-stone-400 flex-shrink-0" />
+                          <span className="h-5 w-5 rounded-full border-2 border-zinc-600 flex-shrink-0" />
                         )}
-                        <span className={(kycStatus?.status === 'Approved' || activeLoan?.status === 'Approved') ? 'text-zinc-900 font-black' : 'text-zinc-600 font-bold'}>
+                        <span className={(kycStatus?.status === 'Approved' || activeLoan?.status === 'Approved') ? 'text-white font-black' : 'text-zinc-400 font-bold'}>
                           Complete KYC Identity Verification
                         </span>
                       </div>
                       <div className="flex items-center gap-2.5">
                         {(loans.length > 0 && activeLoan?.status === 'Approved') ? (
-                          <CheckCircle2 className="h-5 w-5 text-emerald-600 stroke-[3]" />
+                          <CheckCircle2 className="h-5 w-5 text-emerald-400 stroke-[3]" />
                         ) : (
-                          <span className="h-5 w-5 rounded-full border-2 border-stone-400 flex-shrink-0" />
+                          <span className="h-5 w-5 rounded-full border-2 border-zinc-600 flex-shrink-0" />
                         )}
-                        <span className={(loans.length > 0 && activeLoan?.status === 'Approved') ? 'text-zinc-900 font-black' : 'text-zinc-600 font-bold'}>
+                        <span className={(loans.length > 0 && activeLoan?.status === 'Approved') ? 'text-white font-black' : 'text-zinc-400 font-bold'}>
                           Submit Loan Capital Request
                         </span>
                       </div>
                       <div className="flex items-center gap-2.5">
                         {activeLoan?.collateralPaid ? (
-                          <CheckCircle2 className="h-5 w-5 text-emerald-600 stroke-[3]" />
+                          <CheckCircle2 className="h-5 w-5 text-emerald-400 stroke-[3]" />
                         ) : (
-                          <span className="h-5 w-5 rounded-full border-2 border-stone-400 flex-shrink-0" />
+                          <span className="h-5 w-5 rounded-full border-2 border-zinc-600 flex-shrink-0" />
                         )}
-                        <span className={activeLoan?.collateralPaid ? 'text-zinc-900 font-black' : 'text-zinc-600 font-bold'}>
+                        <span className={activeLoan?.collateralPaid ? 'text-white font-black' : 'text-zinc-400 font-bold'}>
                           Remit Refundable Collateral Fee
                         </span>
                       </div>
@@ -1869,29 +1920,29 @@ export default function UserDashboard({
                 {/* 2. STATUS BOARD BENTO GRID */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6" id="dash-status-grid">
                   {/* KYC Compliance Status Card */}
-                  <div className="p-6 bg-[#f5f1e8] border border-stone-300 rounded-2xl flex items-center justify-between transition-all shadow-sm">
+                  <div className="p-6 bg-black border-2 border-zinc-800 rounded-2xl flex items-center justify-between transition-all shadow-2xl">
                     <div className="space-y-1.5 text-left">
-                      <span className="text-xs font-mono text-cyan-800 uppercase tracking-widest block font-black">KYC Compliance Passport</span>
-                      <h4 className="text-lg sm:text-xl font-black text-zinc-900">
+                      <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest block font-black">KYC Compliance Passport</span>
+                      <h4 className="text-lg sm:text-xl font-black text-white">
                         {kycStatus?.status === 'Approved' || activeLoan?.status === 'Approved' ? 'Verified Clearance Active' :
                          kycStatus?.status === 'Pending' ? 'In Review Queue' :
                          kycStatus?.status === 'Rejected' ? 'Re-upload Required' :
                          'Not Submitted'}
                       </h4>
-                      <p className="text-xs sm:text-sm text-zinc-600 font-bold leading-relaxed max-w-[240px]">
+                      <p className="text-xs sm:text-sm text-zinc-200 font-bold leading-relaxed max-w-[240px]">
                         {kycStatus?.remarks || 'Identity validation verified for capital allocation.'}
                       </p>
                     </div>
                     <div className="flex-shrink-0 pl-4">
-                      <ShieldCheck className={`h-11 w-11 ${(kycStatus?.status === 'Approved' || activeLoan?.status === 'Approved') ? 'text-cyan-700' : 'text-stone-400'}`} />
+                      <ShieldCheck className={`h-11 w-11 ${(kycStatus?.status === 'Approved' || activeLoan?.status === 'Approved') ? 'text-cyan-400' : 'text-zinc-600'}`} />
                     </div>
                   </div>
 
                   {/* Active Loan Capital Card */}
-                  <div className="p-6 bg-[#f5f1e8] border border-stone-300 rounded-2xl flex items-center justify-between transition-all shadow-sm">
+                  <div className="p-6 bg-black border-2 border-zinc-800 rounded-2xl flex items-center justify-between transition-all shadow-2xl">
                     <div className="space-y-1.5 text-left">
-                      <span className="text-xs font-mono text-cyan-800 uppercase tracking-widest block font-black">Capital Liquidity Line</span>
-                      <h4 className="text-lg sm:text-xl font-black text-zinc-900">
+                      <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest block font-black">Capital Liquidity Line</span>
+                      <h4 className="text-lg sm:text-xl font-black text-white">
                         {!activeLoan ? 'No Active Loan' :
                          activeLoan.disbursed ? 'Capital Disbursed & Active' :
                          activeLoan.status === 'Pending' || activeLoan.status === 'Under Review' ? 'Loan Under Review' :
@@ -1900,7 +1951,7 @@ export default function UserDashboard({
                          activeLoan.status === 'Declined' ? 'Request Rejected' :
                          'Undergoing Verification'}
                       </h4>
-                      <p className="text-xs sm:text-sm text-zinc-600 font-bold leading-relaxed max-w-[240px]">
+                      <p className="text-xs sm:text-sm text-zinc-200 font-bold leading-relaxed max-w-[240px]">
                         {!activeLoan ? 'Initialize your loan request using our compliance wizard.' :
                          activeLoan.disbursed ? 'Your loan capital is disbursed and available for instant withdrawal.' :
                          activeLoan.status === 'Approved' && !activeLoan.collateralPaid ? `Refundable 25% collateral fee ($${(activeLoan.fundingDetails.requestedAmount * 0.25).toLocaleString()}) pending.` :
@@ -1909,33 +1960,33 @@ export default function UserDashboard({
                       </p>
                     </div>
                     <div className="flex-shrink-0 pl-4">
-                      <CreditCard className={`h-11 w-11 ${activeLoan?.status === 'Approved' ? 'text-cyan-700' : 'text-stone-400'}`} />
+                      <CreditCard className={`h-11 w-11 ${activeLoan?.status === 'Approved' ? 'text-cyan-400' : 'text-zinc-600'}`} />
                     </div>
                   </div>
                 </div>
 
                 {/* 3. DISBURSED CAPITAL BALANCE VAULT (Shows when loan is disbursed) */}
                 {activeLoan && activeLoan.disbursed && (
-                  <div className="p-6 sm:p-8 bg-[#f5f1e8] border-2 border-emerald-500 rounded-3xl space-y-6 shadow-md text-left animate-fade-in" id="disbursed-capital-vault">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-stone-300">
+                  <div className="p-6 sm:p-8 bg-black border-2 border-emerald-500/50 rounded-3xl space-y-6 shadow-2xl text-left animate-fade-in" id="disbursed-capital-vault">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b-2 border-zinc-800">
                       <div className="space-y-1">
-                        <span className="text-xs font-mono uppercase tracking-widest text-emerald-800 font-black block flex items-center gap-2">
+                        <span className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-black block flex items-center gap-2">
                           <Check className="h-4 w-4" /> DISBURSED CAPITAL VAULT
                         </span>
-                        <h3 className="text-2xl sm:text-3xl font-black text-zinc-900 font-display uppercase tracking-tight">
+                        <h3 className="text-2xl sm:text-3xl font-black text-white font-display uppercase tracking-tight">
                           Disbursed Loan Balance
                         </h3>
-                        <p className="text-xs sm:text-sm text-zinc-600 font-bold leading-relaxed">
+                        <p className="text-xs sm:text-sm text-zinc-200 font-bold leading-relaxed">
                           Your approved credit application funds are fully unlocked and ready to be transferred to your account.
                         </p>
                       </div>
 
-                      <div className="p-4 bg-white border-2 border-emerald-500 rounded-2xl shrink-0 text-center space-y-1 shadow-sm">
-                        <span className="text-[11px] font-mono font-black text-emerald-800 uppercase tracking-wider block">AVAILABLE LIQUID CAPITAL</span>
-                        <div className="text-3xl sm:text-4xl font-black font-mono text-emerald-700">
+                      <div className="p-4 bg-zinc-900 border-2 border-emerald-500 rounded-2xl shrink-0 text-center space-y-1 shadow-md">
+                        <span className="text-[11px] font-mono font-black text-emerald-300 uppercase tracking-wider block">AVAILABLE LIQUID CAPITAL</span>
+                        <div className="text-3xl sm:text-4xl font-black font-mono text-emerald-400">
                           ${activeLoan.fundingDetails.requestedAmount.toLocaleString()} USD
                         </div>
-                        <span className="text-[10px] font-mono text-zinc-500 uppercase font-black block">Status: Fully Disbursed & Unlocked</span>
+                        <span className="text-[10px] font-mono text-emerald-400 uppercase font-black block">Status: Fully Disbursed & Unlocked</span>
                       </div>
                     </div>
 
@@ -1945,25 +1996,25 @@ export default function UserDashboard({
                         onClick={() => {
                           handleTabChange('account');
                         }}
-                        className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm uppercase tracking-wider rounded-xl transition-all cursor-pointer font-display shadow-md hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                        className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-sm uppercase tracking-wider rounded-xl transition-all cursor-pointer font-display shadow-md hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
                       >
                         <ArrowUpRight className="h-5 w-5 stroke-[3]" />
                         WITHDRAW LOAN FUNDS NOW
                       </button>
 
-                      <div className="text-xs font-mono font-bold text-zinc-600">
+                      <div className="text-xs font-mono font-black text-zinc-300">
                         ✓ Supports ERC-20, BEP-20, Solana & Bank Wire transfers
                       </div>
                     </div>
 
                     {/* Transaction History for Disbursed Capital */}
                     <div className="pt-4 space-y-3">
-                      <h4 className="text-xs font-mono font-black uppercase tracking-wider text-zinc-700">
+                      <h4 className="text-xs font-mono font-black uppercase tracking-wider text-zinc-300">
                         Disbursed Capital Transaction History
                       </h4>
-                      <div className="overflow-x-auto border border-stone-300 rounded-xl bg-white">
+                      <div className="overflow-x-auto border-2 border-zinc-800 rounded-xl bg-zinc-900">
                         <table className="w-full text-xs text-left font-mono">
-                          <thead className="bg-stone-100 border-b border-stone-300 text-zinc-600 font-black uppercase text-[10px] tracking-wider">
+                          <thead className="bg-zinc-950 border-b-2 border-zinc-800 text-zinc-400 font-black uppercase text-[10px] tracking-wider">
                             <tr>
                               <th className="p-3">Date</th>
                               <th className="p-3">Transaction Description</th>
@@ -1971,13 +2022,13 @@ export default function UserDashboard({
                               <th className="p-3">Status</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-stone-200 text-zinc-800 font-bold">
+                          <tbody className="divide-y divide-zinc-800 text-zinc-200 font-bold">
                             <tr>
-                              <td className="p-3 text-zinc-600">{new Date(activeLoan.updatedAt || activeLoan.createdAt).toLocaleDateString()}</td>
-                              <td className="p-3 text-zinc-900 font-black">Capital Loan Disbursed To Vault</td>
-                              <td className="p-3 text-emerald-700 font-black">+${activeLoan.fundingDetails.requestedAmount.toLocaleString()} USD</td>
+                              <td className="p-3 text-zinc-400">{new Date(activeLoan.updatedAt || activeLoan.createdAt).toLocaleDateString()}</td>
+                              <td className="p-3 text-white font-black">Capital Loan Disbursed To Vault</td>
+                              <td className="p-3 text-emerald-400 font-black">+${activeLoan.fundingDetails.requestedAmount.toLocaleString()} USD</td>
                               <td className="p-3">
-                                <span className="px-2 py-1 bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-black uppercase rounded">
+                                <span className="px-2.5 py-1 bg-emerald-950 border border-emerald-500/50 text-emerald-300 text-[10px] font-black uppercase rounded">
                                   COMPLETED / DISBURSED
                                 </span>
                               </td>
@@ -1991,26 +2042,26 @@ export default function UserDashboard({
 
                 {/* 3.5 REFUNDABLE COLLATERAL BALANCE VAULT */}
                 {activeLoan && (activeLoan.collateralPaid || activeLoan.status === 'Approved' || activeLoan.disbursed) && (
-                  <div className="p-6 sm:p-8 bg-[#fefbee] border-2 border-amber-300 rounded-3xl space-y-6 shadow-md text-left animate-fade-in" id="refundable-collateral-vault">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b border-amber-200">
+                  <div className="p-6 sm:p-8 bg-black border-2 border-amber-500/50 rounded-3xl space-y-6 shadow-2xl text-left animate-fade-in" id="refundable-collateral-vault">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pb-6 border-b-2 border-zinc-800">
                       <div className="space-y-1">
-                        <span className="text-xs font-mono uppercase tracking-widest text-amber-800 font-black block flex items-center gap-2">
+                        <span className="text-xs font-mono uppercase tracking-widest text-amber-400 font-black block flex items-center gap-2">
                           <Lock className="h-4 w-4" /> 100% REFUNDABLE COLLATERAL VAULT
                         </span>
-                        <h3 className="text-2xl sm:text-3xl font-black text-zinc-900 font-display uppercase tracking-tight">
+                        <h3 className="text-2xl sm:text-3xl font-black text-white font-display uppercase tracking-tight">
                           Refundable Collateral Balance
                         </h3>
-                        <p className="text-xs sm:text-sm text-zinc-700 font-bold leading-relaxed">
+                        <p className="text-xs sm:text-sm text-zinc-200 font-bold leading-relaxed">
                           Your 25% security collateral is securely held in escrow by Elon Capital Loan until loan maturity.
                         </p>
                       </div>
 
-                      <div className="p-4 bg-white border-2 border-amber-400 rounded-2xl shrink-0 text-center space-y-1 shadow-sm">
-                        <span className="text-[11px] font-mono font-black text-amber-800 uppercase tracking-wider block">COLLATERAL ESCROW VALUE</span>
-                        <div className="text-3xl sm:text-4xl font-black font-mono text-amber-900">
+                      <div className="p-4 bg-zinc-900 border-2 border-amber-500 rounded-2xl shrink-0 text-center space-y-1 shadow-md">
+                        <span className="text-[11px] font-mono font-black text-amber-300 uppercase tracking-wider block">COLLATERAL ESCROW VALUE</span>
+                        <div className="text-3xl sm:text-4xl font-black font-mono text-amber-300">
                           ${(activeLoan.fundingDetails.requestedAmount * 0.25).toLocaleString()} USD
                         </div>
-                        <span className="text-[10px] font-mono text-amber-800 uppercase font-black block flex items-center justify-center gap-1">
+                        <span className="text-[10px] font-mono text-amber-300 uppercase font-black block flex items-center justify-center gap-1">
                           🔒 {activeLoan.collateralPaid ? 'Status: Held in Escrow' : 'Status: Pending Deposit'}
                         </span>
                       </div>
@@ -2026,7 +2077,7 @@ export default function UserDashboard({
                         WITHDRAW COLLATERAL
                       </button>
 
-                      <div className="text-xs font-mono font-bold text-amber-900">
+                      <div className="text-xs font-mono font-black text-amber-300">
                         🔒 Unlocks automatically upon 100% loan principal repayment
                       </div>
                     </div>
@@ -2035,23 +2086,23 @@ export default function UserDashboard({
 
                 {/* 4. QUICK ACTIONS HUB */}
                 <div className="space-y-6 pt-4">
-                  <div className="flex items-center justify-between border-b border-stone-300 pb-3">
-                    <h4 className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest text-left font-black">QUICK ACTIONS CONTROL PORTAL</h4>
+                  <div className="flex items-center justify-between border-b-2 border-zinc-800 pb-3">
+                    <h4 className="font-mono text-xs text-cyan-400 uppercase tracking-widest text-left font-black">QUICK ACTIONS CONTROL PORTAL</h4>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="dash-quick-actions">
                     {/* REQUEST FUNDING */}
                     <button
                       type="button"
                       onClick={() => { handleTabChange('apply'); setWizardStep(1); }}
-                      className="group relative p-6 bg-white hover:bg-stone-50 border-2 border-stone-300 hover:border-cyan-600 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md active:scale-95"
+                      className="group relative p-6 bg-black hover:bg-zinc-900 border-2 border-zinc-800 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-2xl cursor-pointer hover:shadow-cyan-500/10 active:scale-95"
                       id="btn-quick-request-funding"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-100 border-2 border-cyan-400 flex items-center justify-center text-cyan-800 group-hover:scale-110 transition-transform">
+                      <div className="h-12 w-12 rounded-xl bg-zinc-900 border-2 border-cyan-500/50 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
                         <Plus className="h-6 w-6 stroke-[3]" />
                       </div>
                       <div>
-                        <span className="font-display text-base font-black text-zinc-900 block uppercase tracking-wider">Request Funding</span>
-                        <span className="text-xs text-zinc-600 font-bold mt-1 block leading-relaxed">Access lines of capital up to $500M with streamlined institutional clearings.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">Request Funding</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Access lines of capital up to $500M with streamlined institutional clearings.</span>
                       </div>
                     </button>
 
@@ -2059,15 +2110,15 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => handleTabChange('kyc')}
-                      className="group relative p-6 bg-white hover:bg-stone-50 border-2 border-stone-300 hover:border-cyan-600 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md active:scale-95"
+                      className="group relative p-6 bg-black hover:bg-zinc-900 border-2 border-zinc-800 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-2xl cursor-pointer hover:shadow-cyan-500/10 active:scale-95"
                       id="btn-quick-complete-kyc"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-100 border-2 border-cyan-400 flex items-center justify-center text-cyan-800 group-hover:scale-110 transition-transform">
+                      <div className="h-12 w-12 rounded-xl bg-zinc-900 border-2 border-cyan-500/50 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
                         <ShieldCheck className="h-6 w-6 stroke-[2.5]" />
                       </div>
                       <div>
-                        <span className="font-display text-base font-black text-zinc-900 block uppercase tracking-wider">Complete KYC</span>
-                        <span className="text-xs text-zinc-600 font-bold mt-1 block leading-relaxed">Fulfill regulatory and sovereign requirements with our secure upload system.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">Complete KYC</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Fulfill regulatory and sovereign requirements with our secure upload system.</span>
                       </div>
                     </button>
 
@@ -2075,15 +2126,15 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => handleTabChange('calculator')}
-                      className="group relative p-6 bg-white hover:bg-stone-50 border-2 border-stone-300 hover:border-cyan-600 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md active:scale-95"
+                      className="group relative p-6 bg-black hover:bg-zinc-900 border-2 border-zinc-800 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-2xl cursor-pointer hover:shadow-cyan-500/10 active:scale-95"
                       id="btn-quick-loan-calculator"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-100 border-2 border-cyan-400 flex items-center justify-center text-cyan-800 group-hover:scale-110 transition-transform">
+                      <div className="h-12 w-12 rounded-xl bg-zinc-900 border-2 border-cyan-500/50 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
                         <Calculator className="h-6 w-6 stroke-[2.5]" />
                       </div>
                       <div>
-                        <span className="font-display text-base font-black text-zinc-900 block uppercase tracking-wider">Loan Calculator</span>
-                        <span className="text-xs text-zinc-600 font-bold mt-1 block leading-relaxed">Synchronized real-time simulation module for interest and amortization rates.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">Loan Calculator</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Synchronized real-time simulation module for interest and amortization rates.</span>
                       </div>
                     </button>
 
@@ -2091,15 +2142,15 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => handleTabChange('loans')}
-                      className="group relative p-6 bg-white hover:bg-stone-50 border-2 border-stone-300 hover:border-cyan-600 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md active:scale-95"
+                      className="group relative p-6 bg-black hover:bg-zinc-900 border-2 border-zinc-800 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-2xl cursor-pointer hover:shadow-cyan-500/10 active:scale-95"
                       id="btn-quick-my-loans"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-100 border-2 border-cyan-400 flex items-center justify-center text-cyan-800 group-hover:scale-110 transition-transform">
+                      <div className="h-12 w-12 rounded-xl bg-zinc-900 border-2 border-cyan-500/50 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
                         <FileText className="h-6 w-6 stroke-[2.5]" />
                       </div>
                       <div>
-                        <span className="font-display text-base font-black text-zinc-900 block uppercase tracking-wider">My Loans</span>
-                        <span className="text-xs text-zinc-600 font-bold mt-1 block leading-relaxed">Access active contracts, clearing statuses, and history registers.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">My Loans</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Access active contracts, clearing statuses, and history registers.</span>
                       </div>
                     </button>
 
@@ -2107,15 +2158,15 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => setIsHistoryOpen(true)}
-                      className="group relative p-6 bg-white hover:bg-stone-50 border-2 border-stone-300 hover:border-cyan-600 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md active:scale-95"
+                      className="group relative p-6 bg-black hover:bg-zinc-900 border-2 border-zinc-800 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-2xl cursor-pointer hover:shadow-cyan-500/10 active:scale-95"
                       id="btn-quick-payment-history"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-100 border-2 border-cyan-400 flex items-center justify-center text-cyan-800 group-hover:scale-110 transition-transform">
+                      <div className="h-12 w-12 rounded-xl bg-zinc-900 border-2 border-cyan-500/50 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
                         <History className="h-6 w-6 stroke-[2.5]" />
                       </div>
                       <div>
-                        <span className="font-display text-base font-black text-zinc-900 block uppercase tracking-wider">Payment History</span>
-                        <span className="text-xs text-zinc-600 font-bold mt-1 block leading-relaxed">Review secure transaction receipts, collateral logs, and bank wires.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">Payment History</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Review secure transaction receipts, collateral logs, and bank wires.</span>
                       </div>
                     </button>
 
@@ -2123,15 +2174,15 @@ export default function UserDashboard({
                     <button
                       type="button"
                       onClick={() => handleTabChange('settings')}
-                      className="group relative p-6 bg-white hover:bg-stone-50 border-2 border-stone-300 hover:border-cyan-600 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-sm cursor-pointer hover:shadow-md active:scale-95"
+                      className="group relative p-6 bg-black hover:bg-zinc-900 border-2 border-zinc-800 hover:border-cyan-400 rounded-2xl text-left flex flex-col justify-between h-48 transition-all duration-300 shadow-2xl cursor-pointer hover:shadow-cyan-500/10 active:scale-95"
                       id="btn-quick-profile"
                     >
-                      <div className="h-12 w-12 rounded-xl bg-cyan-100 border-2 border-cyan-400 flex items-center justify-center text-cyan-800 group-hover:scale-110 transition-transform">
+                      <div className="h-12 w-12 rounded-xl bg-zinc-900 border-2 border-cyan-500/50 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
                         <UserIcon className="h-6 w-6 stroke-[2.5]" />
                       </div>
                       <div>
-                        <span className="font-display text-base font-black text-zinc-900 block uppercase tracking-wider">Profile Control</span>
-                        <span className="text-xs text-zinc-600 font-bold mt-1 block leading-relaxed">Customize account details, high-resolution avatar photos, and credentials.</span>
+                        <span className="font-display text-base font-black text-white block uppercase tracking-wider">Profile Control</span>
+                        <span className="text-xs text-zinc-300 font-bold mt-1 block leading-relaxed">Customize account details, high-resolution avatar photos, and credentials.</span>
                       </div>
                     </button>
                   </div>
@@ -2143,10 +2194,10 @@ export default function UserDashboard({
           {/* ---------------- 2. LOAN APPLICATIONS ---------------- */}
           {activeTab === 'loans' && (
             <div className="space-y-6" id="view-loans">
-              <div className="flex justify-between items-center border-b border-stone-300 pb-4">
+              <div className="flex justify-between items-center border-b-2 border-zinc-800 pb-4">
                 <div className="text-left">
-                  <h3 className="font-display text-2xl sm:text-3xl font-black text-zinc-900 mb-1 uppercase tracking-tight">Credit & Funding Proposals</h3>
-                  <p className="text-sm font-semibold text-zinc-600">Review status logs of active and historic liquidity proposals.</p>
+                  <h3 className="font-display text-2xl sm:text-3xl font-black text-white mb-1 uppercase tracking-tight">Credit & Funding Proposals</h3>
+                  <p className="text-sm font-bold text-zinc-300">Review status logs of active and historic liquidity proposals.</p>
                 </div>
                 <button
                   onClick={() => { setActiveTab('apply'); setWizardStep(1); }}
@@ -2158,12 +2209,12 @@ export default function UserDashboard({
               </div>
 
               {loans.length === 0 ? (
-                <div className="text-center py-16 border-2 border-dashed border-stone-300 rounded-2xl bg-[#f5f1e8]" id="loans-empty-state">
-                  <FilePlus className="h-12 w-12 text-cyan-600 mx-auto mb-4 stroke-[2.5]" />
-                  <p className="text-base text-zinc-700 font-bold mb-4">You have not submitted any credit applications.</p>
+                <div className="text-center py-16 border-2 border-dashed border-zinc-700 rounded-2xl bg-black shadow-2xl" id="loans-empty-state">
+                  <FilePlus className="h-12 w-12 text-cyan-400 mx-auto mb-4 stroke-[2.5]" />
+                  <p className="text-base text-zinc-200 font-black mb-4">You have not submitted any credit applications.</p>
                   <button
                     onClick={() => setActiveTab('apply')}
-                    className="px-6 py-3 text-xs text-black bg-cyan-400 rounded-xl hover:bg-cyan-300 font-black uppercase tracking-wider shadow-sm"
+                    className="px-6 py-3 text-xs text-black bg-cyan-400 rounded-xl hover:bg-cyan-300 font-black uppercase tracking-wider shadow-sm cursor-pointer"
                   >
                     Initiate First Application
                   </button>
@@ -2173,28 +2224,28 @@ export default function UserDashboard({
                   {loans.map((loan) => (
                     <div 
                       key={loan.id}
-                      className="border border-stone-300 bg-[#f5f1e8] rounded-2xl p-6 transition-all shadow-sm text-left"
+                      className="border-2 border-zinc-800 bg-black rounded-2xl p-6 transition-all shadow-2xl text-left"
                       id={`loan-item-${loan.id}`}
                     >
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
                         <div>
-                          <span className="font-mono text-xs font-black text-cyan-800 uppercase tracking-widest">REF ID: {loan.id}</span>
-                          <h4 className="font-display text-xl sm:text-2xl font-black text-zinc-900 mt-1">
+                          <span className="font-mono text-xs font-black text-cyan-400 uppercase tracking-widest">REF ID: {loan.id}</span>
+                          <h4 className="font-display text-xl sm:text-2xl font-black text-white mt-1">
                             ${loan.fundingDetails.requestedAmount.toLocaleString()}{' '}
-                            <span className="text-sm text-zinc-600 font-bold">for {loan.fundingDetails.purpose}</span>
+                            <span className="text-sm text-zinc-300 font-bold">for {loan.fundingDetails.purpose}</span>
                           </h4>
                         </div>
                         <div className="flex items-center gap-2">
                           {loan.requiresEnhancedVerification && (
-                            <span className="px-3 py-1 bg-amber-100 border border-amber-300 text-amber-900 font-mono text-xs font-black rounded-full flex items-center gap-1 uppercase">
-                              <AlertTriangle className="h-3.5 w-3.5 text-amber-700" /> Enhanced Audit Req
+                            <span className="px-3 py-1 bg-amber-950 border border-amber-500/50 text-amber-300 font-mono text-xs font-black rounded-full flex items-center gap-1 uppercase">
+                              <AlertTriangle className="h-3.5 w-3.5 text-amber-400" /> Enhanced Audit Req
                             </span>
                           )}
                           <span className={`px-3.5 py-1 font-mono text-xs font-black rounded-full border uppercase ${
-                            loan.status === 'Approved' ? 'bg-cyan-100 border-cyan-300 text-cyan-900' :
-                            loan.status === 'Declined' ? 'bg-red-100 border-red-300 text-red-900' :
-                            loan.status === 'Under Review' ? 'bg-blue-100 border-blue-300 text-blue-900' :
-                            'bg-amber-100 border-amber-300 text-amber-900'
+                            loan.status === 'Approved' ? 'bg-cyan-950 border-cyan-500/50 text-cyan-300' :
+                            loan.status === 'Declined' ? 'bg-red-950 border-red-500/50 text-red-300' :
+                            loan.status === 'Under Review' ? 'bg-blue-950 border-blue-500/50 text-blue-300' :
+                            'bg-amber-950 border-amber-500/50 text-amber-300'
                           }`}>
                             {loan.status}
                           </span>
@@ -2205,58 +2256,58 @@ export default function UserDashboard({
                         const rate = getInterestRateFromPreference(loan.fundingDetails?.repaymentPreference);
                         const totalPayback = Math.round(loan.fundingDetails.requestedAmount * (1 + rate / 100));
                         return (
-                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 py-4 border-t border-b border-stone-300 text-sm font-mono bg-white p-3 rounded-xl">
+                          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 py-4 border-t-2 border-b-2 border-zinc-800 text-sm font-mono bg-zinc-900 p-3.5 rounded-xl">
                             <div>
-                              <span className="block text-[10px] text-cyan-800 uppercase font-black mb-1">Repayment Term</span>
-                              <span className="text-zinc-900 font-bold text-xs">{loan.fundingDetails.repaymentPreference}</span>
+                              <span className="block text-[10px] text-cyan-400 uppercase font-black mb-1">Repayment Term</span>
+                              <span className="text-white font-black text-xs">{loan.fundingDetails.repaymentPreference}</span>
                             </div>
                             <div>
-                              <span className="block text-[10px] text-cyan-800 uppercase font-black mb-1">Interest Rate</span>
-                              <span className="text-emerald-700 font-black text-xs">{rate}% Fixed</span>
+                              <span className="block text-[10px] text-cyan-400 uppercase font-black mb-1">Interest Rate</span>
+                              <span className="text-emerald-400 font-black text-xs">{rate}% Fixed</span>
                             </div>
                             <div>
-                              <span className="block text-[10px] text-cyan-800 uppercase font-black mb-1">Total Amortization</span>
-                              <span className="text-amber-800 font-black text-xs">${totalPayback.toLocaleString()} USD</span>
+                              <span className="block text-[10px] text-cyan-400 uppercase font-black mb-1">Total Amortization</span>
+                              <span className="text-amber-300 font-black text-xs">${totalPayback.toLocaleString()} USD</span>
                             </div>
                             <div>
-                              <span className="block text-[10px] text-cyan-800 uppercase font-black mb-1">Credit Score</span>
-                              <span className="text-zinc-900 font-bold text-xs">{loan.financialInfo.creditScore || "750"}</span>
+                              <span className="block text-[10px] text-cyan-400 uppercase font-black mb-1">Credit Score</span>
+                              <span className="text-white font-black text-xs">{loan.financialInfo.creditScore || "750"}</span>
                             </div>
                             <div>
-                              <span className="block text-[10px] text-cyan-800 uppercase font-black mb-1">Submission Date</span>
-                              <span className="text-zinc-900 font-bold text-xs">{new Date(loan.createdAt).toLocaleDateString()}</span>
+                              <span className="block text-[10px] text-cyan-400 uppercase font-black mb-1">Submission Date</span>
+                              <span className="text-white font-black text-xs">{new Date(loan.createdAt).toLocaleDateString()}</span>
                             </div>
                           </div>
                         );
                       })()}
 
-                      <p className="text-sm text-zinc-700 font-bold leading-relaxed mt-4">
-                        <span className="text-zinc-900 font-black">Description:</span> {loan.fundingDetails.description}
+                      <p className="text-sm text-zinc-200 font-bold leading-relaxed mt-4">
+                        <span className="text-white font-black">Description:</span> {loan.fundingDetails.description}
                       </p>
 
                       {/* REJECTED LOAN VIEW */}
                       {(loan.status === 'Declined' || loan.status === 'Rejected') && (
-                        <div className="mt-6 p-6 bg-red-50 border-2 border-red-300 rounded-2xl space-y-4 animate-fade-in text-left shadow-sm">
-                          <div className="flex items-center gap-3 text-red-700 font-display font-black text-xl uppercase tracking-wider">
-                            <AlertTriangle className="h-7 w-7 text-red-600 shrink-0" />
+                        <div className="mt-6 p-6 bg-red-950/80 border-2 border-red-500 rounded-2xl space-y-4 animate-fade-in text-left shadow-2xl">
+                          <div className="flex items-center gap-3 text-red-400 font-display font-black text-xl uppercase tracking-wider">
+                            <AlertTriangle className="h-7 w-7 text-red-400 shrink-0" />
                             <span>Loan Status: Declined</span>
                           </div>
-                          <div className="p-4 bg-white rounded-xl border border-red-200 space-y-2">
-                            <h6 className="text-xs font-mono font-black text-red-700 uppercase tracking-wider">
+                          <div className="p-4 bg-black rounded-xl border border-red-500/50 space-y-2">
+                            <h6 className="text-xs font-mono font-black text-red-400 uppercase tracking-wider">
                               Reason for Rejection:
                             </h6>
-                            <p className="text-sm font-bold text-zinc-800">
+                            <p className="text-sm font-bold text-zinc-100">
                               {loan.rejectionReason || "Application did not meet institutional credit and document requirements."}
                             </p>
                           </div>
-                          <p className="text-xs text-zinc-600 font-semibold">
+                          <p className="text-xs text-zinc-300 font-bold">
                             You may review your credit details, update your KYC documentation, and submit a new loan application when ready.
                           </p>
                           <div className="pt-2">
                             <button
                               type="button"
                               onClick={() => { handleTabChange('apply'); setWizardStep(1); }}
-                              className="px-6 py-3.5 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest rounded-xl transition cursor-pointer font-display shadow-sm hover:scale-105 active:scale-95"
+                              className="px-6 py-3.5 bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-widest rounded-xl transition cursor-pointer font-display shadow-md hover:scale-105 active:scale-95"
                             >
                               Submit New Application →
                             </button>
@@ -2268,28 +2319,28 @@ export default function UserDashboard({
                       {loan.status === 'Approved' && (
                         <>
                           {!loan.collateralPaid ? (
-                            <div className="mt-6 p-6 bg-[#fefbee] border-2 border-amber-300 rounded-2xl space-y-5 animate-fade-in shadow-sm text-left">
+                            <div className="mt-6 p-6 bg-black border-2 border-amber-500/50 rounded-2xl space-y-5 animate-fade-in shadow-2xl text-left">
                               
                               {/* Payment Review Banner if submitted */}
                               {(loan.collateralPaymentStatus === 'Under Review' || loan.collateralPaymentStatus === 'Submitted') && (
-                                <div className="p-4 bg-amber-100 border-2 border-amber-400 rounded-xl space-y-2">
-                                  <div className="flex items-center gap-2 text-amber-900 font-black text-sm uppercase tracking-wider font-display">
-                                    <RefreshCw className="h-5 w-5 animate-spin text-amber-700" />
+                                <div className="p-4 bg-amber-950 border-2 border-amber-500 rounded-xl space-y-2">
+                                  <div className="flex items-center gap-2 text-amber-300 font-black text-sm uppercase tracking-wider font-display">
+                                    <RefreshCw className="h-5 w-5 animate-spin text-amber-400" />
                                     <span>Payment Submitted Successfully — Under Review</span>
                                   </div>
-                                  <p className="text-xs text-zinc-800 font-bold leading-relaxed">
+                                  <p className="text-xs text-zinc-200 font-bold leading-relaxed">
                                     Your payment is currently under review. Our finance team will verify your payment. After successful verification, your approved loan will be released within 24 hours.
                                   </p>
                                 </div>
                               )}
 
-                              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-amber-300/50 pb-4">
+                              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b-2 border-zinc-800 pb-4">
                                 <div className="space-y-1">
-                                  <h5 className="text-base sm:text-lg font-black uppercase tracking-wider text-amber-900 flex items-center gap-2 font-display">
-                                    <AlertTriangle className="h-6 w-6 shrink-0 text-amber-700" /> LOAN APPROVED — SETTLEMENT & COLLATERAL DEPOSIT REQUIRED
+                                  <h5 className="text-base sm:text-lg font-black uppercase tracking-wider text-amber-400 flex items-center gap-2 font-display">
+                                    <AlertTriangle className="h-6 w-6 shrink-0 text-amber-400" /> LOAN APPROVED — SETTLEMENT & COLLATERAL DEPOSIT REQUIRED
                                   </h5>
-                                  <p className="text-sm text-zinc-700 font-bold">
-                                    Approved Capital Sum: <span className="text-zinc-900 font-mono font-black text-base">${loan.fundingDetails.requestedAmount.toLocaleString()} USD</span>
+                                  <p className="text-sm text-zinc-200 font-bold">
+                                    Approved Capital Sum: <span className="text-white font-mono font-black text-base">${loan.fundingDetails.requestedAmount.toLocaleString()} USD</span>
                                   </p>
                                 </div>
                                 <button
@@ -2297,49 +2348,49 @@ export default function UserDashboard({
                                     setPayingCollateralLoan(loan);
                                     setCollateralTxIdInput('');
                                   }}
-                                  className="px-6 py-3.5 text-xs font-black uppercase tracking-widest bg-amber-400 hover:bg-amber-300 text-zinc-950 rounded-xl transition-all shrink-0 cursor-pointer font-display shadow-sm hover:scale-105 active:scale-95"
+                                  className="px-6 py-3.5 text-xs font-black uppercase tracking-widest bg-amber-400 hover:bg-amber-300 text-zinc-950 rounded-xl transition-all shrink-0 cursor-pointer font-display shadow-md hover:scale-105 active:scale-95"
                                 >
                                   💳 PAY SETTLEMENT NOW
                                 </button>
                               </div>
 
                               {/* Layman Breakdown Box */}
-                              <div className="space-y-4 bg-white p-5 rounded-xl border border-amber-200">
-                                <h6 className="text-xs font-mono font-black uppercase text-amber-900 tracking-wider">
+                              <div className="space-y-4 bg-zinc-900 p-5 rounded-xl border-2 border-amber-500/40">
+                                <h6 className="text-xs font-mono font-black uppercase text-amber-300 tracking-wider">
                                   Settlement Deposit Breakdown:
                                 </h6>
                                 
-                                <p className="text-xs sm:text-sm text-zinc-700 leading-relaxed font-bold">
-                                  To activate disbursement of your approved <strong className="text-zinc-900 font-black">${loan.fundingDetails.requestedAmount.toLocaleString()}</strong> loan, institutional regulations require a combined settlement deposit of <strong className="text-amber-900 font-black">28.5% Total Fees</strong>: comprising a <strong className="text-amber-800 font-black">25% Refundable Security Collateral</strong> (${Math.round(loan.fundingDetails.requestedAmount * 0.25).toLocaleString()} USD) and a <strong className="text-cyan-800 font-black">3.5% Company Fee</strong> (${Math.round(loan.fundingDetails.requestedAmount * 0.035).toLocaleString()} USD), totaling <strong className="text-amber-900 font-mono font-black text-sm sm:text-base">${Math.round(loan.fundingDetails.requestedAmount * 0.285).toLocaleString()} USD</strong>.
+                                <p className="text-xs sm:text-sm text-zinc-200 leading-relaxed font-bold">
+                                  To activate disbursement of your approved <strong className="text-white font-black">${loan.fundingDetails.requestedAmount.toLocaleString()}</strong> loan, institutional regulations require a combined settlement deposit of <strong className="text-amber-300 font-black">28.5% Total Fees</strong>: comprising a <strong className="text-amber-400 font-black">25% Refundable Security Collateral</strong> (${Math.round(loan.fundingDetails.requestedAmount * 0.25).toLocaleString()} USD) and a <strong className="text-cyan-400 font-black">3.5% Company Fee</strong> (${Math.round(loan.fundingDetails.requestedAmount * 0.035).toLocaleString()} USD), totaling <strong className="text-amber-300 font-mono font-black text-sm sm:text-base">${Math.round(loan.fundingDetails.requestedAmount * 0.285).toLocaleString()} USD</strong>.
                                 </p>
 
                                 {/* Installments Section (4 Equal Installments) */}
-                                <div className="space-y-3 pt-3 border-t border-stone-200">
+                                <div className="space-y-3 pt-3 border-t-2 border-zinc-800">
                                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <span className="text-xs font-mono font-black uppercase text-amber-900 flex items-center gap-1.5">
+                                    <span className="text-xs font-mono font-black uppercase text-amber-300 flex items-center gap-1.5">
                                       ⚡ Settlement Plan: 4 Equal Installments (Bank/Card) or Full Crypto Transfer
                                     </span>
-                                    <span className="text-[10px] text-cyan-800 font-mono font-black bg-cyan-100 px-2.5 py-1 rounded border border-cyan-300 shadow-sm">
+                                    <span className="text-[10px] text-cyan-300 font-mono font-black bg-zinc-950 px-2.5 py-1 rounded border border-cyan-500/50 shadow-sm">
                                       Combined 28.5% Fee Split
                                     </span>
                                   </div>
 
                                   {/* Prominent Full Crypto Option Button */}
-                                  <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-300 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+                                  <div className="p-3.5 bg-zinc-950 rounded-xl border-2 border-amber-500/40 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
                                     <div className="space-y-1 text-left">
-                                      <span className="text-xs sm:text-sm font-mono font-black uppercase text-amber-900 flex items-center gap-1">
+                                      <span className="text-xs sm:text-sm font-mono font-black uppercase text-amber-300 flex items-center gap-1">
                                         🪙 Instant 100% Full Settlement (Crypto Option)
                                       </span>
-                                      <p className="text-xs text-zinc-600 font-medium leading-normal">
-                                        Pay the total <strong className="text-amber-900 font-black">${Math.round(loan.fundingDetails.requestedAmount * 0.285).toLocaleString()} USD</strong> (25% Collateral + 3.5% Company Fee combined) in one single crypto transfer (USDT TRC20/ERC20, BTC, ETH) without waiting for installment unlocks.
+                                      <p className="text-xs text-zinc-300 font-bold leading-normal">
+                                        Pay the total <strong className="text-amber-300 font-black">${Math.round(loan.fundingDetails.requestedAmount * 0.285).toLocaleString()} USD</strong> (25% Collateral + 3.5% Company Fee combined) in one single crypto transfer (USDT TRC20/ERC20, BTC, ETH) without waiting for installment unlocks.
                                       </p>
                                     </div>
                                     {loan.collateralPaymentStatus === 'Under Review' || loan.collateralPaymentStatus === 'Submitted' ? (
-                                      <div className="px-5 py-2.5 bg-amber-100 text-amber-900 border border-amber-300 text-xs font-mono font-black uppercase tracking-wider rounded-xl shrink-0 flex items-center gap-1.5 shadow-inner">
+                                      <div className="px-5 py-2.5 bg-amber-950 text-amber-300 border border-amber-500/50 text-xs font-mono font-black uppercase tracking-wider rounded-xl shrink-0 flex items-center gap-1.5 shadow-inner">
                                         ⏳ Payment Under Review
                                       </div>
                                     ) : loan.collateralPaid || loan.collateralPaymentStatus === 'Confirmed' ? (
-                                      <div className="px-5 py-2.5 bg-emerald-100 text-emerald-900 border border-emerald-300 text-xs font-mono font-black uppercase tracking-wider rounded-xl shrink-0 flex items-center gap-1.5 shadow-inner">
+                                      <div className="px-5 py-2.5 bg-emerald-950 text-emerald-300 border border-emerald-500/50 text-xs font-mono font-black uppercase tracking-wider rounded-xl shrink-0 flex items-center gap-1.5 shadow-inner">
                                         ✓ Fully Confirmed
                                       </div>
                                     ) : (
@@ -2379,16 +2430,16 @@ export default function UserDashboard({
 
                                       return (
                                         <div key={num} className={`p-4 rounded-xl border-2 space-y-2 text-left transition-all ${
-                                          effectiveStatus === 'Approved' ? 'bg-emerald-50 border-emerald-400 text-zinc-900' :
-                                          effectiveStatus === 'Under Review' ? 'bg-amber-50 border-amber-400 text-zinc-900' :
-                                          isUnlocked ? 'bg-white border-amber-300 text-zinc-900' : 'bg-stone-100 border-stone-300 opacity-60 text-zinc-500'
+                                          effectiveStatus === 'Approved' ? 'bg-emerald-950 border-emerald-500 text-white' :
+                                          effectiveStatus === 'Under Review' ? 'bg-amber-950 border-amber-500 text-white' :
+                                          isUnlocked ? 'bg-black border-amber-500/60 text-white' : 'bg-zinc-950 border-zinc-800 opacity-60 text-zinc-400'
                                         }`}>
                                           <div className="flex items-center justify-between text-xs font-mono font-black">
-                                            <span className="text-zinc-700 uppercase">Installment {num}</span>
+                                            <span className="text-zinc-300 uppercase">Installment {num}</span>
                                             <span className={
-                                              effectiveStatus === 'Approved' ? 'text-emerald-700 font-black' :
-                                              effectiveStatus === 'Under Review' ? 'text-amber-800 font-black' :
-                                              isUnlocked ? 'text-amber-800 font-black' : 'text-zinc-500 font-bold'
+                                              effectiveStatus === 'Approved' ? 'text-emerald-400 font-black' :
+                                              effectiveStatus === 'Under Review' ? 'text-amber-400 font-black' :
+                                              isUnlocked ? 'text-amber-400 font-black' : 'text-zinc-500 font-bold'
                                             }>
                                               {effectiveStatus === 'Approved' ? '✓ Confirmed' :
                                                effectiveStatus === 'Under Review' ? '⏳ Under Review' :
@@ -2396,7 +2447,7 @@ export default function UserDashboard({
                                             </span>
                                           </div>
 
-                                          <div className="text-base font-black font-mono text-zinc-900">
+                                          <div className="text-base font-black font-mono text-white">
                                             ${rawInst.amount.toLocaleString()} USD
                                           </div>
 
@@ -2416,7 +2467,7 @@ export default function UserDashboard({
                                           )}
 
                                           {effectiveStatus === 'Under Review' && (
-                                            <p className="text-[10px] text-amber-800 font-mono font-black leading-tight pt-1">
+                                            <p className="text-[10px] text-amber-400 font-mono font-black leading-tight pt-1">
                                               ⏳ Paid. Waiting for Elon Capital loan team confirmation.
                                             </p>
                                           )}
@@ -2433,18 +2484,18 @@ export default function UserDashboard({
                                 </div>
 
                                 {/* Customer Support Guidance Notice */}
-                                <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl space-y-1.5 text-xs text-zinc-800">
-                                  <span className="font-mono font-black text-amber-900 uppercase tracking-wider block flex items-center gap-1.5">
+                                <div className="p-3.5 bg-zinc-950 border-2 border-amber-500/40 rounded-xl space-y-1.5 text-xs text-zinc-200">
+                                  <span className="font-mono font-black text-amber-300 uppercase tracking-wider block flex items-center gap-1.5">
                                     💬 Need Help or Have Questions During Settlement?
                                   </span>
-                                  <p className="leading-relaxed font-bold text-zinc-700">
-                                    If you experience any issues or need assistance with wire details, please send a message with your payment screenshots directly to <span className="text-amber-900 font-black underline">Customer Service / Live Chat</span>. Our support team will guide you step-by-step through instant confirmation!
+                                  <p className="leading-relaxed font-bold text-zinc-300">
+                                    If you experience any issues or need assistance with wire details, please send a message with your payment screenshots directly to <span className="text-amber-300 font-black underline">Customer Service / Live Chat</span>. Our support team will guide you step-by-step through instant confirmation!
                                   </p>
                                 </div>
 
                                 {/* Payment Methods Guidance Notice */}
-                                <div className="p-3 bg-stone-50 border border-stone-300 rounded-xl space-y-1 text-xs text-zinc-700">
-                                  <span className="font-mono font-black text-cyan-800 uppercase tracking-wider block">
+                                <div className="p-3 bg-zinc-950 border-2 border-zinc-800 rounded-xl space-y-1 text-xs text-zinc-300">
+                                  <span className="font-mono font-black text-cyan-400 uppercase tracking-wider block">
                                     💳 Payment Methods Guidance:
                                   </span>
                                   <p className="leading-relaxed font-bold">
@@ -2453,27 +2504,27 @@ export default function UserDashboard({
                                   </p>
                                 </div>
 
-                                <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-lg text-xs font-bold text-emerald-900 flex items-start gap-2">
-                                  <Check className="h-4 w-4 shrink-0 mt-0.5 text-emerald-700" />
+                                <div className="p-3 bg-emerald-950 border-2 border-emerald-500/50 rounded-lg text-xs font-bold text-emerald-300 flex items-start gap-2">
+                                  <Check className="h-4 w-4 shrink-0 mt-0.5 text-emerald-400" />
                                   <span>
-                                    <strong className="text-emerald-900">Collateral Guarantee:</strong> 100% of your 25% refundable security collateral is returned in full upon completion of loan repayments.
+                                    <strong className="text-emerald-300 font-black">Collateral Guarantee:</strong> 100% of your 25% refundable security collateral is returned in full upon completion of loan repayments.
                                   </span>
                                 </div>
                               </div>
                             </div>
                           ) : (
-                            <div className="mt-6 p-6 bg-cyan-50 border-2 border-cyan-300 rounded-2xl space-y-5 animate-fade-in shadow-sm">
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-cyan-200 pb-4">
+                            <div className="mt-6 p-6 bg-black border-2 border-cyan-500/50 rounded-2xl space-y-5 animate-fade-in shadow-2xl text-left">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-zinc-800 pb-4">
                                 <div>
-                                  <h5 className="text-base sm:text-lg font-black uppercase tracking-wider text-cyan-900 flex items-center gap-2">
-                                    <Check className="h-6 w-6 stroke-[3] text-cyan-700" /> SETTLEMENT CONFIRMED & LIQUIDITY UNLOCKED
+                                  <h5 className="text-base sm:text-lg font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                                    <Check className="h-6 w-6 stroke-[3] text-cyan-400" /> SETTLEMENT CONFIRMED & LIQUIDITY UNLOCKED
                                   </h5>
-                                  <p className="text-xs sm:text-sm text-zinc-700 font-bold mt-1">
-                                    25% Refundable Collateral (<span className="text-amber-900 font-black">${(loan.fundingDetails.requestedAmount * 0.25).toLocaleString()}</span>) and 3.5% Processing Fee (<span className="text-cyan-900 font-black">${(loan.fundingDetails.requestedAmount * 0.035).toLocaleString()}</span>) have been audited and verified.
+                                  <p className="text-xs sm:text-sm text-zinc-200 font-bold mt-1">
+                                    25% Refundable Collateral (<span className="text-amber-300 font-black">${(loan.fundingDetails.requestedAmount * 0.25).toLocaleString()}</span>) and 3.5% Processing Fee (<span className="text-cyan-300 font-black">${(loan.fundingDetails.requestedAmount * 0.035).toLocaleString()}</span>) have been audited and verified.
                                   </p>
                                 </div>
                                 <span className={`px-4 py-2 font-mono text-xs font-black rounded-full uppercase tracking-wider border shrink-0 ${
-                                  loan.disbursed ? 'bg-emerald-100 border-emerald-300 text-emerald-900 shadow-sm font-black' : 'bg-amber-100 border-amber-300 text-amber-900'
+                                  loan.disbursed ? 'bg-emerald-950 border-emerald-500 text-emerald-300 shadow-md font-black' : 'bg-amber-950 border-amber-500 text-amber-300'
                                 }`}>
                                   {loan.disbursed ? '✓ Capital Disbursed' : '⏳ Awaiting Final Release'}
                                 </span>
@@ -2481,8 +2532,8 @@ export default function UserDashboard({
 
                               {/* Withdrawal & Disbursement Destination Setup */}
                               {!loan.disbursed ? (
-                                <div className="space-y-4 bg-white p-5 rounded-xl border border-cyan-200">
-                                  <h6 className="text-xs font-mono font-black uppercase tracking-wider text-cyan-900 flex items-center gap-2">
+                                <div className="space-y-4 bg-zinc-900 p-5 rounded-xl border-2 border-cyan-500/40">
+                                  <h6 className="text-xs font-mono font-black uppercase tracking-wider text-cyan-300 flex items-center gap-2">
                                     <span>⚙️ Set Destination for Capital Transfer:</span>
                                   </h6>
                                   
@@ -2494,7 +2545,7 @@ export default function UserDashboard({
                                       className={`py-2.5 text-xs font-mono font-black uppercase tracking-wider rounded-lg border-2 transition-all cursor-pointer ${
                                         disbursementMethods[loan.id] === 'Crypto' || !disbursementMethods[loan.id]
                                           ? 'bg-cyan-400 text-black border-cyan-400 shadow-sm'
-                                          : 'border-stone-300 text-zinc-700 hover:text-black bg-stone-50'
+                                          : 'border-zinc-700 text-zinc-300 hover:text-white bg-black'
                                       }`}
                                     >
                                       USDT / Crypto Wallet
@@ -2505,7 +2556,7 @@ export default function UserDashboard({
                                       className={`py-2.5 text-xs font-mono font-black uppercase tracking-wider rounded-lg border-2 transition-all cursor-pointer ${
                                         disbursementMethods[loan.id] === 'Bank'
                                           ? 'bg-cyan-400 text-black border-cyan-400 shadow-sm'
-                                          : 'border-stone-300 text-zinc-700 hover:text-black bg-stone-50'
+                                          : 'border-zinc-700 text-zinc-300 hover:text-white bg-black'
                                       }`}
                                     >
                                       Direct Bank Wire
@@ -2515,7 +2566,7 @@ export default function UserDashboard({
                                   {/* Interactive Form fields */}
                                   {(disbursementMethods[loan.id] === 'Crypto' || !disbursementMethods[loan.id]) ? (
                                     <div className="space-y-2">
-                                      <label className="block text-xs font-mono text-zinc-700 uppercase tracking-wider font-bold">
+                                      <label className="block text-xs font-mono text-zinc-200 uppercase tracking-wider font-bold">
                                         Cryptocurrency Wallet Address (USDT TRC-20 / ERC-20 / BTC) *
                                       </label>
                                       <div className="flex flex-col sm:flex-row gap-2">
@@ -2524,7 +2575,7 @@ export default function UserDashboard({
                                           placeholder="Paste your wallet address here (e.g., T... or 0x...)"
                                           value={disbursementInputs[loan.id]?.cryptoAddress || ''}
                                           onChange={(e) => handleUpdateDisbursementInput(loan.id, 'cryptoAddress', e.target.value)}
-                                          className="flex-1 px-4 py-3 bg-stone-50 border border-stone-300 focus:border-cyan-600 rounded-xl text-xs font-mono font-bold text-zinc-900 focus:outline-none"
+                                          className="flex-1 px-4 py-3 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-xs font-mono font-bold text-white focus:outline-none"
                                         />
                                         <button
                                           type="button"
@@ -2537,7 +2588,7 @@ export default function UserDashboard({
                                     </div>
                                   ) : (
                                     <div className="space-y-3">
-                                      <label className="block text-xs font-mono text-zinc-700 uppercase tracking-wider font-bold">
+                                      <label className="block text-xs font-mono text-zinc-200 uppercase tracking-wider font-bold">
                                         Bank Transfer Routing Details *
                                       </label>
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2546,21 +2597,21 @@ export default function UserDashboard({
                                           placeholder="Bank Name (e.g. Chase, Barclays)"
                                           value={disbursementInputs[loan.id]?.bankName || ''}
                                           onChange={(e) => handleUpdateDisbursementInput(loan.id, 'bankName', e.target.value)}
-                                          className="w-full px-4 py-2.5 bg-stone-50 border border-stone-300 focus:border-cyan-600 rounded-xl text-xs font-bold text-zinc-900 focus:outline-none"
+                                          className="w-full px-4 py-2.5 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-xs font-bold text-white focus:outline-none"
                                         />
                                         <input
                                           type="text"
                                           placeholder="SWIFT / BIC Code"
                                           value={disbursementInputs[loan.id]?.bankSwift || ''}
                                           onChange={(e) => handleUpdateDisbursementInput(loan.id, 'bankSwift', e.target.value)}
-                                          className="w-full px-4 py-2.5 bg-stone-50 border border-stone-300 focus:border-cyan-600 rounded-xl text-xs font-bold text-zinc-900 focus:outline-none"
+                                          className="w-full px-4 py-2.5 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-xs font-bold text-white focus:outline-none"
                                         />
                                         <input
                                           type="text"
                                           placeholder="Account Number / IBAN"
                                           value={disbursementInputs[loan.id]?.bankIban || ''}
                                           onChange={(e) => handleUpdateDisbursementInput(loan.id, 'bankIban', e.target.value)}
-                                          className="w-full px-4 py-2.5 bg-stone-50 border border-stone-300 focus:border-cyan-600 rounded-xl text-xs font-bold text-zinc-900 focus:outline-none col-span-1 sm:col-span-2"
+                                          className="w-full px-4 py-2.5 bg-black border-2 border-zinc-700 focus:border-cyan-400 rounded-xl text-xs font-bold text-white focus:outline-none col-span-1 sm:col-span-2"
                                         />
                                       </div>
                                       <button
@@ -2574,20 +2625,20 @@ export default function UserDashboard({
                                   )}
 
                                   {disbursementLocked[loan.id] && (
-                                    <p className="text-xs font-mono text-emerald-700 uppercase tracking-wider font-bold flex items-center gap-2 pt-1">
+                                    <p className="text-xs font-mono text-emerald-400 uppercase tracking-wider font-bold flex items-center gap-2 pt-1">
                                       <Check className="h-4 w-4" /> Destination details saved. Transfer release is queued!
                                     </p>
                                   )}
                                 </div>
                               ) : (
-                                <div className="space-y-4 bg-emerald-50 p-6 rounded-2xl border-2 border-emerald-300 shadow-sm">
+                                <div className="space-y-4 bg-zinc-900 p-6 rounded-2xl border-2 border-emerald-500 shadow-2xl">
                                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div>
-                                      <span className="text-sm font-mono text-emerald-800 uppercase tracking-widest block font-black flex items-center gap-2">
-                                        <Check className="h-6 w-6 stroke-[3] text-emerald-700" /> Capital Disbursed & Unlocked
+                                      <span className="text-sm font-mono text-emerald-400 uppercase tracking-widest block font-black flex items-center gap-2">
+                                        <Check className="h-6 w-6 stroke-[3] text-emerald-400" /> Capital Disbursed & Unlocked
                                       </span>
-                                      <p className="text-base text-zinc-800 leading-relaxed font-black mt-2">
-                                        Capital sum of <span className="text-emerald-800 font-mono font-black text-xl">${loan.fundingDetails.requestedAmount.toLocaleString()} USD</span> is released and ready for immediate withdrawal.
+                                      <p className="text-base text-zinc-100 leading-relaxed font-black mt-2">
+                                        Capital sum of <span className="text-emerald-400 font-mono font-black text-xl">${loan.fundingDetails.requestedAmount.toLocaleString()} USD</span> is released and ready for immediate withdrawal.
                                       </p>
                                     </div>
                                     <button
@@ -2595,16 +2646,16 @@ export default function UserDashboard({
                                       onClick={() => {
                                         handleTabChange('account');
                                       }}
-                                      className="px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm uppercase tracking-wider rounded-xl transition-all cursor-pointer font-display shadow-sm shrink-0 flex items-center justify-center gap-2 hover:scale-105 active:scale-95"
+                                      className="px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-sm uppercase tracking-wider rounded-xl transition-all cursor-pointer font-display shadow-md shrink-0 flex items-center justify-center gap-2 hover:scale-105 active:scale-95"
                                     >
                                       <span>💸 WITHDRAW LOAN FUNDS NOW</span>
                                     </button>
                                   </div>
 
-                                  <div className="flex flex-col sm:flex-row gap-4 text-xs font-mono text-zinc-700 font-black pt-3 border-t border-emerald-300">
-                                    <span>COLLATERAL TxID: <span className="text-zinc-900 font-mono">{loan.collateralTxId}</span></span>
+                                  <div className="flex flex-col sm:flex-row gap-4 text-xs font-mono text-zinc-300 font-black pt-3 border-t-2 border-zinc-800">
+                                    <span>COLLATERAL TxID: <span className="text-white font-mono">{loan.collateralTxId}</span></span>
                                     <span className="hidden sm:inline">•</span>
-                                    <span>RELEASE DATE: <span className="text-zinc-900 font-mono">{loan.disbursedAt ? new Date(loan.disbursedAt).toLocaleString() : 'N/A'}</span></span>
+                                    <span>RELEASE DATE: <span className="text-white font-mono">{loan.disbursedAt ? new Date(loan.disbursedAt).toLocaleString() : 'N/A'}</span></span>
                                   </div>
                                 </div>
                               )}
@@ -3153,7 +3204,18 @@ export default function UserDashboard({
                               {/* Front Upload Card */}
                               <div className="bg-white p-6 rounded-2xl border-2 border-stone-300 space-y-4 shadow-sm">
                                 <div className="space-y-1">
-                                  <h5 className="text-base font-black text-zinc-900 uppercase tracking-wider">Upload Front of {kycIdType} *</h5>
+                                  <div className="flex items-center justify-between">
+                                    <h5 className="text-base font-black text-zinc-900 uppercase tracking-wider">Front of {kycIdType} *</h5>
+                                    {kycIdCard ? (
+                                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-full font-mono">
+                                        ✓ Uploaded
+                                      </span>
+                                    ) : (
+                                      <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full font-mono">
+                                        Required
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className="text-xs font-semibold text-zinc-600">
                                     Upload a clear photo or scan of the FRONT side showing photo, name, and ID details.
                                   </p>
@@ -3167,6 +3229,7 @@ export default function UserDashboard({
                                   onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
+                                      setIdCardFileName(file.name);
                                       const reader = new FileReader();
                                       reader.onload = (evt) => {
                                         if (evt.target?.result) {
@@ -3179,6 +3242,12 @@ export default function UserDashboard({
                                   }}
                                 />
 
+                                {kycIdCard && (kycIdCard.startsWith('data:image') || kycIdCard.startsWith('http')) && (
+                                  <div className="h-28 w-full rounded-xl border border-stone-300 overflow-hidden bg-stone-100 flex items-center justify-center relative shadow-inner">
+                                    <img src={kycIdCard} alt="Front ID Preview" className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+                                  </div>
+                                )}
+
                                 <div className="space-y-3 pt-1">
                                   <div className="flex items-center gap-2">
                                     <button
@@ -3186,21 +3255,26 @@ export default function UserDashboard({
                                       onClick={() => idCardFileInputRef.current?.click()}
                                       className="px-5 py-3 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition cursor-pointer flex-1 font-display shadow-sm"
                                     >
-                                      📁 Upload Front Image
+                                      {kycIdCard ? '🔄 Change Front ID Image' : '📁 Upload Front ID Image'}
                                     </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setKycIdCard("approved_national_id_front.png");
-                                        triggerAlert('success', 'Sample front ID scan loaded.');
-                                      }}
-                                      className="px-3 py-3 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-xl text-xs font-mono font-bold text-zinc-800 transition cursor-pointer"
-                                    >
-                                      Sample
-                                    </button>
+                                    {kycIdCard && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setKycIdCard('');
+                                          setIdCardFileName('');
+                                        }}
+                                        className="px-3 py-3 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-mono font-bold text-red-700 transition cursor-pointer"
+                                        title="Remove file"
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
                                   </div>
-                                  <div className="px-4 py-3 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono text-zinc-800 truncate font-bold">
-                                    {kycIdCard || 'No front file selected'}
+                                  <div className={`px-4 py-2.5 rounded-xl text-xs font-mono truncate font-bold border ${
+                                    kycIdCard ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-stone-50 text-zinc-500 border-stone-300'
+                                  }`}>
+                                    {idCardFileName || (kycIdCard ? 'Front ID Document Attached' : 'No front file selected')}
                                   </div>
                                 </div>
                               </div>
@@ -3208,9 +3282,20 @@ export default function UserDashboard({
                               {/* Back Upload Card */}
                               <div className="bg-white p-6 rounded-2xl border-2 border-stone-300 space-y-4 shadow-sm">
                                 <div className="space-y-1">
-                                  <h5 className="text-base font-black text-zinc-900 uppercase tracking-wider">Upload Back of {kycIdType} *</h5>
+                                  <div className="flex items-center justify-between">
+                                    <h5 className="text-base font-black text-zinc-900 uppercase tracking-wider">Back of {kycIdType} *</h5>
+                                    {kycIdCardBack ? (
+                                      <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-full font-mono">
+                                        ✓ Uploaded
+                                      </span>
+                                    ) : (
+                                      <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full font-mono">
+                                        Required
+                                      </span>
+                                    )}
+                                  </div>
                                   <p className="text-xs font-semibold text-zinc-600">
-                                    Upload a clear photo or scan of the BACK side showing magnetic barcodes or address details.
+                                    Upload a clear photo or scan of the BACK side showing barcodes or address details.
                                   </p>
                                 </div>
 
@@ -3222,6 +3307,7 @@ export default function UserDashboard({
                                   onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     if (file) {
+                                      setIdCardBackFileName(file.name);
                                       const reader = new FileReader();
                                       reader.onload = (evt) => {
                                         if (evt.target?.result) {
@@ -3234,6 +3320,12 @@ export default function UserDashboard({
                                   }}
                                 />
 
+                                {kycIdCardBack && (kycIdCardBack.startsWith('data:image') || kycIdCardBack.startsWith('http')) && (
+                                  <div className="h-28 w-full rounded-xl border border-stone-300 overflow-hidden bg-stone-100 flex items-center justify-center relative shadow-inner">
+                                    <img src={kycIdCardBack} alt="Back ID Preview" className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+                                  </div>
+                                )}
+
                                 <div className="space-y-3 pt-1">
                                   <div className="flex items-center gap-2">
                                     <button
@@ -3241,21 +3333,26 @@ export default function UserDashboard({
                                       onClick={() => idCardBackFileInputRef.current?.click()}
                                       className="px-5 py-3 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition cursor-pointer flex-1 font-display shadow-sm"
                                     >
-                                      📁 Upload Back Image
+                                      {kycIdCardBack ? '🔄 Change Back ID Image' : '📁 Upload Back ID Image'}
                                     </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setKycIdCardBack("approved_national_id_back.png");
-                                        triggerAlert('success', 'Sample back ID scan loaded.');
-                                      }}
-                                      className="px-3 py-3 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-xl text-xs font-mono font-bold text-zinc-800 transition cursor-pointer"
-                                    >
-                                      Sample
-                                    </button>
+                                    {kycIdCardBack && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setKycIdCardBack('');
+                                          setIdCardBackFileName('');
+                                        }}
+                                        className="px-3 py-3 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-mono font-bold text-red-700 transition cursor-pointer"
+                                        title="Remove file"
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
                                   </div>
-                                  <div className="px-4 py-3 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono text-zinc-800 truncate font-bold">
-                                    {kycIdCardBack || 'No back file selected'}
+                                  <div className={`px-4 py-2.5 rounded-xl text-xs font-mono truncate font-bold border ${
+                                    kycIdCardBack ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-stone-50 text-zinc-500 border-stone-300'
+                                  }`}>
+                                    {idCardBackFileName || (kycIdCardBack ? 'Back ID Document Attached' : 'No back file selected')}
                                   </div>
                                 </div>
                               </div>
@@ -3264,9 +3361,20 @@ export default function UserDashboard({
                             /* Passport Single Upload Card */
                             <div className="bg-white p-6 rounded-2xl border-2 border-stone-300 space-y-4 max-w-2xl shadow-sm">
                               <div className="space-y-1">
-                                <h5 className="text-base font-black text-zinc-900 uppercase tracking-wider">Upload Passport Information Page *</h5>
+                                <div className="flex items-center justify-between">
+                                  <h5 className="text-base font-black text-zinc-900 uppercase tracking-wider">Passport Information Page Scan *</h5>
+                                  {kycIdCard ? (
+                                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-full font-mono">
+                                      ✓ Uploaded
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full font-mono">
+                                      Required
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-xs font-semibold text-zinc-600">
-                                  Upload a clear photo or scan of your passport information page showing your photo, full name, passport number, expiry date, and MRZ lines.
+                                  Upload a clear photo or scan of your passport information page showing your photo, full name, passport number, and MRZ lines.
                                 </p>
                               </div>
 
@@ -3278,11 +3386,24 @@ export default function UserDashboard({
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
-                                    setKycIdCard(file.name);
-                                    triggerAlert('success', `📁 Passport page uploaded: ${file.name}`);
+                                    setIdCardFileName(file.name);
+                                    const reader = new FileReader();
+                                    reader.onload = (evt) => {
+                                      if (evt.target?.result) {
+                                        setKycIdCard(evt.target.result as string);
+                                        triggerAlert('success', `📁 Passport page uploaded: ${file.name}`);
+                                      }
+                                    };
+                                    reader.readAsDataURL(file);
                                   }
                                 }}
                               />
+
+                              {kycIdCard && (kycIdCard.startsWith('data:image') || kycIdCard.startsWith('http')) && (
+                                <div className="h-36 w-full rounded-xl border border-stone-300 overflow-hidden bg-stone-100 flex items-center justify-center relative shadow-inner">
+                                  <img src={kycIdCard} alt="Passport Preview" className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+                                </div>
+                              )}
 
                               <div className="space-y-3 pt-1">
                                 <div className="flex items-center gap-2">
@@ -3291,21 +3412,26 @@ export default function UserDashboard({
                                     onClick={() => idCardFileInputRef.current?.click()}
                                     className="px-6 py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black uppercase tracking-wider rounded-xl transition cursor-pointer flex-1 font-display shadow-sm"
                                   >
-                                    📁 Upload Passport Page Image
+                                    {kycIdCard ? '🔄 Change Passport Scan' : '📁 Upload Passport Page Image'}
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setKycIdCard("approved_international_passport_scan.png");
-                                      triggerAlert('success', 'Sample passport scan loaded.');
-                                    }}
-                                    className="px-4 py-3.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-xl text-xs font-mono font-bold text-zinc-800 transition cursor-pointer"
-                                  >
-                                    Sample
-                                  </button>
+                                  {kycIdCard && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setKycIdCard('');
+                                        setIdCardFileName('');
+                                      }}
+                                      className="px-4 py-3.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-mono font-bold text-red-700 transition cursor-pointer"
+                                      title="Remove file"
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
                                 </div>
-                                <div className="px-4 py-3 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono text-zinc-800 truncate font-bold">
-                                  {kycIdCard || 'No passport file selected'}
+                                <div className={`px-4 py-2.5 rounded-xl text-xs font-mono truncate font-bold border ${
+                                  kycIdCard ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-stone-50 text-zinc-500 border-stone-300'
+                                }`}>
+                                  {idCardFileName || (kycIdCard ? 'Passport Document Attached' : 'No passport file selected')}
                                 </div>
                               </div>
                             </div>
@@ -3321,11 +3447,22 @@ export default function UserDashboard({
                       Mandatory Requirement *
                     </div>
                     <div className="space-y-4">
-                      <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-zinc-900 uppercase tracking-tight border-b-2 border-stone-300 pb-4">
-                        3. Proof of Residential Address Upload *
-                      </h3>
+                      <div className="flex items-center justify-between border-b-2 border-stone-300 pb-4">
+                        <h3 className="font-display text-2xl sm:text-3xl font-black text-zinc-900 uppercase tracking-tight">
+                          3. Proof of Residential Address Upload *
+                        </h3>
+                        {kycProofOfAddress ? (
+                          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-full font-mono">
+                            ✓ Document Attached
+                          </span>
+                        ) : (
+                          <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-300 px-3 py-1 rounded-full font-mono">
+                            Required *
+                          </span>
+                        )}
+                      </div>
                       <p className="text-base font-semibold text-zinc-700 leading-relaxed">
-                        Upload a recent official utility bill, bank statement, municipal notice, or government residential document showing your full name and residential address.
+                        Upload a recent official utility bill, bank statement, municipal tax invoice, or government residential record clearly displaying your full name and residential address.
                       </p>
 
                       <input
@@ -3336,6 +3473,7 @@ export default function UserDashboard({
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
+                            setProofOfAddressFileName(file.name);
                             const reader = new FileReader();
                             reader.onload = (evt) => {
                               if (evt.target?.result) {
@@ -3348,32 +3486,38 @@ export default function UserDashboard({
                         }}
                       />
 
-                      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                      {kycProofOfAddress && (kycProofOfAddress.startsWith('data:image') || kycProofOfAddress.startsWith('http')) && (
+                        <div className="h-32 w-full max-w-md rounded-xl border border-stone-300 overflow-hidden bg-stone-100 flex items-center justify-center relative shadow-inner">
+                          <img src={kycProofOfAddress} alt="Proof of Address Preview" className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+                        </div>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
                         <button
                           type="button"
                           onClick={() => proofOfAddressFileInputRef.current?.click()}
-                          className="px-6 py-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition cursor-pointer flex items-center justify-center gap-2 font-display shadow-sm"
+                          className="w-full sm:w-auto px-6 py-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition cursor-pointer flex items-center justify-center gap-2 font-display shadow-sm"
                         >
-                          <span>📁 Upload Proof of Address</span>
+                          <span>{kycProofOfAddress ? '🔄 Change Proof of Address' : '📁 Upload Proof of Address (PDF, JPG, PNG)'}</span>
                         </button>
-                        <input
-                          type="text"
-                          required
-                          value={kycProofOfAddress}
-                          onChange={(e) => setKycProofOfAddress(e.target.value)}
-                          className="flex-1 px-5 py-4 bg-white border-2 border-stone-300 focus:border-cyan-600 rounded-xl text-base font-bold text-zinc-900 focus:outline-none font-mono"
-                          placeholder="e.g. utility_bill_2026.pdf *"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setKycProofOfAddress('utility_bill_verified_residential.pdf');
-                            triggerAlert('success', 'Sample Proof of Address loaded.');
-                          }}
-                          className="px-5 py-4 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-xl text-xs font-mono font-black text-zinc-800 uppercase tracking-wider transition cursor-pointer"
-                        >
-                          Sample
-                        </button>
+                        {kycProofOfAddress && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setKycProofOfAddress('');
+                              setProofOfAddressFileName('');
+                            }}
+                            className="px-4 py-4 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-mono font-bold text-red-700 transition cursor-pointer"
+                            title="Remove file"
+                          >
+                            ✕ Remove
+                          </button>
+                        )}
+                        <div className={`flex-1 w-full px-5 py-3.5 rounded-xl text-xs font-mono truncate font-bold border ${
+                          kycProofOfAddress ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-stone-50 text-zinc-500 border-stone-300'
+                        }`}>
+                          {proofOfAddressFileName || (kycProofOfAddress ? 'Proof of Residential Address Attached' : 'No document selected — Click upload button above *')}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3384,11 +3528,22 @@ export default function UserDashboard({
                       Optional Document
                     </div>
                     <div className="space-y-4">
-                      <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-zinc-900 uppercase tracking-tight border-b-2 border-stone-300 pb-4">
-                        4. Supporting Business Documents (Optional)
-                      </h3>
+                      <div className="flex items-center justify-between border-b-2 border-stone-300 pb-4">
+                        <h3 className="font-display text-2xl sm:text-3xl font-black text-zinc-900 uppercase tracking-tight">
+                          4. Supporting Business Documents (Optional)
+                        </h3>
+                        {kycBusiness ? (
+                          <span className="text-xs font-bold text-cyan-800 bg-cyan-50 border border-cyan-300 px-3 py-1 rounded-full font-mono">
+                            ✓ Document Attached
+                          </span>
+                        ) : (
+                          <span className="text-xs font-bold text-zinc-500 bg-stone-100 border border-stone-300 px-3 py-1 rounded-full font-mono">
+                            Optional
+                          </span>
+                        )}
+                      </div>
                       <p className="text-base font-semibold text-zinc-700 leading-relaxed">
-                        You may optionally upload business incorporation certificates, LLC licenses, or tax records from your phone or device gallery to optimize credit limit evaluation.
+                        If applying on behalf of a registered business, LLC, or enterprise, upload incorporation certificates, licenses, or tax filings to optimize credit limit underwriting.
                       </p>
 
                       <input
@@ -3399,6 +3554,7 @@ export default function UserDashboard({
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
+                            setBusinessDocFileName(file.name);
                             const reader = new FileReader();
                             reader.onload = (evt) => {
                               if (evt.target?.result) {
@@ -3411,31 +3567,38 @@ export default function UserDashboard({
                         }}
                       />
 
-                      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                      {kycBusiness && (kycBusiness.startsWith('data:image') || kycBusiness.startsWith('http')) && (
+                        <div className="h-32 w-full max-w-md rounded-xl border border-stone-300 overflow-hidden bg-stone-100 flex items-center justify-center relative shadow-inner">
+                          <img src={kycBusiness} alt="Business Document Preview" className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+                        </div>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
                         <button
                           type="button"
                           onClick={() => businessDocFileInputRef.current?.click()}
-                          className="px-6 py-3.5 bg-stone-200 hover:bg-stone-300 text-zinc-800 text-xs font-black uppercase tracking-wider rounded-xl transition cursor-pointer flex items-center justify-center gap-2 border border-stone-300 font-display"
+                          className="w-full sm:w-auto px-6 py-4 bg-stone-800 hover:bg-stone-700 text-white text-xs font-black uppercase tracking-widest rounded-xl transition cursor-pointer flex items-center justify-center gap-2 font-display shadow-sm"
                         >
-                          <span>📁 Upload Business File</span>
+                          <span>{kycBusiness ? '🔄 Change Business Document' : '📁 Upload Business Document (Optional)'}</span>
                         </button>
-                        <input
-                          type="text"
-                          value={kycBusiness}
-                          onChange={(e) => setKycBusiness(e.target.value)}
-                          className="flex-1 px-5 py-3 bg-white border-2 border-stone-300 focus:border-cyan-600 rounded-xl text-sm font-bold text-zinc-900 focus:outline-none font-mono"
-                          placeholder="e.g. llc_formation.pdf (Optional)"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setKycBusiness('llc_formation_certificate_active.pdf');
-                            triggerAlert('success', 'Sample corporate document loaded.');
-                          }}
-                          className="px-4 py-3 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-xl text-xs font-mono font-black text-zinc-800 uppercase tracking-wider transition cursor-pointer"
-                        >
-                          Sample
-                        </button>
+                        {kycBusiness && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setKycBusiness('');
+                              setBusinessDocFileName('');
+                            }}
+                            className="px-4 py-4 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-mono font-bold text-red-700 transition cursor-pointer"
+                            title="Remove file"
+                          >
+                            ✕ Remove
+                          </button>
+                        )}
+                        <div className={`flex-1 w-full px-5 py-3.5 rounded-xl text-xs font-mono truncate font-bold border ${
+                          kycBusiness ? 'bg-cyan-50 text-cyan-900 border-cyan-300' : 'bg-stone-50 text-zinc-500 border-stone-300'
+                        }`}>
+                          {businessDocFileName || (kycBusiness ? 'Supporting Business Document Attached' : 'No document selected (Optional)')}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -3486,12 +3649,23 @@ export default function UserDashboard({
 
                   {/* Biometric Face Photo / Selfie (Upload File Only) */}
                   <div className="bg-[#f5f1e8] border border-stone-300 p-8 rounded-3xl space-y-6 shadow-sm">
-                    <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-zinc-900 uppercase tracking-tight border-b-2 border-stone-300 pb-4">
-                      6. Biometric Selfie Photo Verification
-                    </h3>
+                    <div className="flex items-center justify-between border-b-2 border-stone-300 pb-4">
+                      <h3 className="font-display text-2xl sm:text-3xl font-black text-zinc-900 uppercase tracking-tight">
+                        6. Biometric Selfie Photo Verification *
+                      </h3>
+                      {kycSelfie ? (
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-full font-mono">
+                          ✓ Photo Uploaded
+                        </span>
+                      ) : (
+                        <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-300 px-3 py-1 rounded-full font-mono">
+                          Required *
+                        </span>
+                      )}
+                    </div>
 
                     <p className="text-base font-semibold text-zinc-700 leading-relaxed">
-                      Select and upload an existing clear photo or selfie image file directly from your phone or device gallery.
+                      Select and upload an authentic biometric selfie photo taken with your device camera or chosen from your gallery.
                     </p>
 
                     <input
@@ -3502,11 +3676,12 @@ export default function UserDashboard({
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
+                          setSelfieFileName(file.name);
                           const reader = new FileReader();
                           reader.onload = (evt) => {
                             if (evt.target?.result) {
                               setKycSelfie(evt.target.result as string);
-                              triggerAlert('success', `📁 Selfie photo uploaded from device gallery: ${file.name}`);
+                              triggerAlert('success', `📁 Selfie photo uploaded: ${file.name}`);
                             }
                           };
                           reader.readAsDataURL(file);
@@ -3518,30 +3693,50 @@ export default function UserDashboard({
                       <div className="relative h-44 w-44 rounded-full border-4 border-cyan-600 flex items-center justify-center overflow-hidden bg-stone-100 flex-shrink-0 shadow-md">
                         {kycSelfie ? (
                           <div className="h-full w-full relative">
-                            <img src={kycSelfie.startsWith('http') || kycSelfie.startsWith('data:') ? kycSelfie : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=180&h=180&q=80"} className="h-full w-full object-cover" alt="Biometric Selfie Photo" referrerPolicy="no-referrer" />
+                            <img src={kycSelfie} className="h-full w-full object-cover" alt="Biometric Selfie Photo" referrerPolicy="no-referrer" />
                             <div className="absolute inset-0 bg-cyan-600/10 border-2 border-cyan-600/30 pointer-events-none rounded-full" />
                           </div>
                         ) : (
                           <div className="text-center px-4 space-y-2">
-                            <span className="text-3xl block">👤</span>
-                            <span className="text-xs font-black text-zinc-500 uppercase tracking-wider block font-mono">No Photo</span>
+                            <span className="text-4xl block">👤</span>
+                            <span className="text-xs font-black text-zinc-500 uppercase tracking-wider block font-mono">No Photo Selected</span>
                           </div>
                         )}
                       </div>
 
                       <div className="space-y-4 text-left flex-1">
-                        <h5 className="text-xl font-black text-zinc-900 uppercase tracking-wider">Upload Biometric Selfie Image File</h5>
+                        <h5 className="text-xl font-black text-zinc-900 uppercase tracking-wider">
+                          {kycSelfie ? 'Selfie Photo Attached' : 'Upload Biometric Selfie Photo *'}
+                        </h5>
                         <p className="text-base font-semibold text-zinc-600 leading-relaxed">
-                          Ensure your face is well-lit, clearly centered, and unobscured by glasses or hats.
+                          Ensure your face is well-lit, clearly centered, eyes open, and unobstructed by hats, masks, or tinted sunglasses.
                         </p>
-                        <div className="flex flex-wrap gap-3 pt-1">
+                        <div className="flex flex-wrap items-center gap-3 pt-1">
                           <button
                             type="button"
                             onClick={() => selfieFileInputRef.current?.click()}
                             className="px-6 py-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-colors cursor-pointer shadow-sm font-display"
                           >
-                            📁 Upload Selfie Photo from Device Gallery
+                            {kycSelfie ? '🔄 Change Selfie Photo' : '📁 Upload Selfie Photo from Device Gallery'}
                           </button>
+                          {kycSelfie && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setKycSelfie('');
+                                setSelfieFileName('');
+                              }}
+                              className="px-4 py-4 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-mono font-bold text-red-700 transition cursor-pointer"
+                              title="Remove selfie"
+                            >
+                              ✕ Remove
+                            </button>
+                          )}
+                          <span className={`text-xs font-mono font-bold px-3 py-2 rounded-lg border ${
+                            kycSelfie ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-stone-50 text-zinc-500 border-stone-300'
+                          }`}>
+                            {selfieFileName || (kycSelfie ? 'Selfie Photo Attached' : 'No photo uploaded yet *')}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -3549,12 +3744,23 @@ export default function UserDashboard({
 
                   {/* Video Statement Upload Verification (Upload File Only) */}
                   <div className="bg-[#f5f1e8] border border-stone-300 p-8 rounded-3xl space-y-6 shadow-sm">
-                    <h3 className="font-display text-2xl sm:text-3xl lg:text-4xl font-black text-zinc-900 uppercase tracking-tight border-b-2 border-stone-300 pb-4">
-                      7. Video Verification Statement
-                    </h3>
+                    <div className="flex items-center justify-between border-b-2 border-stone-300 pb-4">
+                      <h3 className="font-display text-2xl sm:text-3xl font-black text-zinc-900 uppercase tracking-tight">
+                        7. Video Verification Statement *
+                      </h3>
+                      {kycVideoUrl ? (
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-300 px-3 py-1 rounded-full font-mono">
+                          ✓ Video Uploaded
+                        </span>
+                      ) : (
+                        <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-300 px-3 py-1 rounded-full font-mono">
+                          Required *
+                        </span>
+                      )}
+                    </div>
 
                     <p className="text-base font-semibold text-zinc-700 leading-relaxed">
-                      Record a short verification video using your phone or camera clearly reciting the exact declaration below, then upload the video file here.
+                      Record a short verification video using your phone or webcam clearly speaking the exact legal declaration below, then upload the video file here.
                     </p>
 
                     <input
@@ -3565,7 +3771,18 @@ export default function UserDashboard({
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          setKycVideoUrl(file.name);
+                          setVideoFileName(file.name);
+                          if (file.size <= 25 * 1024 * 1024) {
+                            const reader = new FileReader();
+                            reader.onload = (evt) => {
+                              if (evt.target?.result) {
+                                setKycVideoUrl(evt.target.result as string);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          } else {
+                            setKycVideoUrl(`uploaded_video_${file.name}`);
+                          }
                           triggerAlert('success', `📁 Recorded video statement uploaded: ${file.name}`);
                         }
                       }}
@@ -3579,29 +3796,52 @@ export default function UserDashboard({
                         </p>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-center gap-4 p-6 bg-white rounded-2xl border-2 border-stone-300 shadow-sm">
+                      <div className="flex flex-col sm:flex-row items-center gap-6 p-6 bg-white rounded-2xl border-2 border-stone-300 shadow-sm">
                         <div className="relative h-28 w-48 rounded-xl border-2 border-stone-300 bg-stone-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {kycVideoUrl ? (
                             <div className="text-center space-y-1 p-2">
                               <span className="text-2xl block">🎥</span>
-                              <span className="text-xs font-mono text-cyan-800 uppercase tracking-widest block font-black">Video Ready</span>
-                              <span className="text-[10px] font-mono text-zinc-700 block truncate max-w-[160px]">{kycVideoUrl}</span>
+                              <span className="text-xs font-mono text-emerald-800 uppercase tracking-widest block font-black">Video Ready</span>
+                              <span className="text-[10px] font-mono text-zinc-700 block truncate max-w-[160px]">{videoFileName || kycVideoUrl}</span>
                             </div>
                           ) : (
-                            <span className="text-zinc-500 font-mono text-xs uppercase font-bold">No Video Selected</span>
+                            <div className="text-center space-y-1 p-2">
+                              <span className="text-2xl block">📹</span>
+                              <span className="text-zinc-500 font-mono text-xs uppercase font-bold block">No Video Uploaded</span>
+                            </div>
                           )}
                         </div>
 
                         <div className="space-y-3 text-left flex-1">
-                          <h5 className="text-base font-black text-zinc-900 uppercase tracking-wider">Upload Recorded Video File</h5>
-                          <div className="flex flex-wrap gap-3">
+                          <h5 className="text-base font-black text-zinc-900 uppercase tracking-wider">
+                            {kycVideoUrl ? 'Video Verification File Ready' : 'Upload Recorded Video File *'}
+                          </h5>
+                          <div className="flex flex-wrap items-center gap-3">
                             <button
                               type="button"
                               onClick={() => videoFileInputRef.current?.click()}
                               className="px-6 py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-sm font-display"
                             >
-                              📁 Upload Recorded Video File
+                              {kycVideoUrl ? '🔄 Change Video File' : '📁 Upload Recorded Video File'}
                             </button>
+                            {kycVideoUrl && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setKycVideoUrl('');
+                                  setVideoFileName('');
+                                }}
+                                className="px-4 py-3.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-mono font-bold text-red-700 transition cursor-pointer"
+                                title="Remove video"
+                              >
+                                ✕ Remove
+                              </button>
+                            )}
+                            <span className={`text-xs font-mono font-bold px-3 py-2 rounded-lg border ${
+                              kycVideoUrl ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-stone-50 text-zinc-500 border-stone-300'
+                            }`}>
+                              {videoFileName || (kycVideoUrl ? 'Video File Attached' : 'No video selected (Required *)')}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -5206,48 +5446,48 @@ export default function UserDashboard({
 
       {/* Withdrawal Modal Overlay */}
       {withdrawalModal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-zinc-950 border-2 border-emerald-500/30 rounded-3xl p-6 sm:p-8 max-w-xl w-full space-y-6 shadow-[0_0_50px_rgba(16,185,129,0.2)] relative overflow-hidden">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in text-left">
+          <div className="bg-[#fbf9f4] border-2 border-stone-300 rounded-3xl p-6 sm:p-8 max-w-xl w-full space-y-6 shadow-2xl relative overflow-hidden text-left">
             
             <button
               onClick={() => setWithdrawalModal(null)}
-              className="absolute top-5 right-5 p-2 text-gray-400 hover:text-white bg-white/5 rounded-full transition-all cursor-pointer"
+              className="absolute top-5 right-5 p-2 text-stone-500 hover:text-stone-900 bg-stone-200/80 rounded-full transition-all cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
 
             <div className="space-y-1">
-              <span className="text-xs font-mono uppercase tracking-widest text-emerald-400 font-bold block flex items-center gap-2">
-                <Check className="h-4 w-4" /> Liquidity Release Authorized
+              <span className="text-xs font-mono uppercase tracking-widest text-emerald-800 font-bold block flex items-center gap-2">
+                <Check className="h-4 w-4 text-emerald-600" /> Liquidity Release Authorized
               </span>
-              <h3 className="text-2xl sm:text-3xl font-black text-white font-display uppercase tracking-tight">
+              <h3 className="text-2xl sm:text-3xl font-black text-zinc-900 font-display uppercase tracking-tight">
                 Withdraw Loan Capital
               </h3>
-              <p className="text-sm text-gray-300 font-medium">
-                Approved Capital Sum: <span className="text-emerald-400 font-mono font-black text-lg">${withdrawalModal.fundingDetails.requestedAmount.toLocaleString()} USD</span>
+              <p className="text-sm text-zinc-600 font-medium">
+                Approved Capital Sum: <span className="text-emerald-800 font-mono font-black text-lg">${withdrawalModal.fundingDetails.requestedAmount.toLocaleString()} USD</span>
               </p>
             </div>
 
             {withdrawalSubmitted ? (
-              <div className="p-6 bg-emerald-950/60 border-2 border-emerald-500/50 rounded-2xl space-y-4 text-center animate-fade-in shadow-[0_0_30px_rgba(52,211,153,0.3)]">
-                <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-emerald-400 border-2 border-emerald-500/50">
+              <div className="p-6 bg-emerald-50 border-2 border-emerald-400 rounded-2xl space-y-4 text-center animate-fade-in shadow-sm">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-emerald-700 border-2 border-emerald-400">
                   <Check className="h-10 w-10 stroke-[3]" />
                 </div>
-                <h4 className="text-2xl sm:text-3xl font-black text-white font-display uppercase tracking-tight">
+                <h4 className="text-2xl sm:text-3xl font-black text-zinc-900 font-display uppercase tracking-tight">
                   WITHDRAWAL DISPATCHED & LOAN DEBITED!
                 </h4>
-                <p className="text-sm sm:text-base text-gray-100 leading-relaxed font-bold">
-                  Your request to withdraw <span className="text-emerald-400 font-mono font-black text-xl">${withdrawalModal.fundingDetails.requestedAmount.toLocaleString()} USD</span> via {withdrawType === 'crypto' ? `${withdrawCryptoAsset} (${withdrawCryptoNetwork})` : 'Bank Wire'} has been queued for immediate release.
+                <p className="text-sm sm:text-base text-zinc-700 leading-relaxed font-bold">
+                  Your request to withdraw <span className="text-emerald-800 font-mono font-black text-xl">${withdrawalModal.fundingDetails.requestedAmount.toLocaleString()} USD</span> via {withdrawType === 'crypto' ? `${withdrawCryptoAsset} (${withdrawCryptoNetwork})` : 'Bank Wire'} has been queued for immediate release.
                 </p>
-                <div className="p-4 bg-black/80 rounded-xl border border-emerald-500/40 text-xs text-emerald-300 font-mono font-black uppercase tracking-wider space-y-1.5 text-left">
-                  <div className="text-emerald-400 font-black">⚡ ACCOUNT STATUS: LOAN BALANCE DEBITED ($0 REMAINING)</div>
-                  <div className="text-gray-200 text-xs font-sans font-bold">Funds will settle in your destination account within 1 to 24 hours.</div>
-                  <div className="text-cyan-300 text-xs font-sans font-bold pt-1 border-t border-white/10">💬 Direct Feedback: If you have any questions, please contact customer service.</div>
+                <div className="p-4 bg-white rounded-xl border border-emerald-300 text-xs text-emerald-900 font-mono font-black uppercase tracking-wider space-y-1.5 text-left">
+                  <div className="text-emerald-800 font-black">⚡ ACCOUNT STATUS: LOAN BALANCE DEBITED ($0 REMAINING)</div>
+                  <div className="text-zinc-700 text-xs font-sans font-bold">Funds will settle in your destination account within 1 to 24 hours.</div>
+                  <div className="text-cyan-800 text-xs font-sans font-bold pt-1 border-t border-stone-200">💬 Direct Feedback: If you have any questions, please contact customer service.</div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setWithdrawalModal(null)}
-                  className="px-8 py-3.5 bg-emerald-400 hover:bg-emerald-300 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer font-display shadow-lg hover:scale-105 active:scale-95"
+                  className="px-8 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer font-display shadow-md hover:scale-105 active:scale-95"
                 >
                   Done / Return to Dashboard
                 </button>
@@ -5338,16 +5578,16 @@ export default function UserDashboard({
               >
                 {/* Error Banner */}
                 {withdrawValidationError && (
-                  <div className="p-4 bg-red-950/80 border-2 border-red-500 rounded-xl text-red-200 text-xs font-mono font-black space-y-1 animate-shake">
-                    <div className="flex items-center gap-2 text-red-400 font-bold uppercase tracking-wider text-[11px]">
-                      <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" /> Validation Failed
+                  <div className="p-4 bg-red-50 border-2 border-red-300 rounded-xl text-red-900 text-xs font-mono font-bold space-y-1 animate-shake">
+                    <div className="flex items-center gap-2 text-red-700 font-black uppercase tracking-wider text-[11px]">
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" /> Validation Failed
                     </div>
                     <p className="leading-relaxed">{withdrawValidationError}</p>
                   </div>
                 )}
 
                 {/* Method Selection Tabs */}
-                <div className="grid grid-cols-2 gap-3 p-1 bg-black rounded-xl border border-white/10">
+                <div className="grid grid-cols-2 gap-3 p-1 bg-stone-200 rounded-xl border border-stone-300">
                   <button
                     type="button"
                     onClick={() => {
@@ -5356,8 +5596,8 @@ export default function UserDashboard({
                     }}
                     className={`py-3 text-xs font-bold font-mono uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
                       withdrawType === 'crypto'
-                        ? 'bg-emerald-400 text-black font-black shadow-lg'
-                        : 'text-gray-400 hover:text-white'
+                        ? 'bg-emerald-600 text-white font-black shadow-sm'
+                        : 'text-zinc-600 hover:text-zinc-900'
                     }`}
                   >
                     🪙 Crypto (Instant)
@@ -5370,8 +5610,8 @@ export default function UserDashboard({
                     }}
                     className={`py-3 text-xs font-bold font-mono uppercase tracking-wider rounded-lg transition-all cursor-pointer ${
                       withdrawType === 'bank'
-                        ? 'bg-emerald-400 text-black font-black shadow-lg'
-                        : 'text-gray-400 hover:text-white'
+                        ? 'bg-emerald-600 text-white font-black shadow-sm'
+                        : 'text-zinc-600 hover:text-zinc-900'
                     }`}
                   >
                     🏦 Bank Wire (1–7 Days)
@@ -5381,7 +5621,7 @@ export default function UserDashboard({
                 {withdrawType === 'crypto' ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-mono text-gray-300 uppercase tracking-wider mb-2 font-bold">
+                      <label className="block text-xs font-mono text-zinc-700 uppercase tracking-wider mb-2 font-bold">
                         Select Cryptocurrency Network *
                       </label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
@@ -5394,8 +5634,8 @@ export default function UserDashboard({
                           }}
                           className={`py-2.5 px-2 text-xs font-mono font-black rounded-xl border-2 transition-all ${
                             withdrawCryptoNetwork === 'ERC-20'
-                              ? 'bg-emerald-400 text-black border-emerald-400'
-                              : 'bg-black text-gray-300 border-zinc-700 hover:border-gray-500'
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                              : 'bg-white text-zinc-700 border-stone-300 hover:border-stone-400'
                           }`}
                         >
                           ERC-20
@@ -5409,8 +5649,8 @@ export default function UserDashboard({
                           }}
                           className={`py-2.5 px-2 text-xs font-mono font-black rounded-xl border-2 transition-all ${
                             withdrawCryptoNetwork === 'BEP-20'
-                              ? 'bg-emerald-400 text-black border-emerald-400'
-                              : 'bg-black text-gray-300 border-zinc-700 hover:border-gray-500'
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                              : 'bg-white text-zinc-700 border-stone-300 hover:border-stone-400'
                           }`}
                         >
                           BEP-20
@@ -5424,8 +5664,8 @@ export default function UserDashboard({
                           }}
                           className={`py-2.5 px-2 text-xs font-mono font-black rounded-xl border-2 transition-all ${
                             withdrawCryptoNetwork === 'TRC-20'
-                              ? 'bg-emerald-400 text-black border-emerald-400'
-                              : 'bg-black text-gray-300 border-zinc-700 hover:border-gray-500'
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                              : 'bg-white text-zinc-700 border-stone-300 hover:border-stone-400'
                           }`}
                         >
                           TRC-20
@@ -5439,8 +5679,8 @@ export default function UserDashboard({
                           }}
                           className={`py-2.5 px-2 text-xs font-mono font-black rounded-xl border-2 transition-all ${
                             withdrawCryptoNetwork === 'SOL'
-                              ? 'bg-emerald-400 text-black border-emerald-400'
-                              : 'bg-black text-gray-300 border-zinc-700 hover:border-gray-500'
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                              : 'bg-white text-zinc-700 border-stone-300 hover:border-stone-400'
                           }`}
                         >
                           SOL
@@ -5458,7 +5698,7 @@ export default function UserDashboard({
                           else if (val.includes('Solana') || val.includes('SOL')) setWithdrawCryptoNetwork('SOL');
                           setWithdrawValidationError(null);
                         }}
-                        className="w-full px-4 py-3 bg-black border-2 border-zinc-700 focus:border-emerald-400 rounded-xl text-sm font-mono text-white focus:outline-none"
+                        className="w-full px-4 py-3 bg-white border-2 border-stone-300 focus:border-emerald-600 rounded-xl text-sm font-mono text-zinc-900 focus:outline-none"
                       >
                         <option value="USDT (TRC-20 Tron Network)">USDT (TRC-20 Tron Network)</option>
                         <option value="USDT (ERC-20 Ethereum Network)">USDT (ERC-20 Ethereum Network)</option>
@@ -5470,7 +5710,7 @@ export default function UserDashboard({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-mono text-gray-300 uppercase tracking-wider mb-2 font-bold">
+                      <label className="block text-xs font-mono text-zinc-700 uppercase tracking-wider mb-2 font-bold">
                         Destination Wallet Address *
                       </label>
                       <input
@@ -5490,9 +5730,9 @@ export default function UserDashboard({
                             ? "Solana base58 address (e.g. 7xKX...)"
                             : "Enter your wallet address"
                         }
-                        className="w-full px-4 py-3 bg-black border-2 border-zinc-700 focus:border-emerald-400 rounded-xl text-sm font-mono text-white focus:outline-none"
+                        className="w-full px-4 py-3 bg-white border-2 border-stone-300 focus:border-emerald-600 rounded-xl text-sm font-mono text-zinc-900 placeholder-zinc-400 focus:outline-none"
                       />
-                      <p className="text-[11px] font-mono text-gray-400 mt-1 font-bold">
+                      <p className="text-[11px] font-mono text-zinc-500 mt-1 font-bold">
                         {withdrawCryptoNetwork === 'ERC-20' && '⚡ Instant Transfer • Requires a valid 0x EVM wallet address.'}
                         {withdrawCryptoNetwork === 'BEP-20' && '⚡ Instant Transfer • Requires a valid 0x EVM wallet address.'}
                         {withdrawCryptoNetwork === 'TRC-20' && '⚡ Instant Transfer • Requires a valid TRC-20 address starting with T.'}
@@ -5502,12 +5742,12 @@ export default function UserDashboard({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <div className="p-3 bg-cyan-950/50 border border-cyan-400/40 rounded-xl text-xs font-mono text-cyan-300 font-bold">
+                    <div className="p-3 bg-cyan-50 border border-cyan-300 rounded-xl text-xs font-mono text-cyan-900 font-bold">
                       ℹ️ Bank Wire transfers take 1 to 7 working days for processing and international settlement. For instant settlement, choose Cryptocurrency.
                     </div>
 
                     <div>
-                      <label className="block text-xs font-mono text-gray-300 uppercase tracking-wider mb-1 font-bold">
+                      <label className="block text-xs font-mono text-zinc-700 uppercase tracking-wider mb-1 font-bold">
                         Bank Name *
                       </label>
                       <input
@@ -5516,13 +5756,13 @@ export default function UserDashboard({
                         value={withdrawBankName}
                         onChange={(e) => setWithdrawBankName(e.target.value)}
                         placeholder="e.g. Chase Bank, Barclays, Citibank"
-                        className="w-full px-4 py-2.5 bg-black border-2 border-zinc-700 focus:border-emerald-400 rounded-xl text-xs font-mono text-white focus:outline-none"
+                        className="w-full px-4 py-2.5 bg-white border-2 border-stone-300 focus:border-emerald-600 rounded-xl text-xs font-mono text-zinc-900 placeholder-zinc-400 focus:outline-none"
                       />
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-mono text-gray-300 uppercase tracking-wider mb-1 font-bold">
+                        <label className="block text-xs font-mono text-zinc-700 uppercase tracking-wider mb-1 font-bold">
                           Account / IBAN Number *
                         </label>
                         <input
@@ -5531,12 +5771,12 @@ export default function UserDashboard({
                           value={withdrawAccountNo}
                           onChange={(e) => setWithdrawAccountNo(e.target.value)}
                           placeholder="e.g. GB29NWBK60161331926819"
-                          className="w-full px-4 py-2.5 bg-black border-2 border-zinc-700 focus:border-emerald-400 rounded-xl text-xs font-mono text-white focus:outline-none"
+                          className="w-full px-4 py-2.5 bg-white border-2 border-stone-300 focus:border-emerald-600 rounded-xl text-xs font-mono text-zinc-900 placeholder-zinc-400 focus:outline-none"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-mono text-gray-300 uppercase tracking-wider mb-1 font-bold">
+                        <label className="block text-xs font-mono text-zinc-700 uppercase tracking-wider mb-1 font-bold">
                           SWIFT / BIC Code *
                         </label>
                         <input
@@ -5545,13 +5785,13 @@ export default function UserDashboard({
                           value={withdrawSwiftCode}
                           onChange={(e) => setWithdrawSwiftCode(e.target.value)}
                           placeholder="e.g. CHASUS33XXX"
-                          className="w-full px-4 py-2.5 bg-black border-2 border-zinc-700 focus:border-emerald-400 rounded-xl text-xs font-mono text-white focus:outline-none"
+                          className="w-full px-4 py-2.5 bg-white border-2 border-stone-300 focus:border-emerald-600 rounded-xl text-xs font-mono text-zinc-900 placeholder-zinc-400 focus:outline-none"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-mono text-gray-300 uppercase tracking-wider mb-1 font-bold">
+                      <label className="block text-xs font-mono text-zinc-700 uppercase tracking-wider mb-1 font-bold">
                         Account Holder Full Name *
                       </label>
                       <input
@@ -5560,7 +5800,7 @@ export default function UserDashboard({
                         value={withdrawAccountName}
                         onChange={(e) => setWithdrawAccountName(e.target.value)}
                         placeholder="e.g. Johnathan Doe"
-                        className="w-full px-4 py-2.5 bg-black border-2 border-zinc-700 focus:border-emerald-400 rounded-xl text-xs font-mono text-white focus:outline-none"
+                        className="w-full px-4 py-2.5 bg-white border-2 border-stone-300 focus:border-emerald-600 rounded-xl text-xs font-mono text-zinc-900 placeholder-zinc-400 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -5569,14 +5809,14 @@ export default function UserDashboard({
                 <div className="pt-2 flex gap-3">
                   <button
                     type="submit"
-                    className="flex-1 py-4 bg-emerald-400 hover:bg-emerald-300 text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer font-display shadow-[0_0_20px_rgba(52,211,153,0.4)]"
+                    className="flex-1 py-4 bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer font-display shadow-md"
                   >
                     Confirm & Submit Withdrawal
                   </button>
                   <button
                     type="button"
                     onClick={() => setWithdrawalModal(null)}
-                    className="px-5 py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs uppercase tracking-widest rounded-xl cursor-pointer font-mono"
+                    className="px-5 py-4 bg-stone-200 hover:bg-stone-300 text-zinc-800 font-bold text-xs uppercase tracking-widest rounded-xl cursor-pointer font-mono border border-stone-300"
                   >
                     Cancel
                   </button>
@@ -5590,49 +5830,49 @@ export default function UserDashboard({
 
       {/* Refundable Collateral Modal Notice Overlay */}
       {collateralNoticeModal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-zinc-950 border-2 border-yellow-500/50 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-[0_0_50px_rgba(234,179,8,0.25)] relative text-left">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in text-left">
+          <div className="bg-[#fbf9f4] border-2 border-stone-300 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl relative text-left">
             <button
               onClick={() => setCollateralNoticeModal(null)}
-              className="absolute top-5 right-5 p-2 text-gray-400 hover:text-white bg-white/5 rounded-full transition-all cursor-pointer"
+              className="absolute top-5 right-5 p-2 text-stone-500 hover:text-stone-900 bg-stone-200/80 rounded-full transition-all cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
 
             <div className="space-y-2">
-              <span className="text-xs font-mono uppercase tracking-widest text-yellow-400 font-black block flex items-center gap-2">
-                <Lock className="h-5 w-5 text-yellow-400" /> SECURE ESCROW VAULT LOCK
+              <span className="text-xs font-mono uppercase tracking-widest text-amber-800 font-black block flex items-center gap-2">
+                <Lock className="h-5 w-5 text-amber-600" /> SECURE ESCROW VAULT LOCK
               </span>
-              <h3 className="text-2xl font-black text-white font-display uppercase tracking-tight">
+              <h3 className="text-2xl font-black text-zinc-900 font-display uppercase tracking-tight">
                 Refundable Collateral Notice
               </h3>
             </div>
 
-            <div className="p-5 bg-yellow-950/40 border-2 border-yellow-500/40 rounded-2xl space-y-3">
-              <p className="text-base text-white font-bold leading-relaxed">
-                Your 25% refundable collateral (<span className="text-yellow-400 font-mono font-black text-lg">${(collateralNoticeModal.fundingDetails.requestedAmount * 0.25).toLocaleString()} USD</span>) is securely held by <strong className="text-cyan-300">Elon Capital Loan</strong> and can only be withdrawn after your loan has reached maturity and has been fully repaid.
+            <div className="p-5 bg-amber-50 border-2 border-amber-300 rounded-2xl space-y-3">
+              <p className="text-base text-zinc-900 font-bold leading-relaxed">
+                Your 25% refundable collateral (<span className="text-amber-900 font-mono font-black text-lg">${(collateralNoticeModal.fundingDetails.requestedAmount * 0.25).toLocaleString()} USD</span>) is securely held by <strong className="text-cyan-800">Elon Capital Loan</strong> and can only be withdrawn after your loan has reached maturity and has been fully repaid.
               </p>
             </div>
 
-            <div className="p-4 bg-black/60 border border-white/10 rounded-xl space-y-2 text-xs font-mono">
-              <div className="flex justify-between text-gray-300 font-bold">
+            <div className="p-4 bg-stone-100 border border-stone-300 rounded-xl space-y-2 text-xs font-mono">
+              <div className="flex justify-between text-zinc-700 font-bold">
                 <span>Escrow Collateral Value:</span>
-                <span className="text-yellow-400 font-black">${(collateralNoticeModal.fundingDetails.requestedAmount * 0.25).toLocaleString()} USD</span>
+                <span className="text-amber-900 font-black">${(collateralNoticeModal.fundingDetails.requestedAmount * 0.25).toLocaleString()} USD</span>
               </div>
-              <div className="flex justify-between text-gray-300 font-bold">
+              <div className="flex justify-between text-zinc-700 font-bold">
                 <span>Repayment Condition:</span>
-                <span className="text-emerald-400 font-black">Full Repayment at Maturity</span>
+                <span className="text-emerald-800 font-black">Full Repayment at Maturity</span>
               </div>
-              <div className="flex justify-between text-gray-300 font-bold">
+              <div className="flex justify-between text-zinc-700 font-bold">
                 <span>Vault Custodian:</span>
-                <span className="text-white font-black">Elon Capital Institutional Escrow</span>
+                <span className="text-zinc-900 font-black">Elon Capital Institutional Escrow</span>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => setCollateralNoticeModal(null)}
-              className="w-full py-4 bg-yellow-400 hover:bg-yellow-300 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer font-display shadow-lg hover:scale-105 active:scale-95"
+              className="w-full py-4 bg-amber-400 hover:bg-amber-300 text-black font-black text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer font-display shadow-md hover:scale-105 active:scale-95"
             >
               I UNDERSTAND / DISMISS
             </button>

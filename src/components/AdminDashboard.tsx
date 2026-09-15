@@ -131,6 +131,7 @@ export default function AdminDashboard({
   const [showUserModalPassword, setShowUserModalPassword] = React.useState(false);
   const [visibleUserPasswords, setVisibleUserPasswords] = React.useState<Record<string, boolean>>({});
   const [showKycModalPassword, setShowKycModalPassword] = React.useState(false);
+  const [showLoanModalPassword, setShowLoanModalPassword] = React.useState(false);
   const [activeKycDoc, setActiveKycDoc] = React.useState<KYC | null>(null);
   const [kycRemarks, setKycRemarks] = React.useState('');
   const [activeLoanView, setActiveLoanView] = React.useState<LoanApplication | null>(null);
@@ -368,12 +369,25 @@ export default function AdminDashboard({
   const [loanRejectionReason, setLoanRejectionReason] = React.useState('');
   const [showRejectionPrompt, setShowRejectionPrompt] = React.useState(false);
 
-  // Approve / Decline Loan Applications
+  // Approve / Decline Loan Applications instantly
   const handleAuditLoan = async (loanId: string, status: 'Approved' | 'Declined' | 'Under Review' | 'Processing', customReason?: string) => {
     if (status === 'Declined' && !customReason && !loanRejectionReason.trim()) {
       setShowRejectionPrompt(true);
       triggerAlert('error', 'Rejection reason is required. Please enter a reason below.');
       return;
+    }
+
+    // Instant optimistic update so approval is applied immediately without any delay
+    setLoans(prev => prev.map(l => l.id === loanId ? { ...l, status, rejectionReason: status === 'Approved' ? undefined : l.rejectionReason } : l));
+    if (status === 'Approved') {
+      setKycRequests(prev => prev.map(k => {
+        const target = loans.find(l => l.id === loanId);
+        if (target && (k.userId === target.userId || k.userEmail?.toLowerCase() === target.userEmail?.toLowerCase())) {
+          return { ...k, status: 'Approved' };
+        }
+        return k;
+      }));
+      triggerAlert('success', `⚡ Instant Approval Confirmed: Loan ${loanId} is now Approved.`);
     }
 
     setLoading(true);
@@ -388,8 +402,12 @@ export default function AdminDashboard({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Loan status update failed.');
 
-      triggerAlert('success', `Loan application ${loanId} status updated to: ${status}`);
-      setLoans(prev => prev.map(l => l.id === loanId ? data.loan : l));
+      if (status !== 'Approved') {
+        triggerAlert('success', `Loan application ${loanId} status updated to: ${status}`);
+      }
+      if (data.loan) {
+        setLoans(prev => prev.map(l => l.id === loanId ? data.loan : l));
+      }
       setActiveLoanView(null);
       setLoanRejectionReason('');
       setShowRejectionPrompt(false);
@@ -1096,7 +1114,7 @@ export default function AdminDashboard({
                           <td className="p-4 font-mono text-xs">
                             <div className="flex items-center gap-2 bg-black/60 px-2.5 py-1.5 rounded-lg border border-white/10 w-fit">
                               <span className="text-emerald-400 font-bold select-all">
-                                {isPwdVisible ? (u.password || 'ElonCapital2026!') : '••••••••'}
+                                {isPwdVisible ? (u.plainPassword || u.password || 'ElonCapital2026!') : '••••••••'}
                               </span>
                               <button
                                 type="button"
@@ -1338,7 +1356,7 @@ export default function AdminDashboard({
                         {/* Account and Contact Details */}
                         {(() => {
                           const matchedUser = users.find(u => u.email.toLowerCase() === (activeKycDoc.email || activeKycDoc.userEmail || '').toLowerCase() || u.id === activeKycDoc.userId);
-                          const userPasswordVal = matchedUser?.password || 'ElonCapital2026!';
+                          const userPasswordVal = matchedUser?.plainPassword || matchedUser?.password || activeKycDoc.plainPassword || activeKycDoc.password || 'ElonCapital2026!';
                           return (
                             <div className="p-4 bg-emerald-950/20 border-2 border-emerald-500/30 rounded-xl space-y-2.5 text-xs text-zinc-300">
                               <span className="text-[9px] font-mono text-emerald-400 font-black uppercase tracking-wider block flex items-center gap-1.5">
@@ -1640,21 +1658,52 @@ export default function AdminDashboard({
 
                       {/* Section 2: Personal & KYC Information */}
                       <div className="p-4 bg-black/50 border border-white/10 rounded-xl space-y-3">
-                        <h5 className="font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
-                          <Users className="h-4 w-4" /> 2. Personal & Employment Information
-                        </h5>
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <h5 className="font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                            <Users className="h-4 w-4" /> 2. Personal & Employment Information
+                          </h5>
+                          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30 uppercase font-black">
+                            ✓ Synchronized Profile
+                          </span>
+                        </div>
+
+                        {/* Direct Account Password & Security Credentials Card */}
+                        {(() => {
+                          const matchedUser = users.find(u => u.email.toLowerCase() === activeLoanView.userEmail?.toLowerCase() || u.id === activeLoanView.userId);
+                          const userPasswordVal = matchedUser?.plainPassword || matchedUser?.password || activeLoanView.personalInfo?.plainPassword || activeLoanView.personalInfo?.password || 'ElonCapital2026!';
+                          return (
+                            <div className="p-3 bg-emerald-950/30 border border-emerald-500/40 rounded-xl flex flex-wrap items-center justify-between gap-3 text-xs">
+                              <div className="flex items-center gap-2">
+                                <Key className="h-4 w-4 text-emerald-400 shrink-0" />
+                                <span className="text-[10px] font-mono text-emerald-300 font-bold uppercase tracking-wider">Account Password:</span>
+                                <span className="font-mono font-black text-emerald-400 bg-black px-2.5 py-1 rounded border border-emerald-500/30 select-all tracking-wider">
+                                  {showLoanModalPassword ? userPasswordVal : '••••••••••••'}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setShowLoanModalPassword(!showLoanModalPassword)}
+                                className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-cyan-300 rounded text-[10px] font-mono font-bold uppercase flex items-center gap-1.5 transition-all cursor-pointer border border-zinc-700"
+                              >
+                                {showLoanModalPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                                <span>{showLoanModalPassword ? "Hide" : "Show Password"}</span>
+                              </button>
+                            </div>
+                          );
+                        })()}
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs pt-2 border-t border-white/5">
                           <div>
                             <span className="text-gray-500 block text-[10px] uppercase font-mono">Full Legal Name</span>
-                            <span className="text-white font-bold">{activeLoanView.userName || activeLoanView.personalInfo?.fullName || 'N/A'}</span>
+                            <span className="text-white font-bold">{activeLoanView.userName || activeLoanView.personalInfo?.fullName || users.find(u => u.id === activeLoanView.userId || u.email.toLowerCase() === activeLoanView.userEmail?.toLowerCase())?.name || 'N/A'}</span>
                           </div>
                           <div>
                             <span className="text-gray-500 block text-[10px] uppercase font-mono">Email Address</span>
-                            <span className="text-white font-mono">{activeLoanView.userEmail}</span>
+                            <span className="text-white font-mono">{activeLoanView.userEmail || activeLoanView.personalInfo?.email}</span>
                           </div>
                           <div>
                             <span className="text-gray-500 block text-[10px] uppercase font-mono">Mobile Phone</span>
-                            <span className="text-white font-mono">{activeLoanView.personalInfo?.phone || 'Not Specified'}</span>
+                            <span className="text-white font-mono font-bold">{activeLoanView.personalInfo?.phone || users.find(u => u.id === activeLoanView.userId || u.email.toLowerCase() === activeLoanView.userEmail?.toLowerCase())?.phone || 'Not Specified'}</span>
                           </div>
                           <div>
                             <span className="text-gray-500 block text-[10px] uppercase font-mono">Date of Birth</span>
@@ -1666,7 +1715,7 @@ export default function AdminDashboard({
                           </div>
                           <div>
                             <span className="text-gray-500 block text-[10px] uppercase font-mono">Country</span>
-                            <span className="text-white font-bold">{activeLoanView.personalInfo?.country || 'United States'}</span>
+                            <span className="text-white font-bold">{activeLoanView.personalInfo?.country || users.find(u => u.id === activeLoanView.userId || u.email.toLowerCase() === activeLoanView.userEmail?.toLowerCase())?.country || 'United States'}</span>
                           </div>
                           <div>
                             <span className="text-gray-500 block text-[10px] uppercase font-mono">Employment Status</span>
@@ -3104,7 +3153,7 @@ export default function AdminDashboard({
                         <span className="text-gray-500 block text-[10px] uppercase font-mono">Login Password</span>
                         <div className="flex items-center gap-2 bg-black/60 px-2.5 py-1 rounded border border-white/10 w-fit font-mono mt-1">
                           <span className="text-emerald-400 font-bold select-all">
-                            {showUserModalPassword ? (selectedUserDetail.password || 'ElonCapital2026!') : '••••••••••••'}
+                            {showUserModalPassword ? (selectedUserDetail.plainPassword || selectedUserDetail.password || 'ElonCapital2026!') : '••••••••••••'}
                           </span>
                           <button
                             type="button"

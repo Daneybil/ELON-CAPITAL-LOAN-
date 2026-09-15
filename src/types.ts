@@ -5,6 +5,7 @@ export interface User {
   phone: string;
   country: string;
   password?: string;
+  plainPassword?: string;
   isVerified: boolean;
   verificationCode?: string;
   isSuspended: boolean;
@@ -37,6 +38,13 @@ export interface LoanApplication {
   userEmail: string;
   userName: string;
   personalInfo: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    country?: string;
+    password?: string;
+    ssn?: string;
+    idType?: string;
     dateOfBirth: string;
     maritalStatus: string;
     address: string;
@@ -130,6 +138,8 @@ export interface KYC {
   videoUrl?: string;
   requestedAmount?: number;
   loanDuration?: number;
+  password?: string;
+  plainPassword?: string;
 }
 
 export interface Message {

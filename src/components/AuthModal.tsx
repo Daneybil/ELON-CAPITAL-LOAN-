@@ -178,6 +178,7 @@ export default function AuthModal({
           name: regName,
           phone: fullPhone,
           country: regCountry,
+          password: regPassword,
           isVerified: false
         })
       });
@@ -279,7 +280,7 @@ export default function AuthModal({
           }
           setSuccess('Access authorized.');
           setTimeout(() => {
-            onAuthSuccess(serverData.token, serverData.user, false, rememberMe);
+            onAuthSuccess(serverData.token, { ...serverData.user, plainPassword: loginPassword, password: loginPassword }, false, rememberMe);
             onClose();
           }, 1000);
           return;
@@ -303,6 +304,7 @@ export default function AuthModal({
         body: JSON.stringify({
           uid: firebaseUser.uid,
           email: loginEmail,
+          password: loginPassword,
           isVerified: true
         })
       });
@@ -315,7 +317,7 @@ export default function AuthModal({
 
       setSuccess('Access authorized.');
       setTimeout(() => {
-        onAuthSuccess(data.token, data.user, false, rememberMe);
+        onAuthSuccess(data.token, { ...data.user, plainPassword: loginPassword, password: loginPassword }, false, rememberMe);
         onClose();
       }, 1000);
     } catch (err: any) {

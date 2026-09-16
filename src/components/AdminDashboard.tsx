@@ -377,7 +377,7 @@ export default function AdminDashboard({
       return;
     }
 
-    // Instant optimistic update so approval is applied immediately without any delay
+    // Instant optimistic update so approval is applied immediately without any hesitation
     setLoans(prev => prev.map(l => l.id === loanId ? { ...l, status, rejectionReason: status === 'Approved' ? undefined : l.rejectionReason } : l));
     if (status === 'Approved') {
       setKycRequests(prev => prev.map(k => {
@@ -387,7 +387,11 @@ export default function AdminDashboard({
         }
         return k;
       }));
-      triggerAlert('success', `⚡ Instant Approval Confirmed: Loan ${loanId} is now Approved.`);
+      // Close modal and alert immediately with zero hesitation
+      setActiveLoanView(null);
+      setLoanRejectionReason('');
+      setShowRejectionPrompt(false);
+      triggerAlert('success', `⚡ Instant Approval Confirmed: Loan ${loanId} is now Approved without hesitation!`);
     }
 
     setLoading(true);
@@ -404,13 +408,13 @@ export default function AdminDashboard({
 
       if (status !== 'Approved') {
         triggerAlert('success', `Loan application ${loanId} status updated to: ${status}`);
+        setActiveLoanView(null);
+        setLoanRejectionReason('');
+        setShowRejectionPrompt(false);
       }
       if (data.loan) {
         setLoans(prev => prev.map(l => l.id === loanId ? data.loan : l));
       }
-      setActiveLoanView(null);
-      setLoanRejectionReason('');
-      setShowRejectionPrompt(false);
     } catch (err: any) {
       triggerAlert('error', err.message);
     } finally {
@@ -1569,6 +1573,17 @@ export default function AdminDashboard({
                             {statusLabel}
                           </span>
 
+                          {l.status === 'Pending' && (
+                            <button
+                              type="button"
+                              onClick={() => handleAuditLoan(l.id, 'Approved')}
+                              className="px-4 py-2 text-xs font-black text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg shadow-[0_0_12px_rgba(34,211,238,0.3)] transition-all flex items-center gap-1.5 cursor-pointer font-mono"
+                              title="Instantly Approve Application without hesitation"
+                            >
+                              ⚡ Instant Approve
+                            </button>
+                          )}
+
                           <button
                             onClick={() => {
                               setActiveLoanView(l);
@@ -2092,9 +2107,9 @@ export default function AdminDashboard({
                           <button
                             onClick={() => handleAuditLoan(activeLoanView.id, 'Approved')}
                             disabled={loading}
-                            className="px-6 py-2.5 text-xs font-bold text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all cursor-pointer font-mono"
+                            className="px-6 py-2.5 text-xs font-black text-black bg-cyan-400 hover:bg-cyan-300 rounded-lg shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all cursor-pointer font-mono"
                           >
-                            Approve Application
+                            ⚡ Instant Approve Application
                           </button>
                         )}
                       </div>

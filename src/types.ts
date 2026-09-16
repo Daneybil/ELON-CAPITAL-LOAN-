@@ -8,6 +8,8 @@ export interface User {
   plainPassword?: string;
   isVerified: boolean;
   verificationCode?: string;
+  emailVerificationCode?: string;
+  emailVerificationExpiry?: number;
   isSuspended: boolean;
   role: 'user' | 'admin';
   createdAt: string;

@@ -82,6 +82,83 @@
       ]
     }
     </script>
+    <!-- Automatic Regional Language Detection & Google Translate Engine -->
+    <script>
+      (function() {
+        try {
+          var userPref = localStorage.getItem('user_lang_preference');
+          var targetLang = userPref;
+
+          if (!targetLang) {
+            // Auto-detect from browser locales
+            var navLangs = navigator.languages || [navigator.language || 'en'];
+            var primary = (navLangs[0] || 'en').toLowerCase().split('-')[0];
+            
+            // Regional timezone detection
+            var tz = '';
+            try {
+              tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+            } catch(e) {}
+
+            if (/Riyadh|Dubai|Cairo|Baghdad|Kuwait|Qatar|Amman|Casablanca|Beirut|Muscat|Tripoli|Khartoum|Tunis|Algiers/i.test(tz)) {
+              primary = 'ar';
+            } else if (/Madrid|Mexico|Bogota|Buenos_Aires|Santiago|Lima|Caracas|Montevideo|Asuncion|Guatemala|Havana/i.test(tz)) {
+              primary = 'es';
+            } else if (/Paris|Brussels|Montreal|Dakar|Abidjan/i.test(tz)) {
+              primary = 'fr';
+            } else if (/Berlin|Vienna|Zurich/i.test(tz)) {
+              primary = 'de';
+            } else if (/Sao_Paulo|Lisbon|Luanda|Maputo/i.test(tz)) {
+              primary = 'pt';
+            } else if (/Tokyo/i.test(tz)) {
+              primary = 'ja';
+            } else if (/Seoul/i.test(tz)) {
+              primary = 'ko';
+            } else if (/Shanghai|Taipei|Hong_Kong/i.test(tz)) {
+              primary = 'zh-CN';
+            } else if (/Moscow|Novosibirsk|Yekaterinburg/i.test(tz)) {
+              primary = 'ru';
+            } else if (/Istanbul/i.test(tz)) {
+              primary = 'tr';
+            } else if (/Rome/i.test(tz)) {
+              primary = 'it';
+            } else if (/Kolkata|Calcutta/i.test(tz)) {
+              primary = 'hi';
+            }
+
+            if (primary && primary !== 'en') {
+              targetLang = primary;
+            }
+          }
+
+          if (targetLang && targetLang !== 'en') {
+            var cookieVal = '/en/' + targetLang;
+            var host = window.location.hostname;
+            document.cookie = 'googtrans=' + cookieVal + '; path=/;';
+            document.cookie = 'googtrans=/auto/' + targetLang + '; path=/;';
+            if (host && host !== 'localhost') {
+              document.cookie = 'googtrans=' + cookieVal + '; path=/; domain=' + host + ';';
+              document.cookie = 'googtrans=/auto/' + targetLang + '; path=/; domain=' + host + ';';
+            }
+            if (['ar', 'he', 'fa', 'ur'].indexOf(targetLang) !== -1) {
+              document.documentElement.setAttribute('dir', 'rtl');
+            }
+          }
+        } catch(err) {
+          console.warn('Auto regional language init error:', err);
+        }
+      })();
+
+      function googleTranslateElementInit() {
+        if (window.google && window.google.translate) {
+          new window.google.translate.TranslateElement({
+            pageLanguage: 'en',
+            autoDisplay: false
+          }, 'google_translate_element');
+        }
+      }
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async defer></script>
   </head>
   <body>
     <div id="root"></div>

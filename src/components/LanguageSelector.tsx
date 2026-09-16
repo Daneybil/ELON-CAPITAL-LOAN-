@@ -1,15 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe, Check, ChevronDown } from 'lucide-react';
-import { SUPPORTED_LANGUAGES } from '../i18n';
+import { 
+  ALL_SUPPORTED_LANGUAGES, 
+  getCurrentGoogleTranslateLanguage, 
+  applyGoogleTranslateLanguage 
+} from '../utils/googleTranslate';
 
 export default function LanguageSelector() {
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentLangCode = (i18n.language || 'en').split('-')[0];
-  const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === currentLangCode) || SUPPORTED_LANGUAGES[0];
+  const currentLangCode = getCurrentGoogleTranslateLanguage() || (i18n.language || 'en').split('-')[0];
+  const currentLang = ALL_SUPPORTED_LANGUAGES.find(l => l.code === currentLangCode) || ALL_SUPPORTED_LANGUAGES[0];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -22,7 +26,10 @@ export default function LanguageSelector() {
   }, []);
 
   const handleSelect = (code: string) => {
-    i18n.changeLanguage(code);
+    try {
+      i18n.changeLanguage(code);
+    } catch (_) {}
+    applyGoogleTranslateLanguage(code, true);
     setIsOpen(false);
   };
 
@@ -32,7 +39,7 @@ export default function LanguageSelector() {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-1.5 px-3 py-1.5 bg-black/60 hover:bg-white/10 border border-cyan-500/30 hover:border-cyan-400 rounded-full text-xs font-mono font-medium text-white transition-all cursor-pointer shadow-sm group"
-        title="Change Language / Select Locale"
+        title="Powered by Google Translate / Select Language"
         id="btn-language-selector-toggle"
       >
         <Globe className="h-3.5 w-3.5 text-cyan-400 group-hover:rotate-45 transition-transform" />
@@ -42,14 +49,14 @@ export default function LanguageSelector() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 max-h-80 overflow-y-auto bg-zinc-950 border-2 border-cyan-500/30 rounded-2xl shadow-2xl z-[200] p-2 space-y-1 backdrop-blur-xl animate-fade-in no-scrollbar">
+        <div className="absolute right-0 mt-2 w-72 max-h-80 overflow-y-auto bg-zinc-950 border-2 border-cyan-500/40 rounded-2xl shadow-2xl z-[200] p-2 space-y-1 backdrop-blur-xl animate-fade-in no-scrollbar">
           <div className="px-3 py-2 border-b border-white/10 flex justify-between items-center text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-widest">
-            <span>🌐 Select Language</span>
-            <span className="text-[9px] text-gray-500">30+ Languages</span>
+            <span>🌐 Powered by Google Translate</span>
+            <span className="text-[9px] text-gray-400">35+ Languages</span>
           </div>
 
           <div className="py-1 space-y-0.5">
-            {SUPPORTED_LANGUAGES.map((lang) => {
+            {ALL_SUPPORTED_LANGUAGES.map((lang) => {
               const isSelected = currentLang.code === lang.code;
               return (
                 <button
@@ -66,7 +73,7 @@ export default function LanguageSelector() {
                     <span className="text-base shrink-0">{lang.flag}</span>
                     <div className="flex flex-col truncate">
                       <span className="font-bold text-white text-xs leading-tight">{lang.nativeName}</span>
-                      <span className="text-[10px] text-gray-400 leading-tight">{lang.name}</span>
+                      <span className="text-[10px] text-gray-400 leading-tight">{lang.name} • <span className="text-cyan-400/70">{lang.region}</span></span>
                     </div>
                   </div>
                   {isSelected && <Check className="h-4 w-4 text-cyan-400 shrink-0 ml-2" />}

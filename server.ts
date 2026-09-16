@@ -43,26 +43,153 @@ function checkLoginRateLimit(ip: string): boolean {
   return true;
 }
 
-// Server-side Admin Email Sender Helper
-async function sendAdminEmail({ to, subject, text, html }: { to: string; subject: string; text: string; html?: string }) {
+import nodemailer, { type Transporter } from 'nodemailer';
+
+// Server-side Professional Email Sender with Anti-Spam Headers & SMTP
+let emailTransporter: Transporter | null = null;
+
+function getEmailTransporter(): Transporter | null {
+  if (emailTransporter) return emailTransporter;
+
   const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = process.env.SMTP_PORT;
+  const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
-  const smtpFrom = process.env.SMTP_FROM || 'security@eloncapitalloan.com';
+  const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
 
-  console.log(`[SECURE EMAIL] Dispatching email to: ${to} | Subject: ${subject}`);
-
-  if (smtpHost && smtpPort && smtpUser && smtpPass) {
+  if (smtpHost && smtpUser && smtpPass) {
     try {
-      console.log(`[SMTP TRANSPORT] Transmitting email via ${smtpHost}:${smtpPort} as ${smtpFrom}`);
+      emailTransporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpSecure,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+      return emailTransporter;
     } catch (err) {
-      console.error('[SMTP TRANSPORT ERROR]', err);
+      console.error('[SMTP TRANSPORTER INIT ERROR]', err);
+      return null;
+    }
+  }
+
+  if (process.env.SMTP_SERVICE && smtpUser && smtpPass) {
+    try {
+      emailTransporter = nodemailer.createTransport({
+        service: process.env.SMTP_SERVICE,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass
+        }
+      });
+      return emailTransporter;
+    } catch (err) {
+      console.error('[SMTP SERVICE INIT ERROR]', err);
+      return null;
+    }
+  }
+
+  return null;
+}
+
+export async function sendPlatformEmail({
+  to,
+  subject,
+  text,
+  html,
+  category = 'Account Security'
+}: {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  category?: string;
+}): Promise<boolean> {
+  const fromName = process.env.SMTP_FROM_NAME || 'Elon Capital Loan Operations';
+  const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER || 'security@eloncapitalloan.com';
+  const fromFormatted = `"${fromName}" <${fromAddress}>`;
+
+  // Anti-spam HTML template with professional responsive layout
+  const styledHtml = html || `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 24px; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f4f4f5;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 0 auto; background-color: #121214; border: 1px solid #27272a; border-radius: 16px; overflow: hidden;">
+          <tr>
+            <td style="padding: 28px 32px; background: linear-gradient(180deg, #18181b 0%, #121214 100%); border-bottom: 1px solid #27272a; text-align: center;">
+              <h1 style="margin: 0; font-size: 22px; font-weight: 800; letter-spacing: 2px; color: #22d3ee; text-transform: uppercase;">
+                ELON CAPITAL LOAN
+              </h1>
+              <p style="margin: 6px 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #71717a;">
+                Institutional Direct Liquidity & Private Lending
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 32px; font-size: 15px; line-height: 1.65; color: #e4e4e7;">
+              ${text.replace(/\n/g, '<br/>')}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 24px 32px; background-color: #09090b; border-top: 1px solid #27272a; text-align: center; font-size: 11px; color: #71717a; line-height: 1.6;">
+              <p style="margin: 0 0 8px 0; color: #a1a1aa; font-weight: 600;">
+                Category: ${category} • Verification Timestamp: ${new Date().toUTCString()}
+              </p>
+              <p style="margin: 0 0 8px 0;">
+                Elon Capital Private Lending LLC • Austin, Texas • Global Regulatory Verification
+              </p>
+              <p style="margin: 0; color: #52525b;">
+                This institutional alert was dispatched directly to ${to}. For security, never share verification tokens or login credentials.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+
+  console.log(`[EMAIL DISPATCH] Target: ${to} | Subject: "${subject}" | Category: ${category}`);
+
+  const transporter = getEmailTransporter();
+  if (transporter) {
+    try {
+      const messageIdDomain = fromAddress.includes('@') ? fromAddress.split('@')[1] : 'eloncapitalloan.com';
+      const info = await transporter.sendMail({
+        from: fromFormatted,
+        to,
+        subject,
+        text,
+        html: styledHtml,
+        headers: {
+          'X-Mailer': 'ElonCapitalLoan-SecureMail/3.0',
+          'X-Priority': '1',
+          'Message-ID': `<${Date.now()}.${Math.random().toString(36).substring(7)}@${messageIdDomain}>`,
+          'List-Unsubscribe': `<mailto:support@${messageIdDomain}?subject=unsubscribe>`
+        }
+      });
+      console.log(`[SMTP SUCCESS] Email delivered to ${to}. MessageId: ${info.messageId}`);
+      return true;
+    } catch (error) {
+      console.error(`[SMTP TRANSMISSION FAILED] Error sending to ${to}:`, error);
+      return false;
     }
   } else {
-    console.log(`[EMAIL DISPATCH LOG] To: ${to}\nSubject: ${subject}\nContent:\n${text}`);
+    console.log(`[LOCAL DEV EMAIL LOG - NO SMTP CONFIGURED]\nTo: ${to}\nFrom: ${fromFormatted}\nSubject: ${subject}\n\n${text}`);
+    return false;
   }
 }
+
+// Backward compatibility alias for existing calls
+const sendAdminEmail = sendPlatformEmail;
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs } from 'firebase/firestore';
 import { 
@@ -755,15 +882,51 @@ app.post('/api/auth/register', (req, res) => {
 
   logAction("User Registration", `Account initiated for ${email}`, { id: newUser.id, email: newUser.email }, req.ip);
 
-  // Return the code so the client can simulate displaying "email verification sent" and let the user enter it
+  // Dispatch real email verification code via authenticated SMTP/platform sender
+  sendPlatformEmail({
+    to: newUser.email,
+    subject: 'Elon Capital Loan - Verification Code',
+    category: 'Account Verification',
+    text: `Welcome to Elon Capital Loan, ${newUser.name}.\n\nYour 6-digit email verification security code is: ${code}\n\nThis verification code will remain active for 24 hours. Enter this code on the verification screen to activate your account and access institutional financing.`
+  }).catch(err => console.error('[REGISTRATION EMAIL ERROR]', err));
+
+  // Return the response with verification code fallback so users are never blocked
   res.json({ 
-    message: 'Registration successful. Verification code generated.', 
+    message: 'Registration successful. Verification code generated and dispatched.', 
     email: newUser.email,
-    verificationCode: code // This allows the front-end to display it elegantly so the developer/user is never locked out!
+    verificationCode: code
   });
 });
 
-// 2b. AUTH ADMIN REGISTRATION (DISABLED - PRIVATE ADMIN SYSTEM)
+// 2b. RESEND EMAIL VERIFICATION
+app.post('/api/auth/resend-verification', (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    res.status(400).json({ error: 'Email address is required.' });
+    return;
+  }
+  const db = getDB();
+  const user = db.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  if (!user) {
+    res.status(404).json({ error: 'No account found with this email address.' });
+    return;
+  }
+  const newCode = crypto.randomInt(100000, 999999).toString();
+  user.emailVerificationCode = newCode;
+  user.emailVerificationExpiry = Date.now() + 24 * 60 * 60 * 1000;
+  saveDB(db);
+
+  sendPlatformEmail({
+    to: user.email,
+    subject: 'Elon Capital Loan - Verification Code',
+    category: 'Account Verification',
+    text: `Hello ${user.name},\n\nYour 6-digit email verification security code is: ${newCode}\n\nPlease enter this code to activate your account.`
+  }).catch(err => console.error('[RESEND EMAIL ERROR]', err));
+
+  res.json({ message: 'Verification code resent successfully.', verificationCode: newCode });
+});
+
+// 2c. AUTH ADMIN REGISTRATION (DISABLED - PRIVATE ADMIN SYSTEM)
 app.post('/api/auth/register-admin', (_req, res) => {
   res.status(403).json({ error: 'Public administrator registration is disabled.' });
 });
@@ -1494,6 +1657,14 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
   saveDB(db);
 
   logAction("Funding Application", `Application ${newApplication.id} submitted by ${req.user!.email} for $${amount}`, { id: req.user!.id, email: req.user!.email }, req.ip);
+
+  // Dispatch formal email receipt to the applicant
+  sendPlatformEmail({
+    to: resolvedEmail,
+    subject: `Elon Capital Loan - Application Received (${newApplication.id})`,
+    category: 'Loan Application',
+    text: `Dear ${resolvedFullName},\n\nYour institutional loan application (${newApplication.id}) for $${amount.toLocaleString()} has been received and logged into Elon Capital's underwriting pipeline.\n\nOur underwriting team and automatic risk analysis algorithms review applications with priority dispatch. You will receive an immediate update once your institutional review is completed.`
+  }).catch(err => console.error('[LOAN SUBMISSION EMAIL ERROR]', err));
 
   res.json({ message: 'Application submitted successfully.', application: newApplication });
 });
@@ -2933,6 +3104,22 @@ app.post('/api/admin/loans/update', authenticateToken, requireAdmin, (req, res) 
   saveDB(db);
 
   logAction("Loan Status Update", `Loan ${loanId} set to ${status} for ${loan.userEmail}`, { id: req.user!.id, email: req.user!.email }, req.ip);
+
+  // Dispatch official status email to borrower
+  const targetRecipient = loan.userEmail || user?.email;
+  if (targetRecipient) {
+    const isApproved = status === 'Approved';
+    sendPlatformEmail({
+      to: targetRecipient,
+      subject: isApproved 
+        ? `Elon Capital Loan APPROVED - Disbursal Notice (${loan.id})`
+        : `Elon Capital Loan Status Notice - Application (${loan.id})`,
+      category: isApproved ? 'Loan Approval' : 'Application Status',
+      text: isApproved
+        ? `Dear ${loan.userName || user?.name || 'Valued Client'},\n\nWe are pleased to inform you that your loan application (${loan.id}) for $${loan.fundingDetails.requestedAmount.toLocaleString()} has been officially APPROVED by Elon Capital's Credit Committee.\n\nYour institutional liquidity facility is now ready. Please log into your Elon Capital account to review your contract terms and initiate disbursement settlement.`
+        : `Dear ${loan.userName || user?.name || 'Applicant'},\n\nYour loan application (${loan.id}) status has been updated to: ${status}.\n\nReason: ${loan.rejectionReason || 'Institutional review complete.'}\n\nPlease visit your dashboard for further details or contact your assigned account officer.`
+    }).catch(err => console.error('[LOAN STATUS UPDATE EMAIL ERROR]', err));
+  }
 
   res.json({ message: `Loan status successfully updated to ${status}.`, loan });
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { User, HomePageContent, Announcement } from './types';
+import GoogleTranslateBar from './components/GoogleTranslateBar';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Features from './components/Features';
@@ -333,6 +334,9 @@ export default function App() {
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-black text-white flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200" id="spaceloan-root-layout">
       
+      {/* Top Head Side: Regional Google Translator */}
+      <GoogleTranslateBar />
+
       {/* Main Navigation Header */}
       <Navbar 
         user={user}

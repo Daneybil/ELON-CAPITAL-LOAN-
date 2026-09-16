@@ -72,8 +72,8 @@ export default function Navbar({
         isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
       } ${
         isScrolled 
-          ? 'top-4 mx-4 md:mx-auto max-w-5xl rounded-full border border-stone-300/80 bg-[#fbf9f4]/95 backdrop-blur-xl shadow-lg py-1.5' 
-          : 'top-0 bg-[#fbf9f4]/95 backdrop-blur-md border-b border-stone-300/60 py-1'
+          ? 'top-11 sm:top-12 mx-4 md:mx-auto max-w-5xl rounded-full border border-stone-300/80 bg-[#fbf9f4]/95 backdrop-blur-xl shadow-lg py-1.5' 
+          : 'top-[34px] sm:top-[36px] bg-[#fbf9f4]/95 backdrop-blur-md border-b border-stone-300/60 py-1'
       }`}
       id="nav-container"
     >

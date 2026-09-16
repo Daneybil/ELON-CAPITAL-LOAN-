@@ -332,7 +332,16 @@ export default function UserDashboard({
       const resLoans = await fetch(getApiUrl('/api/loans/list'), { headers });
       if (resLoans.ok) {
         const fetchedLoans: LoanApplication[] = await resLoans.json();
-        setLoans(fetchedLoans);
+        setLoans(prev => {
+          // Instant notification when an existing pending loan transitions to Approved
+          fetchedLoans.forEach(fl => {
+            const old = prev.find(p => p.id === fl.id);
+            if (old && old.status === 'Pending' && fl.status === 'Approved') {
+              triggerAlert('success', `🎉 Instant Approval Notice: Loan ${fl.id} has been Approved without hesitation! Collateral settlement facility is now open.`);
+            }
+          });
+          return fetchedLoans;
+        });
         const backendWithdrawnIds = fetchedLoans.filter(l => l.withdrawn).map(l => l.id);
         if (backendWithdrawnIds.length > 0) {
           setWithdrawnLoanIds(prev => Array.from(new Set([...prev, ...backendWithdrawnIds])));
@@ -369,8 +378,8 @@ export default function UserDashboard({
 
   React.useEffect(() => {
     fetchAllData();
-    // Simple poll loop every 3 seconds for live messaging/updates
-    const interval = setInterval(fetchAllData, 3000);
+    // High-frequency poll loop every 1.5 seconds for instant live updates without hesitation
+    const interval = setInterval(fetchAllData, 1500);
     return () => clearInterval(interval);
   }, [fetchAllData]);
 
@@ -1044,7 +1053,7 @@ export default function UserDashboard({
     setActionLoading(true);
 
     try {
-      // 1. Submit KYC Portfolio with real user uploads
+      // 1. Prepare KYC and Loan Portfolios with real user uploads
       const kycPayload = {
         idCardUrl: kycIdCard.trim(),
         idCardBackUrl: kycIdCardBack.trim() || '',
@@ -1069,20 +1078,6 @@ export default function UserDashboard({
         plainPassword: user.plainPassword || user.password || ''
       };
 
-      const kycRes = await fetch(getApiUrl('/api/kyc/upload'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(kycPayload)
-      });
-      const kycData = await kycRes.json();
-      if (!kycRes.ok) throw new Error(kycData.error || 'Identity portfolio compliance submission failed.');
-      if (kycData.kyc) {
-        setKycStatus(kycData.kyc);
-      }
-
       // Compile all 5 real document categories for the loan portfolio
       const allAttachedDocs = [
         { name: `Government ID (${kycIdType})`, type: 'Government Identity Document', url: kycIdCard.trim(), uploadedAt: new Date().toISOString() },
@@ -1094,7 +1089,7 @@ export default function UserDashboard({
         ...uploadedLoanDocs
       ].filter(d => !!d.url && d.url.trim() !== '');
 
-      // 2. Submit Loan Application with comprehensive personal info, phone, email, full name, and credentials
+      // 2. Prepare Loan Application with comprehensive personal info, phone, email, full name, and credentials
       const loanPayload = {
         personalInfo: {
           fullName: kycFullName.trim() || user.name,
@@ -1140,18 +1135,40 @@ export default function UserDashboard({
         documents: allAttachedDocs
       };
 
-      const loanRes = await fetch(getApiUrl('/api/loans/apply'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(loanPayload)
-      });
+      // 3. Submit KYC and Loan Application concurrently via Promise.all for instant submission without hesitation
+      const [loanRes, kycRes] = await Promise.all([
+        fetch(getApiUrl('/api/loans/apply'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(loanPayload)
+        }),
+        fetch(getApiUrl('/api/kyc/upload'), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(kycPayload)
+        })
+      ]);
+
       const loanData = await loanRes.json();
       if (!loanRes.ok) throw new Error(loanData.error || 'Funding request submission failed.');
 
-      triggerAlert('success', `Application and KYC documents successfully submitted. Loan Reference: ${loanData.application.id}`);
+      // Update KYC status in background non-blocking
+      try {
+        const kycData = await kycRes.json();
+        if (kycData.kyc) {
+          setKycStatus(kycData.kyc);
+        }
+      } catch (_) {
+        // Non-blocking
+      }
+
+      triggerAlert('success', `⚡ Loan Application ${loanData.application.id} submitted instantly without hesitation!`);
       
       setLoans(prev => {
         const existingIdx = prev.findIndex(l => l.id === loanData.application.id);

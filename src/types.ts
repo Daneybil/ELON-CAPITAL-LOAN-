@@ -20,6 +20,34 @@ export interface User {
     securityAlerts: boolean;
   };
   activityHistory?: Array<{ id: string; action: string; timestamp: string; ipAddress: string }>;
+  referralCode?: string;
+  referredBy?: {
+    id: string;
+    name: string;
+    email: string;
+    code: string;
+    country?: string;
+  };
+  referralEarnings?: number;
+  referredCount?: number;
+}
+
+export interface ReferralRecord {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userCountry: string;
+  referrerId: string;
+  referrerName: string;
+  referrerEmail: string;
+  referrerCode: string;
+  referrerCountry: string;
+  registeredAt: string;
+  isVerified: boolean;
+  hasAppliedLoan: boolean;
+  loanStatus?: string;
+  loanAmount?: number;
 }
 
 export interface LoanInstallment {
@@ -73,6 +101,13 @@ export interface LoanApplication {
     existingDebts: number;
     creditScore?: number;
     assetsValue?: number;
+  };
+  referredBy?: {
+    id: string;
+    name: string;
+    email: string;
+    code: string;
+    country?: string;
   };
   status: 'Pending' | 'Approved' | 'Declined' | 'Under Review' | 'Processing' | 'Settled';
   rejectionReason?: string;

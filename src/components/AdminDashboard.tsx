@@ -53,10 +53,13 @@ import {
   Briefcase,
   Building,
   DollarSign,
-  Calendar
+  Calendar,
+  Gift,
+  Award
 } from 'lucide-react';
 import { getApiUrl } from '../utils/api';
 import { useTranslation } from 'react-i18next';
+import AdminReferralsTab from './AdminReferralsTab';
 
 interface AdminDashboardProps {
   adminUser: User;
@@ -94,7 +97,7 @@ export default function AdminDashboard({
   const [mfaStep, setMfaStep] = React.useState(false);
 
   // Panel Tabs
-  const [adminTab, setAdminTab] = React.useState<'stats' | 'users' | 'kyc' | 'loans' | 'payments' | 'repayments' | 'tickets' | 'messages' | 'announcements' | 'homepage' | 'logs'>('stats');
+  const [adminTab, setAdminTab] = React.useState<'stats' | 'users' | 'referrals' | 'kyc' | 'loans' | 'payments' | 'repayments' | 'tickets' | 'messages' | 'announcements' | 'homepage' | 'logs'>('stats');
 
   // Repayment Review State
   const [repaymentNotes, setRepaymentNotes] = React.useState<Record<string, string>>({});
@@ -118,6 +121,7 @@ export default function AdminDashboard({
   const [logs, setLogs] = React.useState<SystemLog[]>([]);
   const [announcements, setAnnouncements] = React.useState<Announcement[]>([]);
   const [homePage, setHomePage] = React.useState<HomePageContent | null>(null);
+  const [referralsData, setReferralsData] = React.useState<any>(null);
 
   // Admin Message Desk state
   const [adminMessages, setAdminMessages] = React.useState<any[]>([]);
@@ -202,6 +206,9 @@ export default function AdminDashboard({
 
       const resMsgs = await fetch(getApiUrl('/api/messages'), { headers });
       if (resMsgs.ok) setAdminMessages(await resMsgs.json());
+
+      const resRefs = await fetch(getApiUrl('/api/admin/referrals'), { headers });
+      if (resRefs.ok) setReferralsData(await resRefs.json());
 
       if (selectedUserForMsg) {
         await fetch(getApiUrl(`/api/messages?userId=${selectedUserForMsg}`), { headers });
@@ -955,6 +962,22 @@ export default function AdminDashboard({
           </button>
 
           <button
+            onClick={() => setAdminTab('referrals')}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
+              adminTab === 'referrals' ? 'bg-white/5 text-emerald-400 border-l border-emerald-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
+            }`}
+          >
+            <span className="flex items-center gap-2 sm:gap-3">
+              <Gift className="h-4 w-4 shrink-0 text-emerald-400" /> Referrals
+            </span>
+            {referralsData?.totalReferredUsers > 0 && (
+              <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono font-bold text-[9px] px-2 py-0.5 rounded-full shrink-0">
+                {referralsData.totalReferredUsers}
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setAdminTab('logs')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-xs font-semibold uppercase tracking-widest transition-all ${
               adminTab === 'logs' ? 'bg-white/5 text-cyan-400 border-l border-cyan-400 font-bold' : 'text-gray-400 hover:text-white hover:bg-white/[0.01]'
@@ -1087,6 +1110,7 @@ export default function AdminDashboard({
                     <tr>
                       <th className="p-4 font-semibold">User details</th>
                       <th className="p-4 font-semibold">Country / Phone</th>
+                      <th className="p-4 font-semibold text-emerald-400">Referral Origin</th>
                       <th className="p-4 font-semibold">User Login Password</th>
                       <th className="p-4 font-semibold">Verification</th>
                       <th className="p-4 font-semibold">Role</th>
@@ -1114,6 +1138,28 @@ export default function AdminDashboard({
                               <span className="font-medium text-gray-300">{u.country}</span>
                               <span className="text-[10px] text-gray-500 font-mono">{u.phone || 'No phone'}</span>
                             </div>
+                          </td>
+                          <td className="p-4">
+                            {u.referredBy ? (
+                              <div className="flex flex-col text-xs">
+                                <span className="text-emerald-400 font-bold flex items-center gap-1">
+                                  <Gift className="h-3 w-3" /> {u.referredBy.name}
+                                </span>
+                                <span className="text-[10px] text-gray-400 font-mono">
+                                  Code: {u.referredBy.code}
+                                </span>
+                                <span className="text-[9px] text-emerald-500/80 font-mono">
+                                  Ref Country: {u.referredBy.country || 'N/A'}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col">
+                                <span className="text-gray-500 text-[10px] italic">Direct Registration</span>
+                                {u.referralCode && (
+                                  <span className="text-[9px] font-mono text-gray-400">Code: {u.referralCode}</span>
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td className="p-4 font-mono text-xs">
                             <div className="flex items-center gap-2 bg-black/60 px-2.5 py-1.5 rounded-lg border border-white/10 w-fit">
@@ -1173,6 +1219,16 @@ export default function AdminDashboard({
                 </table>
               </div>
             </div>
+          )}
+
+          {/* ---------------- B.2 REFERRAL NETWORK & ATTRIBUTION ---------------- */}
+          {adminTab === 'referrals' && (
+            <AdminReferralsTab 
+              referralsData={referralsData}
+              onRefresh={fetchAdminData}
+              onSelectUser={setSelectedUserDetail}
+              users={users}
+            />
           )}
 
           {/* ---------------- C. KYC APPLICATIONS ---------------- */}
@@ -3190,6 +3246,33 @@ export default function AdminDashboard({
                       <div>
                         <span className="text-gray-500 block text-[10px] uppercase font-mono">Role</span>
                         <span className="text-white font-mono uppercase">{selectedUserDetail.role}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block text-[10px] uppercase font-mono">Referral Origin</span>
+                        {selectedUserDetail.referredBy ? (
+                          <div className="flex flex-col mt-0.5">
+                            <span className="text-emerald-400 font-bold text-xs flex items-center gap-1">
+                              <Gift className="h-3 w-3" /> {selectedUserDetail.referredBy.name}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-mono">
+                              Code: {selectedUserDetail.referredBy.code} • Ref Country: {selectedUserDetail.referredBy.country || 'N/A'}
+                            </span>
+                            <span className="text-[10px] text-emerald-300 font-mono">
+                              User Country: {selectedUserDetail.country || 'United States'}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-500 text-xs italic">Direct (Organic)</span>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-gray-500 block text-[10px] uppercase font-mono">User's Referral Code & Stats</span>
+                        <span className="text-cyan-300 font-mono font-bold text-xs block">
+                          {selectedUserDetail.referralCode || 'Pending Generation'}
+                        </span>
+                        <span className="text-[10px] text-gray-400 block mt-0.5">
+                          Network: {selectedUserDetail.referredCount || 0} referred (${(selectedUserDetail.referralEarnings || 0).toLocaleString()} rewards)
+                        </span>
                       </div>
                     </div>
                   </div>

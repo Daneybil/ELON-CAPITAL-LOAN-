@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, X, ArrowUpRight, ShieldCheck, User as UserIcon, LogOut } from 'lucide-react';
+import { Menu, X, ArrowUpRight, ShieldCheck, User as UserIcon, LogOut, Smartphone, Download, Share2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { User } from '../types';
 import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
@@ -19,6 +19,8 @@ interface NavbarProps {
   onEligibilityClick: () => void;
   onGovernmentWarningClick: () => void;
   onLoanTransparencyClick?: () => void;
+  onOpenDownloadApp?: () => void;
+  onOpenReferrals?: () => void;
 }
 
 export default function Navbar({
@@ -35,6 +37,8 @@ export default function Navbar({
   onEligibilityClick,
   onGovernmentWarningClick,
   onLoanTransparencyClick,
+  onOpenDownloadApp,
+  onOpenReferrals,
 }: NavbarProps) {
   const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -175,6 +179,28 @@ export default function Navbar({
 
           {/* User controls / Auth buttons: Login, Register, Logout */}
           <div className="hidden md:flex items-center gap-3 text-[11px] uppercase tracking-widest" id="nav-actions">
+            <button
+              type="button"
+              onClick={onOpenDownloadApp}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold text-zinc-900 bg-cyan-500/10 hover:bg-cyan-600 hover:text-white border border-cyan-500/30 transition-all cursor-pointer shadow-sm group"
+              title="Download & Install Mobile App (iPhone & Android)"
+              id="btn-nav-download-app"
+            >
+              <Smartphone className="h-3.5 w-3.5 text-cyan-600 group-hover:text-white transition-colors" />
+              <span>App</span>
+            </button>
+            {onOpenReferrals && (
+              <button
+                type="button"
+                onClick={onOpenReferrals}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold text-amber-900 bg-amber-500/15 hover:bg-amber-500 hover:text-black border border-amber-500/40 transition-all cursor-pointer shadow-sm group"
+                title="Referral & Affiliate Program"
+                id="btn-nav-referral"
+              >
+                <Share2 className="h-3.5 w-3.5 text-amber-700 group-hover:text-black transition-colors" />
+                <span>Earn</span>
+              </button>
+            )}
             <LanguageSelector />
             {user ? (
               <div className="flex items-center gap-3">
@@ -301,6 +327,36 @@ export default function Navbar({
           </div>
 
           <hr className="border-stone-300" />
+
+          {/* Download Mobile App Button (iOS & Android) */}
+          <button 
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              onOpenDownloadApp?.();
+            }}
+            className="w-full py-3 px-4 text-center text-sm font-bold text-cyan-950 border border-cyan-500/40 bg-cyan-500/10 hover:bg-cyan-500/20 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+            id="btn-mobile-download-app"
+          >
+            <Smartphone className="h-4 w-4 text-cyan-700" />
+            <span>Download Mobile App (iPhone & Android)</span>
+          </button>
+
+          {/* Referral & Affiliate Program */}
+          {onOpenReferrals && (
+            <button 
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onOpenReferrals();
+              }}
+              className="w-full py-3 px-4 text-center text-sm font-bold text-amber-950 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+              id="btn-mobile-referral"
+            >
+              <Share2 className="h-4 w-4 text-amber-700" />
+              <span>Referral & Affiliates Program</span>
+            </button>
+          )}
 
           <div className="flex flex-col gap-3">
             {user ? (

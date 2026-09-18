@@ -17,6 +17,8 @@ import HowItWorksPage from './components/HowItWorksPage';
 import GovernmentWarningPage from './components/GovernmentWarningPage';
 import LoanTransparencyPage from './components/LoanTransparencyPage';
 import Chatbot from './components/Chatbot';
+import UserReferralModal from './components/UserReferralModal';
+import DownloadAppModal from './components/DownloadAppModal';
 import { Megaphone, X, ShieldAlert, Lock, Mail, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { onAuthStateChanged, createUserWithEmailAndPassword, sendEmailVerification, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth } from './firebase';
@@ -51,6 +53,8 @@ export default function App() {
   // Interactive Overlays
   const [authModalOpen, setAuthModalOpen] = React.useState(false);
   const [authModalMode, setAuthModalMode] = React.useState<'login' | 'register'>('login');
+  const [referralModalOpen, setReferralModalOpen] = React.useState(false);
+  const [downloadAppModalOpen, setDownloadAppModalOpen] = React.useState(false);
 
   // Dynamic Contents
   const [homePage, setHomePage] = React.useState<HomePageContent>({
@@ -364,6 +368,8 @@ export default function App() {
           setDashboardView('government-warning');
         }}
         onLoanTransparencyClick={navigateToTransparency}
+        onOpenDownloadApp={() => setDownloadAppModalOpen(true)}
+        onOpenReferrals={user ? () => setReferralModalOpen(true) : undefined}
       />
 
       {/* Routing Controller */}
@@ -458,6 +464,7 @@ export default function App() {
                 setUser(updatedUser);
                 localStorage.setItem('spaceloan_user', JSON.stringify(updatedUser));
               }}
+              onOpenReferrals={() => setReferralModalOpen(true)}
             />
           </div>
         )}
@@ -522,6 +529,23 @@ export default function App() {
           initialMode={authModalMode}
           onClose={() => setAuthModalOpen(false)}
           onAuthSuccess={handleAuthSuccess}
+        />
+      )}
+
+      {/* Referral & Affiliate Program Modal */}
+      {referralModalOpen && user && (
+        <UserReferralModal
+          isOpen={referralModalOpen}
+          onClose={() => setReferralModalOpen(false)}
+          user={user}
+        />
+      )}
+
+      {/* Download Web App Modal */}
+      {downloadAppModalOpen && (
+        <DownloadAppModal
+          isOpen={downloadAppModalOpen}
+          onClose={() => setDownloadAppModalOpen(false)}
         />
       )}
 

@@ -737,6 +737,20 @@ const syncToFirestore = async (db: DB) => {
 };
 
 // Database state accessor functions
+const ensureUserReferralCodes = (db: DB) => {
+  if (!db || !db.users) return;
+  db.users.forEach((u) => {
+    if (!u.referralCode) {
+      const cleanName = (u.name || 'USER').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase() || 'ELON';
+      const suffix = Math.abs((u.id || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % 9000 + 1000);
+      u.referralCode = `ELON-${cleanName}-${suffix}`;
+    }
+    if (u.referredCount === undefined) {
+      u.referredCount = db.users.filter(other => other.referredBy?.id === u.id || (other.referredBy?.code && other.referredBy.code.toUpperCase() === u.referralCode?.toUpperCase())).length;
+    }
+  });
+};
+
 const getDB = (): DB => {
   if (!isFirestoreSynced) {
     if (fs.existsSync(DB_FILE)) {
@@ -750,18 +764,51 @@ const getDB = (): DB => {
       dbCache = { ...INITIAL_DB, payments: [] };
     }
   }
-  if (dbCache && !dbCache.payments) dbCache.payments = [];
+  if (dbCache) {
+    if (!dbCache.payments) dbCache.payments = [];
+    ensureUserReferralCodes(dbCache);
+  }
   return dbCache;
+};
+
+let saveDbTimer: NodeJS.Timeout | null = null;
+let isWritingDb = false;
+let pendingDbSave: DB | null = null;
+
+const persistDbToDisk = () => {
+  if (isWritingDb || !pendingDbSave) return;
+  const dbToSave = pendingDbSave;
+  pendingDbSave = null;
+  isWritingDb = true;
+
+  fs.writeFile(DB_FILE, JSON.stringify(dbToSave, null, 2), 'utf8', (err) => {
+    isWritingDb = false;
+    if (err) {
+      console.error('Failed to write database file asynchronously', err);
+    }
+    if (pendingDbSave) {
+      setImmediate(persistDbToDisk);
+    }
+  });
+};
+
+let firestoreDebounceTimer: NodeJS.Timeout | null = null;
+const scheduleFirestoreSync = (db: DB) => {
+  if (firestoreDebounceTimer) clearTimeout(firestoreDebounceTimer);
+  firestoreDebounceTimer = setTimeout(() => {
+    syncToFirestore(db).catch(err => console.error('[Firestore Debounced Sync Error]', err));
+  }, 2000);
 };
 
 const saveDB = (db: DB) => {
   dbCache = db;
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf8');
-    syncToFirestore(db);
-  } catch (error) {
-    console.error('Failed to write database file', error);
-  }
+  pendingDbSave = db;
+  if (saveDbTimer) clearTimeout(saveDbTimer);
+  saveDbTimer = setTimeout(() => {
+    persistDbToDisk();
+  }, 30);
+
+  scheduleFirestoreSync(db);
 };
 
 const logAction = (action: string, details: string, user?: { id: string; email: string }, ip = "127.0.0.1") => {
@@ -832,7 +879,7 @@ app.get('/api/announcements', (req, res) => {
 
 // 2. AUTH REGISTRATION
 app.post('/api/auth/register', (req, res) => {
-  const { name, email, phone, country, password, confirmPassword } = req.body;
+  const { name, email, phone, country, password, confirmPassword, referralCode } = req.body;
 
   if (!name || !email || !phone || !country || !password) {
     res.status(400).json({ error: 'All fields are required.' });
@@ -851,6 +898,30 @@ app.post('/api/auth/register', (req, res) => {
     return;
   }
 
+  // Look up referrer if referral code provided
+  let referredByData: User['referredBy'] = undefined;
+  if (referralCode && typeof referralCode === 'string' && referralCode.trim()) {
+    const cleanRef = referralCode.trim().toUpperCase();
+    const referrer = db.users.find(u => 
+      (u.referralCode && u.referralCode.toUpperCase() === cleanRef) ||
+      (u.id && u.id.toUpperCase() === cleanRef) ||
+      (u.email && u.email.toLowerCase() === referralCode.trim().toLowerCase())
+    );
+    if (referrer) {
+      referredByData = {
+        id: referrer.id,
+        name: referrer.name,
+        email: referrer.email,
+        code: referrer.referralCode || referrer.id,
+        country: referrer.country || 'N/A'
+      };
+      referrer.referredCount = (referrer.referredCount || 0) + 1;
+    }
+  }
+
+  const cleanName = (name || 'USER').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase() || 'ELON';
+  const myRefCode = `ELON-${cleanName}-${Math.floor(1000 + Math.random() * 9000)}`;
+
   // Create registration code (verification simulation)
   const code = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -867,13 +938,22 @@ app.post('/api/auth/register', (req, res) => {
     isSuspended: false,
     role: 'user',
     createdAt: new Date().toISOString(),
+    referralCode: myRefCode,
+    referredBy: referredByData,
+    referredCount: 0,
+    referralEarnings: 0,
     notificationPreferences: {
       emailUpdates: true,
       applicationAlerts: true,
       securityAlerts: true
     },
     activityHistory: [
-      { id: generateId(), action: "Account registration initiated", timestamp: new Date().toISOString(), ipAddress: req.ip || "127.0.0.1" }
+      { 
+        id: generateId(), 
+        action: "Account registration initiated" + (referredByData ? ` (Referred by ${referredByData.name} - ${referredByData.code})` : ''), 
+        timestamp: new Date().toISOString(), 
+        ipAddress: req.ip || "127.0.0.1" 
+      }
     ]
   };
 
@@ -1122,7 +1202,7 @@ app.post('/api/auth/firebase-sync', (req, res) => {
     return;
   }
 
-  const { uid, email, name, phone, country, isVerified, role, password } = req.body;
+  const { uid, email, name, phone, country, isVerified, role, password, referralCode } = req.body;
 
   if (!email) {
     res.status(400).json({ error: 'Email is required for synchronization.' });
@@ -1195,6 +1275,30 @@ app.post('/api/auth/firebase-sync', (req, res) => {
     } else {
       // 3. Create a new user record in database.json
       const isAdminRole = lowerEmail === envAdminEmail || role === 'admin';
+      
+      let referredByData: User['referredBy'] = undefined;
+      if (referralCode && typeof referralCode === 'string' && referralCode.trim()) {
+        const cleanRef = referralCode.trim().toUpperCase();
+        const referrer = db.users.find(u => 
+          (u.referralCode && u.referralCode.toUpperCase() === cleanRef) ||
+          (u.id && u.id.toUpperCase() === cleanRef) ||
+          (u.email && u.email.toLowerCase() === referralCode.trim().toLowerCase())
+        );
+        if (referrer) {
+          referredByData = {
+            id: referrer.id,
+            name: referrer.name,
+            email: referrer.email,
+            code: referrer.referralCode || referrer.id,
+            country: referrer.country || 'N/A'
+          };
+          referrer.referredCount = (referrer.referredCount || 0) + 1;
+        }
+      }
+
+      const cleanName = (name || lowerEmail.split('@')[0] || 'USER').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase() || 'ELON';
+      const myRefCode = `ELON-${cleanName}-${Math.floor(1000 + Math.random() * 9000)}`;
+
       user = {
         id: uid || generateId(),
         name: name || lowerEmail.split('@')[0],
@@ -1207,13 +1311,22 @@ app.post('/api/auth/firebase-sync', (req, res) => {
         isSuspended: false,
         role: isAdminRole ? 'admin' : 'user',
         createdAt: new Date().toISOString(),
+        referralCode: myRefCode,
+        referredBy: referredByData,
+        referredCount: 0,
+        referralEarnings: 0,
         notificationPreferences: {
           emailUpdates: true,
           applicationAlerts: true,
           securityAlerts: true
         },
         activityHistory: [
-          { id: generateId(), action: "Account created via Firebase Auth", timestamp: new Date().toISOString(), ipAddress: ip }
+          { 
+            id: generateId(), 
+            action: "Account created via Firebase Auth" + (referredByData ? ` (Referred by ${referredByData.name} - ${referredByData.code})` : ''), 
+            timestamp: new Date().toISOString(), 
+            ipAddress: ip 
+          }
         ]
       };
       db.users.push(user);
@@ -1606,7 +1719,8 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
     saveDB(db);
     logAction("Funding Application Updated", `Application ${existingActiveLoan.id} updated with new verification documents by ${req.user!.email} for $${amount}`, { id: req.user!.id, email: req.user!.email }, req.ip);
 
-    res.json({ message: 'Application updated and submitted successfully.', application: existingActiveLoan });
+    const syncedKyc = db.kyc.find(k => k.userId === req.user!.id);
+    res.json({ message: 'Application updated and submitted successfully.', application: existingActiveLoan, kyc: syncedKyc });
     return;
   }
 
@@ -1626,6 +1740,7 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
       requestedAmount: amount
     },
     financialInfo,
+    referredBy: req.user!.referredBy,
     status: 'Pending',
     requiresEnhancedVerification,
     documents: documents || [],
@@ -1658,15 +1773,18 @@ app.post('/api/loans/apply', authenticateToken, (req, res) => {
 
   logAction("Funding Application", `Application ${newApplication.id} submitted by ${req.user!.email} for $${amount}`, { id: req.user!.id, email: req.user!.email }, req.ip);
 
-  // Dispatch formal email receipt to the applicant
-  sendPlatformEmail({
-    to: resolvedEmail,
-    subject: `Elon Capital Loan - Application Received (${newApplication.id})`,
-    category: 'Loan Application',
-    text: `Dear ${resolvedFullName},\n\nYour institutional loan application (${newApplication.id}) for $${amount.toLocaleString()} has been received and logged into Elon Capital's underwriting pipeline.\n\nOur underwriting team and automatic risk analysis algorithms review applications with priority dispatch. You will receive an immediate update once your institutional review is completed.`
-  }).catch(err => console.error('[LOAN SUBMISSION EMAIL ERROR]', err));
+  // Dispatch formal email receipt to the applicant in background (completely non-blocking)
+  setImmediate(() => {
+    sendPlatformEmail({
+      to: resolvedEmail,
+      subject: `Elon Capital Loan - Application Received (${newApplication.id})`,
+      category: 'Loan Application',
+      text: `Dear ${resolvedFullName},\n\nYour institutional loan application (${newApplication.id}) for $${amount.toLocaleString()} has been received and logged into Elon Capital's underwriting pipeline.\n\nOur underwriting team and automatic risk analysis algorithms review applications with priority dispatch. You will receive an immediate update once your institutional review is completed.`
+    }).catch(err => console.error('[LOAN SUBMISSION EMAIL ERROR]', err));
+  });
 
-  res.json({ message: 'Application submitted successfully.', application: newApplication });
+  const syncedKyc = db.kyc.find(k => k.userId === req.user!.id);
+  res.json({ message: 'Application submitted successfully.', application: newApplication, kyc: syncedKyc });
 });
 
 app.get('/api/loans/list', authenticateToken, (req, res) => {
@@ -2923,6 +3041,130 @@ app.get('/api/admin/users', authenticateToken, requireAdmin, (req, res) => {
   }
 
   res.json(filteredUsers);
+});
+
+// User Referral Program Endpoint
+app.get('/api/user/referrals', authenticateToken, (req, res) => {
+  const db = getDB();
+  const user = db.users.find(u => u.id === req.user!.id);
+  if (!user) {
+    res.status(404).json({ error: 'User not found.' });
+    return;
+  }
+
+  const myCode = user.referralCode || `ELON-${(user.name || 'USER').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase()}-7721`;
+  const myReferred = db.users.filter(u => u.referredBy?.id === user.id || (u.referredBy?.code && u.referredBy.code.toUpperCase() === myCode.toUpperCase()));
+
+  const referrals = myReferred.map(u => {
+    const loans = db.loans.filter(l => l.userId === u.id);
+    const latestLoan = loans[loans.length - 1];
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email ? (u.email.slice(0, 3) + '***@' + u.email.split('@')[1]) : 'User',
+      country: u.country || 'N/A',
+      registeredAt: u.createdAt,
+      isVerified: u.isVerified,
+      loanStatus: latestLoan ? latestLoan.status : 'Pending Application',
+      rewardAmount: latestLoan && ((latestLoan.status as string) === 'Approved' || (latestLoan.status as string) === 'Active' || (latestLoan.status as string) === 'Disbursed') ? 100 : 0
+    };
+  });
+
+  const totalRewards = referrals.reduce((sum, r) => sum + r.rewardAmount, 0);
+
+  res.json({
+    referralCode: myCode,
+    totalReferred: referrals.length,
+    verifiedCount: referrals.filter(r => r.isVerified).length,
+    totalRewards,
+    referrals
+  });
+});
+
+// Admin Referral Oversight & Audit Endpoint
+app.get('/api/admin/referrals', authenticateToken, requireAdmin, (req, res) => {
+  const db = getDB();
+
+  // All users that were referred by someone
+  const referredUsers = db.users.filter(u => !!u.referredBy);
+  
+  const referralsList = referredUsers.map(u => {
+    const referrer = db.users.find(r => r.id === u.referredBy?.id || (r.referralCode && r.referralCode.toUpperCase() === u.referredBy?.code?.toUpperCase()));
+    const userLoans = db.loans.filter(l => l.userId === u.id);
+    const latestLoan = userLoans[userLoans.length - 1];
+
+    return {
+      userId: u.id,
+      userName: u.name,
+      userEmail: u.email,
+      userCountry: u.country || 'Not Specified', // REFERRED USER COUNTRY (Requested specifically)
+      userPhone: u.phone,
+      registeredAt: u.createdAt,
+      isVerified: u.isVerified,
+      referrerId: u.referredBy?.id || referrer?.id || 'N/A',
+      referrerName: u.referredBy?.name || referrer?.name || 'Unknown Referrer',
+      referrerEmail: u.referredBy?.email || referrer?.email || 'N/A',
+      referrerCode: u.referredBy?.code || referrer?.referralCode || 'N/A',
+      referrerCountry: u.referredBy?.country || referrer?.country || 'N/A',
+      hasLoan: userLoans.length > 0,
+      loanStatus: latestLoan ? latestLoan.status : 'None',
+      loanAmount: latestLoan ? (latestLoan.fundingDetails?.requestedAmount || 0) : 0
+    };
+  });
+
+  // Calculate top referrers
+  const referrerMap: Record<string, {
+    id: string;
+    name: string;
+    email: string;
+    code: string;
+    country: string;
+    referredCount: number;
+    activeLoansCount: number;
+    totalLoanVolume: number;
+  }> = {};
+
+  db.users.forEach(u => {
+    const count = referralsList.filter(r => r.referrerId === u.id || (u.referralCode && r.referrerCode.toUpperCase() === u.referralCode.toUpperCase())).length;
+    if (count > 0 || (u.referredCount && u.referredCount > 0)) {
+      referrerMap[u.id] = {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        code: u.referralCode || 'ELON-REF',
+        country: u.country || 'N/A',
+        referredCount: Math.max(count, u.referredCount || 0),
+        activeLoansCount: 0,
+        totalLoanVolume: 0
+      };
+    }
+  });
+
+  referralsList.forEach(item => {
+    if (item.referrerId && referrerMap[item.referrerId]) {
+      if (item.hasLoan) {
+        referrerMap[item.referrerId].activeLoansCount += 1;
+        referrerMap[item.referrerId].totalLoanVolume += item.loanAmount;
+      }
+    }
+  });
+
+  const topReferrers = Object.values(referrerMap).sort((a, b) => b.referredCount - a.referredCount);
+
+  // Calculate country breakdown of referred users
+  const countryBreakdown: Record<string, number> = {};
+  referralsList.forEach(r => {
+    const c = r.userCountry || 'Unknown';
+    countryBreakdown[c] = (countryBreakdown[c] || 0) + 1;
+  });
+
+  res.json({
+    totalReferredUsers: referralsList.length,
+    totalReferrers: Object.keys(referrerMap).length,
+    countryBreakdown,
+    topReferrers,
+    referralsList
+  });
 });
 
 // Suspend/Unsuspend User

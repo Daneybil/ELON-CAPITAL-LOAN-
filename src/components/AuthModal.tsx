@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, ShieldCheck, Mail, Lock, User as UserIcon, Phone, Globe, ArrowRight, RefreshCw, Key, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { X, ShieldCheck, Mail, Lock, User as UserIcon, Phone, Globe, ArrowRight, RefreshCw, Key, ArrowLeft, Eye, EyeOff, Gift } from 'lucide-react';
 import { User } from '../types';
 import logoImg from '../assets/images/elon_capital_logo_1785585548636.jpg';
 import { 
@@ -43,8 +43,24 @@ export default function AuthModal({
   const [regDialCode, setRegDialCode] = React.useState('+1');
   const [regPassword, setRegPassword] = React.useState('');
   const [regConfirmPassword, setRegConfirmPassword] = React.useState('');
+  const [regReferralCode, setRegReferralCode] = React.useState('');
   const [showRegPassword, setShowRegPassword] = React.useState(false);
   const [showRegConfirmPassword, setShowRegConfirmPassword] = React.useState(false);
+
+  // Sync initial referral code from URL or localStorage
+  React.useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlRef = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('refcode');
+      const storedRef = localStorage.getItem('elon_referral_code');
+      const activeRef = urlRef || storedRef;
+      if (activeRef && !regReferralCode) {
+        setRegReferralCode(activeRef.trim().toUpperCase());
+      }
+    } catch (e) {
+      // Ignore URL parsing errors
+    }
+  }, [isOpen]);
 
   // Complete Profile States (for Google first-time login)
   const [tempToken, setTempToken] = React.useState('');
@@ -149,7 +165,8 @@ export default function AuthModal({
               phone: `${regDialCode} ${regPhone}`.trim(),
               country: regCountry,
               password: regPassword,
-              confirmPassword: regConfirmPassword
+              confirmPassword: regConfirmPassword,
+              referralCode: regReferralCode.trim() || undefined
             })
           });
           const serverData = await parseJsonResponse(serverRegRes);
@@ -179,6 +196,7 @@ export default function AuthModal({
           phone: fullPhone,
           country: regCountry,
           password: regPassword,
+          referralCode: regReferralCode.trim() || undefined,
           isVerified: false
         })
       });
@@ -350,6 +368,7 @@ export default function AuthModal({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           name: firebaseUser.displayName,
+          referralCode: localStorage.getItem('elon_referral_code') || regReferralCode.trim() || undefined,
           isVerified: true
         })
       });
@@ -724,6 +743,32 @@ export default function AuthModal({
                   />
                 </div>
               </div>
+            </div>
+
+            {/* REFERRAL CODE (OPTIONAL) */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm sm:text-base font-black text-white uppercase tracking-wider text-left flex items-center gap-2">
+                  <Gift className="h-4 w-4 text-emerald-400" /> Referral Code (Optional)
+                </label>
+                {regReferralCode && (
+                  <span className="text-[11px] font-mono font-bold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                    Applied
+                  </span>
+                )}
+              </div>
+              <div className="relative bg-black/90 border-2 border-emerald-500/40 focus-within:border-emerald-400 rounded-2xl transition-all shadow-[inset_0_2px_6px_rgba(0,0,0,0.8)]">
+                <input 
+                  type="text" 
+                  value={regReferralCode}
+                  onChange={(e) => setRegReferralCode(e.target.value.toUpperCase())}
+                  className="w-full px-4 py-3.5 bg-transparent border-0 focus:ring-0 focus:outline-none text-base text-emerald-300 font-mono font-bold tracking-wider placeholder-gray-500 uppercase"
+                  placeholder="e.g. ELON-JOHN-1234"
+                />
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5 text-left">
+                Referred by an existing borrower or affiliate partner? Enter their code above.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

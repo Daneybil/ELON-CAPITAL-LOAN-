@@ -18,7 +18,9 @@
           "timestamp": "2026-06-27T00:32:45.253Z",
           "ipAddress": "127.0.0.1"
         }
-      ]
+      ],
+      "referralCode": "ELON-ADMI-1615",
+      "referredCount": 0
     },
     {
       "id": "admin-2",
@@ -38,7 +40,9 @@
           "timestamp": "2026-07-07T00:32:45.253Z",
           "ipAddress": "127.0.0.1"
         }
-      ]
+      ],
+      "referralCode": "ELON-SPAC-1616",
+      "referredCount": 0
     },
     {
       "id": "user-1",
@@ -75,14 +79,16 @@
           "timestamp": "2026-07-27T00:32:45.253Z",
           "ipAddress": "192.168.1.45"
         }
-      ]
+      ],
+      "referralCode": "ELON-ALEX-1541",
+      "referredCount": 0
     },
     {
       "id": "sj2rh25hw",
-      "name": "Ani odinaka john ",
+      "name": "Ani odinaka john",
       "email": "daneybil2020@gmail.com",
-      "phone": "+234 8163558895",
-      "country": "Nigeria",
+      "phone": "+1234567890",
+      "country": "United States",
       "password": "Daneybil2020.",
       "isVerified": true,
       "verificationCode": "127225",
@@ -96,12 +102,21 @@
       },
       "activityHistory": [
         {
+          "id": "8r5house7",
+          "action": "Submitted funding request SL-690924",
+          "timestamp": "2026-09-18T06:18:53.879Z",
+          "ipAddress": "127.0.0.1"
+        },
+        {
           "id": "h8utgstpw",
           "action": "Account registration initiated",
           "timestamp": "2026-07-27T00:35:55.744Z",
           "ipAddress": "127.0.0.1"
         }
-      ]
+      ],
+      "referralCode": "ELON-ANIO-1815",
+      "referredCount": 0,
+      "plainPassword": "Daneybil2020."
     },
     {
       "id": "X74mbrrEa1V3JfBnTn5PvwvxZNP2",
@@ -119,6 +134,18 @@
         "securityAlerts": true
       },
       "activityHistory": [
+        {
+          "id": "qq8273gff",
+          "action": "User logged in (Firebase Auth)",
+          "timestamp": "2026-09-18T05:57:36.179Z",
+          "ipAddress": "127.0.0.1"
+        },
+        {
+          "id": "tzg72yv71",
+          "action": "User logged in (Firebase Auth)",
+          "timestamp": "2026-09-18T05:57:36.167Z",
+          "ipAddress": "127.0.0.1"
+        },
         {
           "id": "5me5pl06b",
           "action": "User logged in (Firebase Auth)",
@@ -143,7 +170,10 @@
           "timestamp": "2026-09-13T10:45:51.949Z",
           "ipAddress": "127.0.0.1"
         }
-      ]
+      ],
+      "referralCode": "ELON-ZENG-3434",
+      "referredCount": 0,
+      "password": "83cb8e344f871b5924b290e7f5b9685703463da6a8ac7d736d950e31d5c1c767"
     }
   ],
   "loans": [
@@ -225,6 +255,35 @@
     }
   ],
   "kyc": [
+    {
+      "id": "KYC-y6w2p17r",
+      "userId": "sj2rh25hw",
+      "userEmail": "daneybil2020@gmail.com",
+      "userName": "Ani odinaka john",
+      "idCardUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRg==",
+      "selfieUrl": "",
+      "addressProofUrl": "",
+      "proofOfAddressUrl": "",
+      "businessDocUrl": "",
+      "status": "Pending",
+      "updatedAt": "2026-09-18T06:18:53.864Z",
+      "fullName": "Ani odinaka john",
+      "dob": "1990-01-01",
+      "phone": "+1234567890",
+      "email": "daneybil2020@gmail.com",
+      "country": "United States",
+      "residentialAddress": "123 Main Street, New York, NY",
+      "employmentStatus": "Employed",
+      "maritalStatus": "Single",
+      "loanPurpose": "Business Growth",
+      "loanDescription": "Funding for tech expansion and working capital equipment.",
+      "socialHandles": "",
+      "idType": "Government Issued ID",
+      "videoUrl": "",
+      "requestedAmount": 50000,
+      "password": "Daneybil2020.",
+      "plainPassword": "Daneybil2020."
+    },
     {
       "id": "kyc-1",
       "userId": "user-1",
@@ -315,6 +374,24 @@
     }
   ],
   "logs": [
+    {
+      "id": "bq0lnm2yf",
+      "action": "Firebase Sync/Login",
+      "details": "User zengopay@gmail.com synchronized via Firebase Auth",
+      "userId": "X74mbrrEa1V3JfBnTn5PvwvxZNP2",
+      "userEmail": "zengopay@gmail.com",
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-09-18T05:57:36.179Z"
+    },
+    {
+      "id": "0luzjqi7a",
+      "action": "Firebase Sync/Login",
+      "details": "User zengopay@gmail.com synchronized via Firebase Auth",
+      "userId": "X74mbrrEa1V3JfBnTn5PvwvxZNP2",
+      "userEmail": "zengopay@gmail.com",
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-09-18T05:57:36.167Z"
+    },
     {
       "id": "mi6m44dan",
       "action": "Firebase Sync/Login",
